@@ -1,0 +1,200 @@
+# Requirements Discovery Copilot
+
+A facilitator's copilot for **live customer discovery conversations**. As a
+conversation streams in, the application derives candidate **objectives,
+stakeholder needs, requirements, constraints, assumptions, risks, decisions,
+and open questions** — and keeps every derived item **traceable back to the
+exact transcript evidence** it came from.
+
+The facilitator follows a configurable **discovery script**, lets customer
+answers spawn **conversation branches**, validates inferred items through an
+explicit human-confirmation workflow, and at the end exports a structured
+**discovery package** (JSON + Markdown).
+
+> This repository is the **first production-oriented increment**. External
+> speech-to-text and LLM calls are **mocked** behind provider interfaces so the
+> whole system runs with **no API keys**. See [Current limitations](#current-limitations).
+
+---
+
+## Product purpose
+
+Discovery calls produce requirements that are frequently untraceable,
+prematurely "confirmed", or lost between the conversation and the spec. This
+tool treats **evidence-first traceability** and **human validation before
+baselining** as non-negotiable:
+
+- Every candidate artifact records its **source evidence**, **interpretation
+  rationale**, **confidence**, **derivation method**, and **validation state**.
+- A model-inferred requirement is **never** marked customer-confirmed without an
+  explicit user action or explicit confirmation evidence.
+- The scripted conversation stays the anchor while answer-driven branches keep
+  their own evidence and derived artifacts.
+
+## Architecture summary
+
+Monorepo with a clear front-end / back-end split:
+
+```
+apps/web   Next.js + React + TypeScript + Tailwind + shadcn-style UI + TanStack Query
+apps/api   FastAPI + Pydantic + SQLAlchemy + Alembic + PostgreSQL
+packages/  domain (shared TS types), client (typed API client), ui, config
+```
+
+- The API owns the domain, persistence, an internal **event bus**, and provider
+  abstractions (`SpeechToTextProvider`, `LanguageModelProvider`,
+  `EmbeddingProvider`, `ArtifactExporter`, `SessionRepository`, `EventBus`).
+- The web app renders the six core visualizations and never embeds business
+  logic — it reads typed server state and issues intent-level mutations.
+- Streaming (transcript segments, candidate artifacts, evidence, tree/branch
+  changes, recommendations) flows over a WebSocket; the transport is designed so
+  a real STT feed can replace the mock without touching components.
+
+See [`docs/architecture/README.md`](docs/architecture/README.md) for context,
+container, component, event-flow, derivation-sequence, and data-model diagrams
+(Mermaid), and [`docs/adr`](docs/adr) for the architecture decisions.
+
+## Prototype reference
+
+The interaction and visual-design reference is the static prototype at
+[`docs/product/prototype/customer_requirements_copilot_v41.html`](docs/product/prototype/customer_requirements_copilot_v41.html)
+(open it directly in a browser). The mapping from each prototype panel to its
+production component and service is in
+[`docs/product/prototype-mapping.md`](docs/product/prototype-mapping.md).
+
+## Local setup
+
+### Option A — Docker Compose (recommended)
+
+```bash
+cp .env.example .env
+make up            # postgres + api + web (+ optional redis)
+make seed          # load the warehouse-modernization demo session
+open http://localhost:3000
+```
+
+- Web: http://localhost:3000
+- API: http://localhost:8000 (OpenAPI docs at `/docs`)
+
+### Option B — run services directly
+
+```bash
+# API
+cd apps/api
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+export DATABASE_URL=postgresql+psycopg://copilot:copilot@localhost:5432/copilot
+alembic upgrade head
+python -m app.seed          # seed demo data
+uvicorn app.main:app --reload
+
+# Web
+cd apps/web
+npm install
+npm run dev
+```
+
+If no PostgreSQL is available, the API falls back to a local SQLite database
+(`DATABASE_URL=sqlite+pysqlite:///./copilot.db`) so tests and the demo still run.
+
+## Environment variables
+
+See [`.env.example`](.env.example) for the full list. Key ones:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `DATABASE_URL` | SQLAlchemy URL | `postgresql+psycopg://copilot:copilot@db:5432/copilot` |
+| `REDIS_URL` | Optional event-bus/cache backend | _(unset → in-memory)_ |
+| `STT_PROVIDER` | Speech-to-text provider id | `mock` |
+| `LLM_PROVIDER` | Language-model provider id | `mock` |
+| `EMBEDDING_PROVIDER` | Embedding provider id | `mock` |
+| `EVENT_BUS` | `memory` or `redis` | `memory` |
+| `CORS_ORIGINS` | Allowed web origins | `http://localhost:3000` |
+| `NEXT_PUBLIC_API_BASE_URL` | Web → API base URL | `http://localhost:8000` |
+| `LOG_LEVEL` | Structured log level | `INFO` |
+
+**No secrets are committed.** All configuration is environment-driven.
+
+## Development commands
+
+| Command | Description |
+|---------|-------------|
+| `make up` / `make down` | Start / stop the Docker Compose stack |
+| `make seed` | Seed the demonstration session |
+| `make api` | Run the API locally with reload |
+| `make web` | Run the web app locally |
+| `make lint` | Ruff + mypy (api) and ESLint + tsc (web) |
+| `make format` | Ruff format + Prettier |
+| `make test` | All backend + frontend tests |
+| `make e2e` | The full end-to-end discovery scenario |
+| `make export` | Export the seeded session's discovery package |
+
+## Testing commands
+
+```bash
+make test              # everything
+cd apps/api && pytest  # backend unit/integration/e2e
+cd apps/web && npm test # frontend component/state tests
+```
+
+Backend coverage: domain models, API routes, evidence-link validation,
+artifact state transitions, branch creation/merge, export, and one full
+end-to-end scenario. Frontend coverage: components, selection state,
+transcript→artifact navigation, tree interaction, script advancement, and
+branch visualization.
+
+## Repository map
+
+```
+requirements-discovery-copilot/
+├── apps/
+│   ├── web/                 Next.js front end (six visualizations)
+│   └── api/                 FastAPI back end (domain, services, providers)
+├── packages/
+│   ├── domain/              Shared TypeScript domain types + Zod schemas
+│   ├── client/              Typed API client used by the web app
+│   ├── ui/                  Shared UI primitives / tokens
+│   └── config/              Shared tsconfig / eslint / tailwind presets
+├── docs/
+│   ├── architecture/        C4 + event + sequence + data-model diagrams
+│   ├── adr/                 Architecture decision records (0001–0008)
+│   ├── api/                 API guide + sample payloads
+│   ├── domain/              Domain glossary
+│   └── product/             MVP scope, personas, journeys, prototype ref
+├── fixtures/                Seed scenario (warehouse modernization)
+├── scripts/                 Dev/seed/export helpers
+├── tests/                   Cross-cutting e2e docs
+├── docker-compose.yml
+├── Makefile
+├── README.md · CONTRIBUTING.md · SECURITY.md · LICENSE · .env.example
+```
+
+## Current limitations
+
+- **STT and LLM are mocked.** `MockLanguageModelProvider` derives artifacts with
+  deterministic keyword/heuristic rules, not a real model. Confidence values are
+  illustrative.
+- **Auth is stubbed.** A single facilitator identity is assumed; role-based
+  access control is designed (see `SECURITY.md`) but not enforced.
+- **Streaming** replays mock events; there is no real audio ingestion yet.
+- **Exports:** JSON and Markdown only. CSV/DOCX/ReqIF/Jira/DOORS/SysML are
+  designed for via the `ArtifactExporter` interface but not implemented.
+- **No compliance claims.** Security features are architectural placeholders
+  unless explicitly implemented and verified.
+
+## Roadmap
+
+Grouped backlog lives in [`docs/product/backlog.md`](docs/product/backlog.md):
+
+- **MVP (this increment):** runnable web + API, schema/migrations, seeded demo,
+  simulated streaming, artifact/evidence CRUD, tree, script panel, git/subway
+  visualizations, coverage matrix, human confirmation, JSON/MD export, tests.
+- **Increment 2:** real STT streaming adapter, LLM-backed derivation, auth +
+  RBAC, richer graph editing, CSV/DOCX export.
+- **Increment 3:** multi-facilitator collaboration, embeddings-based clustering,
+  redaction pipeline, audit logging.
+- **Future integrations:** ReqIF, Jira, DOORS, SysML exporters; enterprise SSO.
+
+## License
+
+[MIT](LICENSE).

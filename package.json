@@ -1,0 +1,24 @@
+{
+  "name": "requirements-discovery-copilot",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A facilitator's copilot for live customer discovery conversations with evidence-first requirement traceability.",
+  "license": "MIT",
+  "workspaces": [
+    "apps/web",
+    "packages/domain",
+    "packages/client",
+    "packages/ui",
+    "packages/config"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace apps/web",
+    "build": "npm run build --workspace apps/web",
+    "lint": "npm run lint --workspace apps/web",
+    "test": "npm test --workspace apps/web",
+    "typecheck": "npm run typecheck --workspace apps/web"
+  },
+  "engines": {
+    "node": ">=18.18"
+  }
+}

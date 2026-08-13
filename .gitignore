@@ -216,3 +216,28 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ---------------------------------------------------------------------------
+# Node / Next.js / monorepo
+# ---------------------------------------------------------------------------
+node_modules/
+.next/
+out/
+.turbo/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local DBs used by the fallback SQLite mode
+*.db
+copilot.db
+
+# OS
+.DS_Store
+Thumbs.db
