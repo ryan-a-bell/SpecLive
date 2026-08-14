@@ -26,6 +26,7 @@ class TranscriptEvent:
     is_final: bool
     segment_id: str = field(default_factory=lambda: str(uuid4()))
     speaker: str | None = None
+    speaker_confidence: float | None = None
     start_time: float | None = None
     end_time: float | None = None
 

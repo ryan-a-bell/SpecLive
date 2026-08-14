@@ -106,6 +106,7 @@ See [`.env.example`](.env.example) for the full list. Key ones:
 | `DATABASE_URL` | SQLAlchemy URL | `postgresql+psycopg://copilot:copilot@db:5432/copilot` |
 | `REDIS_URL` | Optional event-bus/cache backend | _(unset → in-memory)_ |
 | `STT_PROVIDER` | Speech-to-text provider id | `mock` |
+| `STT_SPEAKER_DETECTION` | Advertise server-side voice labeling support | `false` |
 | `OPENAI_API_KEY` | Required for `STT_PROVIDER=openai` | _(unset)_ |
 | `WISPR_FLOW_API_KEY` | Required for `STT_PROVIDER=wispr` | _(unset)_ |
 | `WISPR_FLOW_ACCESS_TOKEN` | Wispr streaming-session token | _(unset)_ |
@@ -180,7 +181,9 @@ requirements-discovery-copilot/
   illustrative. Local STT uses fixed-duration pseudo-streaming chunks.
 - **Auth is stubbed.** A single facilitator identity is assumed; role-based
   access control is designed (see `SECURITY.md`) but not enforced.
-- **Speaker diarization** is not yet assigned for live microphone segments.
+- **Speaker diarization:** the data model, auto/manual mode, stable voice grouping,
+  confidence, and correction workflow are implemented. Production-quality voice
+  clustering still depends on the configured server-side diarization engine.
 - **Exports:** JSON and Markdown only. CSV/DOCX/ReqIF/Jira/DOORS/SysML are
   designed for via the `ArtifactExporter` interface but not implemented.
 - **No compliance claims.** Security features are architectural placeholders

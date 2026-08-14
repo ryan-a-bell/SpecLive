@@ -21,6 +21,7 @@ from .enums import (
     EvidenceRelationship,
     SessionStatus,
     Speaker,
+    SpeakerSource,
     ValidationState,
 )
 
@@ -55,6 +56,10 @@ class TranscriptSegment(DomainModel):
     session_id: str
     sequence_number: int
     speaker: Speaker
+    speaker_id: str | None = None
+    speaker_name: str | None = None
+    speaker_source: SpeakerSource = SpeakerSource.UNKNOWN
+    speaker_confidence: float | None = None
     start_time: float | None = None  # seconds from session start
     end_time: float | None = None
     text: str

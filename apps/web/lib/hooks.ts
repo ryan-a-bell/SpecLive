@@ -97,6 +97,22 @@ export function useAddSegment(id: string) {
   });
 }
 
+export function useCorrectTranscriptSpeaker(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      segmentId,
+      ...body
+    }: {
+      segmentId: string;
+      speaker: "facilitator" | "customer" | "participant" | "system" | "unknown";
+      speaker_name: string;
+      apply_to_voice: boolean;
+    }) => api.correctTranscriptSpeaker(id, segmentId, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.transcript(id) }),
+  });
+}
+
 export function useAnalyze(id: string) {
   const invalidate = useInvalidateSession(id);
   return useMutation({ mutationFn: () => api.analyze(id), onSuccess: invalidate });

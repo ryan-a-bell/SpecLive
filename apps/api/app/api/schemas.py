@@ -13,6 +13,7 @@ from ..domain.enums import (
     EvidenceRelationship,
     SessionStatus,
     Speaker,
+    SpeakerSource,
     ValidationState,
 )
 
@@ -40,6 +41,16 @@ class TranscriptSegmentCreate(BaseModel):
     end_time: float | None = None
     is_final: bool = True
     sequence_number: int | None = None
+    speaker_id: str | None = None
+    speaker_name: str | None = None
+    speaker_source: SpeakerSource = SpeakerSource.MANUAL
+    speaker_confidence: float | None = None
+
+
+class TranscriptSpeakerCorrection(BaseModel):
+    speaker: Speaker
+    speaker_name: str = Field(min_length=1, max_length=255)
+    apply_to_voice: bool = True
 
 
 class TranscriptionAudioFormat(BaseModel):
@@ -51,6 +62,7 @@ class TranscriptionAudioFormat(BaseModel):
 class TranscriptionCapability(BaseModel):
     available: bool
     supports_partials: bool
+    supports_speaker_detection: bool
     audio: TranscriptionAudioFormat = Field(default_factory=TranscriptionAudioFormat)
     max_frame_seconds: int = 5
 

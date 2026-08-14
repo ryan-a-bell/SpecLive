@@ -11,6 +11,7 @@ vi.mock("@/lib/hooks", async () => {
       data: {
         available: false,
         supports_partials: false,
+        supports_speaker_detection: false,
         audio: { encoding: "pcm_s16le", sample_rate: 16000, channels: 1 },
         max_frame_seconds: 5,
       },

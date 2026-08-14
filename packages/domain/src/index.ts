@@ -52,8 +52,11 @@ export const EvidenceRelationship = z.enum([
 ]);
 export type EvidenceRelationship = z.infer<typeof EvidenceRelationship>;
 
-export const Speaker = z.enum(["facilitator", "customer", "system", "unknown"]);
+export const Speaker = z.enum(["facilitator", "customer", "participant", "system", "unknown"]);
 export type Speaker = z.infer<typeof Speaker>;
+
+export const SpeakerSource = z.enum(["manual", "detected", "corrected", "unknown"]);
+export type SpeakerSource = z.infer<typeof SpeakerSource>;
 
 export const CoverageState = z.enum([
   "unanswered",
@@ -84,6 +87,10 @@ export const TranscriptSegment = z.object({
   session_id: z.string(),
   sequence_number: z.number(),
   speaker: Speaker,
+  speaker_id: z.string().nullable().optional(),
+  speaker_name: z.string().nullable().optional(),
+  speaker_source: SpeakerSource.default("unknown"),
+  speaker_confidence: z.number().nullable().optional(),
   start_time: z.number().nullable().optional(),
   end_time: z.number().nullable().optional(),
   text: z.string(),
@@ -284,7 +291,11 @@ export const LiveTranscriptFrame = z.object({
   segment_id: z.string(),
   text: z.string(),
   is_final: z.boolean(),
-  speaker: z.string().nullable(),
+  speaker: Speaker,
+  speaker_id: z.string().nullable(),
+  speaker_name: z.string().nullable(),
+  speaker_source: SpeakerSource,
+  speaker_confidence: z.number().nullable(),
   start_time: z.number().nullable(),
   end_time: z.number().nullable(),
 });
@@ -302,6 +313,11 @@ export const TranscriptionServerFrame = z.union([
   LiveTranscriptFrame,
   TranscriptionErrorFrame,
   z.object({
+    type: z.literal("transcription.configured"),
+    session_id: z.string(),
+    speaker_mode: z.enum(["auto", "manual"]),
+  }),
+  z.object({
     type: z.literal("transcription.stopped"),
     session_id: z.string(),
     committed: z.boolean(),
@@ -312,6 +328,7 @@ export type TranscriptionServerFrame = z.infer<typeof TranscriptionServerFrame>;
 export const TranscriptionCapability = z.object({
   available: z.boolean(),
   supports_partials: z.boolean(),
+  supports_speaker_detection: z.boolean(),
   audio: z.object({
     encoding: z.literal("pcm_s16le"),
     sample_rate: z.literal(16000),

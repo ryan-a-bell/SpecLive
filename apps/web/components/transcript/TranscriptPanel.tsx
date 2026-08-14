@@ -7,9 +7,14 @@ import { useWorkspaceStore } from "@/lib/store";
 import { EvidenceText } from "./EvidenceText";
 import { StatementComposer } from "./StatementComposer";
 import { LiveTranscriptionControls } from "./LiveTranscriptionControls";
+import { SpeakerLabelEditor } from "./SpeakerLabelEditor";
 
-function initials(speaker: string): string {
-  return speaker === "customer" ? "CM" : speaker === "facilitator" ? "RB" : "SY";
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "?";
 }
 
 export function TranscriptPanel({ sessionId }: { sessionId: string }) {
@@ -68,15 +73,15 @@ export function TranscriptPanel({ sessionId }: { sessionId: string }) {
                   seg.speaker === "customer" ? "bg-[#24433a] text-[#c6f4df]" : "bg-[#263a5c]"
                 }`}
               >
-                {initials(seg.speaker)}
+                {initials(seg.speaker_name ?? seg.speaker)}
               </div>
               <div>
                 <div className="mb-1 flex items-center gap-2">
-                  <span className="text-xs font-extrabold capitalize">{seg.speaker}</span>
+                  <SpeakerLabelEditor sessionId={sessionId} segment={seg} />
                   <span className="text-[10px] text-[var(--muted)]">{seg.id}</span>
                 </div>
                 <EvidenceText text={seg.text} links={links} onSelect={selectArtifact} />
-                {badgeArtifactIds.length > 0 && (
+                {badgeArtifactIds.length > 0 ? (
                   <div className="mt-[7px] flex flex-wrap gap-[6px]">
                     {badgeArtifactIds.map((id) => {
                       const artifact = artifactById.get(id);
@@ -87,7 +92,7 @@ export function TranscriptPanel({ sessionId }: { sessionId: string }) {
                       );
                     })}
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           );

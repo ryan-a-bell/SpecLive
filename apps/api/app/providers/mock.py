@@ -12,6 +12,7 @@ import asyncio
 import hashlib
 import re
 from collections.abc import AsyncIterator
+from uuid import uuid4
 
 from ..domain.enums import ArtifactType, DerivationMethod, EvidenceRelationship
 from .base import (
@@ -168,18 +169,32 @@ class MockSpeechToTextProvider(SpeechToTextProvider):
     def __init__(self, chunks: list[TranscriptEvent] | None = None) -> None:
         self._chunks = chunks or []
         self._queues: dict[str, asyncio.Queue[TranscriptEvent | object]] = {}
+        self._received_audio: set[str] = set()
+        self._segment_ids: dict[str, str] = {}
 
     async def start(self, session_id: str) -> None:
         if session_id in self._queues:
             raise RuntimeError(f"Transcription session {session_id} is already active")
         queue: asyncio.Queue[TranscriptEvent | object] = asyncio.Queue()
         self._queues[session_id] = queue
+        self._segment_ids[session_id] = str(uuid4())
         for chunk in self._chunks:
             queue.put_nowait(chunk)
 
     async def push_audio(self, session_id: str, pcm: bytes) -> None:
         if session_id not in self._queues:
             raise RuntimeError(f"Transcription session {session_id} is not active")
+        if not self._chunks and pcm and session_id not in self._received_audio:
+            self._received_audio.add(session_id)
+            self._queues[session_id].put_nowait(
+                TranscriptEvent(
+                    segment_id=self._segment_ids[session_id],
+                    text="Live microphone test",
+                    is_final=False,
+                    speaker="voice-1",
+                    speaker_confidence=0.94,
+                )
+            )
 
     async def events(self, session_id: str) -> AsyncIterator[TranscriptEvent]:
         queue = self._queues[session_id]
@@ -193,6 +208,18 @@ class MockSpeechToTextProvider(SpeechToTextProvider):
     async def stop(self, session_id: str) -> None:
         queue = self._queues.pop(session_id, None)
         if queue is not None:
+            if not self._chunks and session_id in self._received_audio:
+                queue.put_nowait(
+                    TranscriptEvent(
+                        segment_id=self._segment_ids[session_id],
+                        text="Live microphone test complete",
+                        is_final=True,
+                        speaker="voice-1",
+                        speaker_confidence=0.94,
+                    )
+                )
+            self._received_audio.discard(session_id)
+            self._segment_ids.pop(session_id, None)
             queue.put_nowait(self._END)
 
 

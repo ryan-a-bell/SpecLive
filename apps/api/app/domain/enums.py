@@ -16,7 +16,15 @@ class SessionStatus(str, Enum):
 class Speaker(str, Enum):
     FACILITATOR = "facilitator"
     CUSTOMER = "customer"
+    PARTICIPANT = "participant"
     SYSTEM = "system"
+    UNKNOWN = "unknown"
+
+
+class SpeakerSource(str, Enum):
+    MANUAL = "manual"
+    DETECTED = "detected"
+    CORRECTED = "corrected"
     UNKNOWN = "unknown"
 
 

@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     # adapters handle provider-specific resampling and framing server-side.
     stt_language: str | None = None
     stt_prompt: str | None = None
+    stt_speaker_detection: bool = False
     openai_api_key: str | None = None
     openai_realtime_model: str = "gpt-live-transcribe"
     openai_realtime_url: str = "wss://api.openai.com/v1/realtime"

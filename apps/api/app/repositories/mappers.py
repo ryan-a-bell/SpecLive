@@ -13,6 +13,7 @@ from ..domain.enums import (
     EvidenceRelationship,
     SessionStatus,
     Speaker,
+    SpeakerSource,
     ValidationState,
 )
 
@@ -38,6 +39,10 @@ def segment_to_domain(row: m.TranscriptSegmentORM) -> e.TranscriptSegment:
         session_id=row.session_id,
         sequence_number=row.sequence_number,
         speaker=Speaker(row.speaker),
+        speaker_id=row.speaker_id,
+        speaker_name=row.speaker_name,
+        speaker_source=SpeakerSource(row.speaker_source),
+        speaker_confidence=row.speaker_confidence,
         start_time=row.start_time,
         end_time=row.end_time,
         text=row.text,

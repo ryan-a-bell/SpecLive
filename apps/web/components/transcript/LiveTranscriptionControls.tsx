@@ -5,19 +5,26 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { TranscriptionServerFrame } from "@rdc/domain";
 import { api } from "@/lib/api";
 import { calculateRms, PcmFrameEncoder } from "@/lib/audio";
-import { queryKeys, useTranscriptionCapability } from "@/lib/hooks";
+import { queryKeys, useSession, useTranscriptionCapability } from "@/lib/hooks";
 import { useToast } from "@/lib/toast";
 
 type CapturePhase = "idle" | "requesting" | "recording" | "stopping" | "error";
 
 export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) {
   const capability = useTranscriptionCapability();
+  const session = useSession(sessionId);
   const queryClient = useQueryClient();
   const toast = useToast((state) => state.show);
   const [phase, setPhase] = useState<CapturePhase>("idle");
   const [level, setLevel] = useState(0);
   const [partialText, setPartialText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [autoDetect, setAutoDetect] = useState(true);
+  const [manualSpeaker, setManualSpeaker] = useState<"facilitator" | "customer" | "participant">(
+    "facilitator",
+  );
+  const [manualName, setManualName] = useState("");
+  const [partialSpeaker, setPartialSpeaker] = useState<string | null>(null);
   const phaseRef = useRef<CapturePhase>("idle");
   const socketRef = useRef<WebSocket | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -55,6 +62,7 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
     if (!capability.data?.available || phaseRef.current === "recording") return;
     setError(null);
     setPartialText("");
+    setPartialSpeaker(null);
     partialsRef.current.clear();
     transition("requesting");
 
@@ -94,6 +102,25 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
             return;
           }
           if (frame.type === "transcription.ready") {
+            const fallbackName =
+              manualSpeaker === "facilitator"
+                ? (session.data?.facilitator ?? "Facilitator")
+                : manualSpeaker === "customer"
+                  ? (session.data?.customer ?? "Customer")
+                  : "Participant";
+            socket.send(
+              JSON.stringify(
+                autoDetect
+                  ? { type: "configure", speaker_mode: "auto" }
+                  : {
+                      type: "configure",
+                      speaker_mode: "manual",
+                      speaker: manualSpeaker,
+                      speaker_id: `manual:${manualSpeaker}:${manualName || fallbackName}`,
+                      speaker_name: manualName || fallbackName,
+                    },
+              ),
+            );
             settled = true;
             window.clearTimeout(timeout);
             resolve();
@@ -102,11 +129,13 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
           if (frame.type === "transcript.partial") {
             partialsRef.current.set(frame.segment_id, frame.text);
             setPartialText(Array.from(partialsRef.current.values()).join(" "));
+            setPartialSpeaker(frame.speaker_name);
             return;
           }
           if (frame.type === "transcript.final") {
             partialsRef.current.delete(frame.segment_id);
             setPartialText(Array.from(partialsRef.current.values()).join(" "));
+            if (partialsRef.current.size === 0) setPartialSpeaker(null);
             void queryClient.invalidateQueries({ queryKey: queryKeys.transcript(sessionId) });
             return;
           }
@@ -192,6 +221,7 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
   );
 
   const unavailable = capability.isLoading || !capability.data?.available;
+  const busy = phase === "recording" || phase === "requesting" || phase === "stopping";
   const statusLabel = capability.isLoading
     ? "Checking transcription…"
     : unavailable
@@ -206,6 +236,66 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
 
   return (
     <div className="border-b border-[var(--border)] bg-[rgba(9,19,33,0.72)] px-3 py-2">
+      <fieldset className="mb-2 flex flex-wrap items-center gap-2" disabled={busy}>
+        <legend className="sr-only">Speaker identification</legend>
+        <label className="flex cursor-pointer items-center gap-2 text-[11px] font-semibold">
+          <input
+            type="checkbox"
+            checked={autoDetect}
+            onChange={(event) => setAutoDetect(event.target.checked)}
+          />
+          Auto-detect voices
+        </label>
+        {autoDetect ? (
+          <span className="text-[10px] text-[var(--muted)]">
+            {capability.data?.supports_speaker_detection
+              ? "Voice identities will be grouped automatically"
+              : "Uses detected voice labels when the service provides them"}
+          </span>
+        ) : (
+          <>
+            <label className="sr-only" htmlFor="manual-speaker-role">
+              Speaker role
+            </label>
+            <select
+              id="manual-speaker-role"
+              className="rounded-md border border-[var(--border)] bg-[#0b1525] px-2 py-1 text-[11px]"
+              value={manualSpeaker}
+              onChange={(event) => {
+                const role = event.target.value as typeof manualSpeaker;
+                setManualSpeaker(role);
+                setManualName(
+                  role === "facilitator"
+                    ? (session.data?.facilitator ?? "")
+                    : role === "customer"
+                      ? (session.data?.customer ?? "")
+                      : "",
+                );
+              }}
+            >
+              <option value="facilitator">Facilitator</option>
+              <option value="customer">Customer</option>
+              <option value="participant">Participant</option>
+            </select>
+            <label className="sr-only" htmlFor="manual-speaker-name">
+              Speaker name
+            </label>
+            <input
+              id="manual-speaker-name"
+              className="min-w-32 rounded-md border border-[var(--border)] bg-[#0b1525] px-2 py-1 text-[11px]"
+              value={manualName}
+              placeholder={
+                manualSpeaker === "facilitator"
+                  ? session.data?.facilitator
+                  : manualSpeaker === "customer"
+                    ? session.data?.customer
+                    : "Participant name"
+              }
+              onChange={(event) => setManualName(event.target.value)}
+            />
+          </>
+        )}
+      </fieldset>
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -232,9 +322,12 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
         </div>
       </div>
       {partialText ? (
-        <div className="mt-2 rounded-lg border border-dashed border-[rgba(103,168,255,0.45)] bg-[rgba(103,168,255,0.08)] px-3 py-2 text-xs leading-relaxed text-[#d6e7ff]">
+        <div
+          data-testid="live-partial"
+          className="mt-2 rounded-lg border border-dashed border-[rgba(103,168,255,0.45)] bg-[rgba(103,168,255,0.08)] px-3 py-2 text-xs leading-relaxed text-[#d6e7ff]"
+        >
           <span className="mr-2 text-[10px] font-bold uppercase tracking-wide text-[var(--blue)]">
-            Live
+            {partialSpeaker ?? "Live"}
           </span>
           {partialText}
         </div>

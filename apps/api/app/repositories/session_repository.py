@@ -32,6 +32,9 @@ class SessionRepository(abc.ABC):
     def add_segment(self, row: m.TranscriptSegmentORM) -> m.TranscriptSegmentORM: ...
 
     @abc.abstractmethod
+    def get_segment(self, segment_id: str) -> m.TranscriptSegmentORM | None: ...
+
+    @abc.abstractmethod
     def list_segments(self, session_id: str) -> list[m.TranscriptSegmentORM]: ...
 
     @abc.abstractmethod
@@ -118,6 +121,9 @@ class SqlAlchemySessionRepository(SessionRepository):
     # transcript
     def add_segment(self, row: m.TranscriptSegmentORM) -> m.TranscriptSegmentORM:
         return self._add(row)
+
+    def get_segment(self, segment_id: str) -> m.TranscriptSegmentORM | None:
+        return self._db.get(m.TranscriptSegmentORM, segment_id)
 
     def list_segments(self, session_id: str) -> list[m.TranscriptSegmentORM]:
         return list(

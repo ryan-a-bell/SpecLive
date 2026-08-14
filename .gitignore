@@ -227,6 +227,8 @@ out/
 dist/
 build/
 coverage/
+playwright-report/
+test-results/
 *.tsbuildinfo
 .eslintcache
 npm-debug.log*

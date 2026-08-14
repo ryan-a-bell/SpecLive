@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from ..db import models as m
 from ..domain import entities as e
-from ..domain.enums import Speaker
+from ..domain.enums import Speaker, SpeakerSource
 from ..domain.events import DomainEvent, EventType
 from ..events import EventBus
 from ..repositories import SessionRepository
@@ -30,6 +30,10 @@ class TranscriptService:
         is_final: bool = True,
         sequence_number: int | None = None,
         segment_id: str | None = None,
+        speaker_id: str | None = None,
+        speaker_name: str | None = None,
+        speaker_source: SpeakerSource = SpeakerSource.UNKNOWN,
+        speaker_confidence: float | None = None,
     ) -> e.TranscriptSegment:
         if self._repo.get_session(session_id) is None:
             raise NotFoundError(f"Session {session_id} not found")
@@ -41,6 +45,10 @@ class TranscriptService:
             session_id=session_id,
             sequence_number=seq,
             speaker=Speaker(speaker).value,
+            speaker_id=speaker_id,
+            speaker_name=speaker_name,
+            speaker_source=SpeakerSource(speaker_source).value,
+            speaker_confidence=speaker_confidence,
             start_time=start_time,
             end_time=end_time,
             text=text,
@@ -61,6 +69,34 @@ class TranscriptService:
             )
         )
         return segment
+
+    def correct_speaker(
+        self,
+        session_id: str,
+        segment_id: str,
+        *,
+        speaker: Speaker,
+        speaker_name: str,
+        apply_to_voice: bool = True,
+    ) -> list[e.TranscriptSegment]:
+        row = self._repo.get_segment(segment_id)
+        if row is None or row.session_id != session_id:
+            raise NotFoundError(f"Transcript segment {segment_id} not found")
+        voice_id = row.speaker_id
+        targets = [row]
+        if apply_to_voice and voice_id:
+            targets = [
+                item
+                for item in self._repo.list_segments(session_id)
+                if item.speaker_id == voice_id
+            ]
+        for target in targets:
+            target.speaker = Speaker(speaker).value
+            target.speaker_name = speaker_name.strip()
+            target.speaker_source = SpeakerSource.CORRECTED.value
+            target.speaker_confidence = 1.0
+        self._repo.commit()
+        return [segment_to_domain(target) for target in targets]
 
     def list_segments(self, session_id: str) -> list[e.TranscriptSegment]:
         if self._repo.get_session(session_id) is None:

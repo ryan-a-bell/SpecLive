@@ -83,9 +83,27 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
     // transcript
     getTranscript: (id: string) =>
       request(`/sessions/${id}/transcript`, z.array(TranscriptSegment)),
-    addSegment: (id: string, body: { speaker: Speaker; text: string }) =>
+    addSegment: (
+      id: string,
+      body: {
+        speaker: Speaker;
+        text: string;
+        speaker_id?: string;
+        speaker_name?: string;
+        speaker_source?: "manual" | "detected" | "corrected" | "unknown";
+      },
+    ) =>
       request(`/sessions/${id}/transcript`, TranscriptSegment, {
         method: "POST",
+        body: JSON.stringify(body),
+      }),
+    correctTranscriptSpeaker: (
+      sessionId: string,
+      segmentId: string,
+      body: { speaker: Speaker; speaker_name: string; apply_to_voice: boolean },
+    ) =>
+      request(`/sessions/${sessionId}/transcript/${segmentId}/speaker`, z.array(TranscriptSegment), {
+        method: "PATCH",
         body: JSON.stringify(body),
       }),
     transcriptionSocketUrl: (id: string) =>

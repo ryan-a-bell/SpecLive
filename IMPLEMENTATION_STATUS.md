@@ -2,8 +2,9 @@
 
 **Increment:** 1 (initial production-oriented repository)
 **Date:** 2026-08-13
-**Verification:** backend `pytest` — 35 passed; frontend `vitest` — 15 passed;
-`tsc --noEmit` clean; `next build` succeeds; migrations + seed + export run.
+**Verification:** backend `pytest` — 36 passed; frontend `vitest` — 15 passed;
+Playwright fake-microphone E2E — 1 passed; `tsc --noEmit` clean; `next build`
+succeeds; migrations + seed + export run.
 
 ## Delivered against the initial implementation boundary
 
@@ -62,13 +63,14 @@ tree · conversation subway · coverage matrix. Mapping in
 ```bash
 # Backend
 cd apps/api && python -m venv .venv && . .venv/bin/activate
-pip install -e ".[dev]" && pytest            # 35 passed
+pip install -e ".[dev]" && pytest            # 36 passed
 alembic upgrade head && python -m app.seed   # seed demo
 python -m app.scripts.export_demo            # writes exports/
 
 # Frontend (from repo root)
 npm install
 npm run typecheck && npm test                # 15 passed
+npm run test:e2e                             # 1 browser E2E passed
 npm run build                                # production build
 
 # Full stack
