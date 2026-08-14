@@ -17,6 +17,7 @@ _TMPDIR = tempfile.mkdtemp(prefix="rdc-test-")
 os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{_TMPDIR}/test.db"
 os.environ["EVENT_BUS"] = "memory"
 os.environ["LOG_LEVEL"] = "WARNING"
+os.environ["STT_PROVIDER"] = "mock"
 
 from fastapi.testclient import TestClient  # noqa: E402
 

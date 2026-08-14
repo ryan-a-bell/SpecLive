@@ -59,6 +59,7 @@ schema at `/openapi.json`. All endpoints are under `/api/v1`.
 | POST | `/api/v1/sessions/{id}/analyze` | Derive candidate artifacts |
 | GET | `/api/v1/sessions/{id}/export?format=json\|markdown` | Discovery package |
 | WS | `/api/v1/sessions/{id}/stream` | Live event frames |
+| WS | `/api/v1/sessions/{id}/audio` | PCM audio in; normalized transcript events out |
 
 ## Sample payloads
 
@@ -138,3 +139,42 @@ POST /api/v1/artifacts/REQ-002/evidence
   "session_id": "…", "payload": { "id": "…", "artifact_type": "constraint", "…": "…" },
   "occurred_at": "2026-08-13T18:37:00Z" }
 ```
+
+### Live transcription (WebSocket)
+
+The browser can first query the provider-neutral capability endpoint:
+
+```http
+GET /api/v1/transcription/status
+```
+
+```json
+{ "available": true, "supports_partials": true,
+  "audio": { "encoding": "pcm_s16le", "sample_rate": 16000, "channels": 1 },
+  "max_frame_seconds": 5 }
+```
+
+This intentionally omits the configured provider and all provider credentials.
+
+Connect to `/api/v1/sessions/{id}/audio`. The server first sends the canonical
+audio contract:
+
+```json
+{ "type": "transcription.ready", "session_id": "...",
+  "audio": { "encoding": "pcm_s16le", "sample_rate": 16000, "channels": 1 } }
+```
+
+Send binary mono PCM16 frames (no JSON/base64 wrapper). Keep frame durations
+consistent and no longer than five seconds. SpecLive returns provider-neutral
+events:
+
+```json
+{ "type": "transcript.partial", "session_id": "...", "segment_id": "...",
+  "text": "The customer needs", "is_final": false,
+  "speaker": null, "start_time": null, "end_time": null }
+```
+
+Finish with `{ "type": "stop" }`. The final event uses the same shape with
+`type: "transcript.final"` and `is_final: true`; final text is persisted by the
+API. Provider names, protocols, credentials, and audio requirements never cross
+this browser-facing boundary.

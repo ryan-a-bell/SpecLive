@@ -2,7 +2,7 @@
 
 **Increment:** 1 (initial production-oriented repository)
 **Date:** 2026-08-13
-**Verification:** backend `pytest` — 29 passed; frontend `vitest` — 15 passed;
+**Verification:** backend `pytest` — 35 passed; frontend `vitest` — 15 passed;
 `tsc --noEmit` clean; `next build` succeeds; migrations + seed + export run.
 
 ## Delivered against the initial implementation boundary
@@ -14,6 +14,7 @@
 | PostgreSQL schema and migrations | ✅ | `apps/api/alembic` (+ SQLite fallback) |
 | Seeded demonstration session | ✅ | `fixtures/warehouse_modernization.json`, `app/seed.py` |
 | Static / simulated streaming transcript | ✅ | seed transcript + WS `/stream` + mock STT |
+| Live provider-neutral audio ingestion | ✅ | WS `/audio` + local/OpenAI/Wispr adapters |
 | Artifact and evidence CRUD | ✅ | `ArtifactService`, `/artifacts` routes |
 | Discovery tree | ✅ | `TreeService`, `components/tree` |
 | Guided script panel | ✅ | `ScriptService`, `GuidedScriptPanel` |
@@ -49,7 +50,8 @@ tree · conversation subway · coverage matrix. Mapping in
 - **Graph library:** MVP uses custom CSS/grid rendering faithful to the
   prototype instead of React Flow; React Flow is planned for Increment 2 when
   editing is needed (ADR-0008).
-- **STT/LLM mocked:** deterministic heuristics, no network egress (ADR-0004).
+- **LLM mocked by default:** deterministic artifact-analysis heuristics. STT can
+  remain key-free with mock/local modes or use configured OpenAI/Wispr adapters.
 - **Auth/RBAC/redaction/audit:** designed as placeholders in `SECURITY.md`, not
   enforced in this increment.
 - **Coverage for live sessions:** derived heuristically; the seeded session uses
@@ -60,7 +62,7 @@ tree · conversation subway · coverage matrix. Mapping in
 ```bash
 # Backend
 cd apps/api && python -m venv .venv && . .venv/bin/activate
-pip install -e ".[dev]" && pytest            # 29 passed
+pip install -e ".[dev]" && pytest            # 35 passed
 alembic upgrade head && python -m app.seed   # seed demo
 python -m app.scripts.export_demo            # writes exports/
 

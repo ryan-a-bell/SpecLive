@@ -6,6 +6,7 @@ import { useArtifacts, useSessionEvidence, useTranscript } from "@/lib/hooks";
 import { useWorkspaceStore } from "@/lib/store";
 import { EvidenceText } from "./EvidenceText";
 import { StatementComposer } from "./StatementComposer";
+import { LiveTranscriptionControls } from "./LiveTranscriptionControls";
 
 function initials(speaker: string): string {
   return speaker === "customer" ? "CM" : speaker === "facilitator" ? "RB" : "SY";
@@ -45,6 +46,8 @@ export function TranscriptPanel({ sessionId }: { sessionId: string }) {
           <span className="dot" /> {transcript.data?.length ?? 0} segments
         </span>
       </header>
+
+      <LiveTranscriptionControls sessionId={sessionId} />
 
       <div className="flex-1 overflow-auto p-3">
         {transcript.data?.map((seg) => {

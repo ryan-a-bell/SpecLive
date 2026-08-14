@@ -29,6 +29,7 @@ class TranscriptService:
         end_time: float | None = None,
         is_final: bool = True,
         sequence_number: int | None = None,
+        segment_id: str | None = None,
     ) -> e.TranscriptSegment:
         if self._repo.get_session(session_id) is None:
             raise NotFoundError(f"Session {session_id} not found")
@@ -36,7 +37,7 @@ class TranscriptService:
             sequence_number if sequence_number is not None else self._repo.next_sequence(session_id)
         )
         row = m.TranscriptSegmentORM(
-            id=str(uuid4()),
+            id=segment_id or str(uuid4()),
             session_id=session_id,
             sequence_number=seq,
             speaker=Speaker(speaker).value,

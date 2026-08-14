@@ -28,6 +28,21 @@ class Settings(BaseSettings):
     embedding_provider: str = "mock"
     exporter: str = "default"
 
+    # Speech-to-text adapters. The browser always sends mono PCM16 at 16 kHz;
+    # adapters handle provider-specific resampling and framing server-side.
+    stt_language: str | None = None
+    stt_prompt: str | None = None
+    openai_api_key: str | None = None
+    openai_realtime_model: str = "gpt-live-transcribe"
+    openai_realtime_url: str = "wss://api.openai.com/v1/realtime"
+    wispr_flow_api_key: str | None = None
+    wispr_flow_access_token: str | None = None
+    wispr_flow_websocket_url: str = "wss://platform-api.wisprflow.ai/api/v1/dash/ws"
+    faster_whisper_model: str = "small.en"
+    faster_whisper_device: str = "auto"
+    faster_whisper_compute_type: str = "default"
+    faster_whisper_chunk_seconds: float = 3.0
+
     # HTTP
     api_host: str = "0.0.0.0"
     api_port: int = 8000

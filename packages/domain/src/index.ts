@@ -266,3 +266,57 @@ export const DomainEventFrame = z.object({
   occurred_at: z.string(),
 });
 export type DomainEventFrame = z.infer<typeof DomainEventFrame>;
+
+// --- provider-neutral live transcription ---------------------------------
+export const TranscriptionReadyFrame = z.object({
+  type: z.literal("transcription.ready"),
+  session_id: z.string(),
+  audio: z.object({
+    encoding: z.literal("pcm_s16le"),
+    sample_rate: z.literal(16000),
+    channels: z.literal(1),
+  }),
+});
+
+export const LiveTranscriptFrame = z.object({
+  type: z.enum(["transcript.partial", "transcript.final"]),
+  session_id: z.string(),
+  segment_id: z.string(),
+  text: z.string(),
+  is_final: z.boolean(),
+  speaker: z.string().nullable(),
+  start_time: z.number().nullable(),
+  end_time: z.number().nullable(),
+});
+export type LiveTranscriptFrame = z.infer<typeof LiveTranscriptFrame>;
+
+export const TranscriptionErrorFrame = z.object({
+  type: z.literal("transcription.error"),
+  code: z.string(),
+  message: z.string().optional(),
+  retryable: z.boolean(),
+});
+
+export const TranscriptionServerFrame = z.union([
+  TranscriptionReadyFrame,
+  LiveTranscriptFrame,
+  TranscriptionErrorFrame,
+  z.object({
+    type: z.literal("transcription.stopped"),
+    session_id: z.string(),
+    committed: z.boolean(),
+  }),
+]);
+export type TranscriptionServerFrame = z.infer<typeof TranscriptionServerFrame>;
+
+export const TranscriptionCapability = z.object({
+  available: z.boolean(),
+  supports_partials: z.boolean(),
+  audio: z.object({
+    encoding: z.literal("pcm_s16le"),
+    sample_rate: z.literal(16000),
+    channels: z.literal(1),
+  }),
+  max_frame_seconds: z.number().int().positive(),
+});
+export type TranscriptionCapability = z.infer<typeof TranscriptionCapability>;

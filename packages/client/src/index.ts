@@ -14,9 +14,11 @@ import {
   Recommendations,
   ScriptState,
   TranscriptSegment,
+  TranscriptionCapability,
   type ArtifactType,
   type EvidenceRelationship,
   type Speaker,
+  TranscriptionServerFrame,
 } from "@rdc/domain";
 import { z } from "zod";
 
@@ -38,6 +40,7 @@ export interface ClientOptions {
 export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
   const doFetch = fetchImpl ?? fetch;
   const root = baseUrl.replace(/\/$/, "");
+  const socketRoot = root.replace(/^http/, "ws");
 
   async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit): Promise<T> {
     const res = await doFetch(`${root}/api/v1${path}`, {
@@ -85,6 +88,10 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    transcriptionSocketUrl: (id: string) =>
+      `${socketRoot}/api/v1/sessions/${encodeURIComponent(id)}/audio`,
+    parseTranscriptionFrame: (data: string) => TranscriptionServerFrame.parse(JSON.parse(data)),
+    getTranscriptionCapability: () => request("/transcription/status", TranscriptionCapability),
 
     // artifacts + evidence
     listArtifacts: (id: string) => request(`/sessions/${id}/artifacts`, z.array(DiscoveryArtifact)),

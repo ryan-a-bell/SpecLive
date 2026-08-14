@@ -42,6 +42,19 @@ class TranscriptSegmentCreate(BaseModel):
     sequence_number: int | None = None
 
 
+class TranscriptionAudioFormat(BaseModel):
+    encoding: str = "pcm_s16le"
+    sample_rate: int = 16000
+    channels: int = 1
+
+
+class TranscriptionCapability(BaseModel):
+    available: bool
+    supports_partials: bool
+    audio: TranscriptionAudioFormat = Field(default_factory=TranscriptionAudioFormat)
+    max_frame_seconds: int = 5
+
+
 # --- artifacts ------------------------------------------------------------
 class ArtifactCreate(BaseModel):
     artifact_type: ArtifactType

@@ -8,6 +8,7 @@ ever proposes artifacts in `detected`/`inferred`; it never confirms anything.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import re
 from collections.abc import AsyncIterator
@@ -19,7 +20,7 @@ from .base import (
     EvidenceCandidate,
     LanguageModelProvider,
     SpeechToTextProvider,
-    TranscriptChunk,
+    TranscriptEvent,
 )
 
 # (regex, artifact_type, title, statement_template, base_confidence, relationship)
@@ -160,14 +161,39 @@ class MockLanguageModelProvider(LanguageModelProvider):
 
 
 class MockSpeechToTextProvider(SpeechToTextProvider):
-    """Replays a canned transcript as a stream. Real STT replaces only this."""
+    """Replays canned normalized events without network or model access."""
 
-    def __init__(self, chunks: list[TranscriptChunk] | None = None) -> None:
+    _END = object()
+
+    def __init__(self, chunks: list[TranscriptEvent] | None = None) -> None:
         self._chunks = chunks or []
+        self._queues: dict[str, asyncio.Queue[TranscriptEvent | object]] = {}
 
-    async def stream(self, session_id: str) -> AsyncIterator[TranscriptChunk]:
+    async def start(self, session_id: str) -> None:
+        if session_id in self._queues:
+            raise RuntimeError(f"Transcription session {session_id} is already active")
+        queue: asyncio.Queue[TranscriptEvent | object] = asyncio.Queue()
+        self._queues[session_id] = queue
         for chunk in self._chunks:
-            yield chunk
+            queue.put_nowait(chunk)
+
+    async def push_audio(self, session_id: str, pcm: bytes) -> None:
+        if session_id not in self._queues:
+            raise RuntimeError(f"Transcription session {session_id} is not active")
+
+    async def events(self, session_id: str) -> AsyncIterator[TranscriptEvent]:
+        queue = self._queues[session_id]
+        while True:
+            event = await queue.get()
+            if event is self._END:
+                break
+            assert isinstance(event, TranscriptEvent)
+            yield event
+
+    async def stop(self, session_id: str) -> None:
+        queue = self._queues.pop(session_id, None)
+        if queue is not None:
+            queue.put_nowait(self._END)
 
 
 class MockEmbeddingProvider(EmbeddingProvider):
