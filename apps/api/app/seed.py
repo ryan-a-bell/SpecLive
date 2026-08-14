@@ -32,16 +32,16 @@ def _fixture_path() -> Path:
     """
 
     env = os.getenv("FIXTURE_PATH")
-    candidates = [
-        Path(env) if env else None,
-        Path(__file__).resolve().parents[3] / "fixtures" / "warehouse_modernization.json",
-        Path("/fixtures/warehouse_modernization.json"),
-    ]
+    fixture_name = Path("fixtures/warehouse_modernization.json")
+    module_path = Path(__file__).resolve()
+    candidates = [Path(env)] if env else []
+    candidates.extend(parent / fixture_name for parent in module_path.parents)
+    candidates.append(Path("/fixtures/warehouse_modernization.json"))
     for candidate in candidates:
-        if candidate and candidate.exists():
+        if candidate.exists():
             return candidate
-    # Fall back to the repo-root path for a clear error message.
-    return Path(__file__).resolve().parents[3] / "fixtures" / "warehouse_modernization.json"
+    # Preserve a useful, stable path in the eventual FileNotFoundError.
+    return module_path.parent / fixture_name
 
 
 FIXTURE_PATH = _fixture_path()

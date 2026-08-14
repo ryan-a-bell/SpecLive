@@ -13,6 +13,7 @@ from .base import (
     LanguageModelProvider,
     SpeechToTextProvider,
     TranscriptChunk,
+    TranscriptEvent,
 )
 from .registry import get_embedding_provider, get_llm_provider, get_stt_provider
 
@@ -24,6 +25,7 @@ __all__ = [
     "LanguageModelProvider",
     "SpeechToTextProvider",
     "TranscriptChunk",
+    "TranscriptEvent",
     "get_embedding_provider",
     "get_llm_provider",
     "get_stt_provider",

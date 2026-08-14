@@ -79,6 +79,11 @@ body {
   border: none;
   background: linear-gradient(135deg, #3b82e8, #6658df);
 }
+.btn.recording {
+  border-color: rgba(255, 127, 143, 0.7);
+  background: rgba(255, 127, 143, 0.14);
+  color: #ffd2d8;
+}
 .status {
   display: flex;
   gap: 7px;

@@ -15,13 +15,13 @@ flowchart TB
       web["Web app"]
       api["API + domain"]
     end
-    stt["Speech-to-Text provider<br/>(mock today)"]:::ext
+    stt["Speech-to-Text providers<br/>(local / OpenAI / Wispr Flow / mock)"]:::ext
     llm["Language-Model provider<br/>(mock today)"]:::ext
     exporttarget["Downstream tools<br/>(Jira / DOORS / ReqIF — future)"]:::ext
 
     facilitator -->|opens session, confirms items| web
     web -->|REST + WebSocket| api
-    api -.->|streamed transcript| stt
+    api <-->|provider-specific audio + transcript| stt
     api -.->|artifact derivation| llm
     api -->|JSON / Markdown package| exporttarget
 
@@ -29,8 +29,10 @@ flowchart TB
 ```
 
 The customer is present in the room but does not use the software directly — the
-facilitator is the only user. STT/LLM are external in principle but **mocked**
-in this increment, so the system runs with no external dependency.
+facilitator is the only user. The browser sends microphone PCM only to SpecLive.
+The API selects local faster-whisper, OpenAI Realtime, Wispr Flow, or mock STT;
+provider credentials and protocols never enter the frontend. LLM analysis is
+still mocked, and the default configuration has no external dependency.
 
 ## 2. Container diagram
 
@@ -44,14 +46,14 @@ flowchart LR
     subgraph api["apps/api — FastAPI"]
       routes["REST + WS routes"]
       services["Services (business logic)"]
-      providers["Provider adapters (mock)"]
+      providers["Provider adapters<br/>(local / OpenAI / Wispr / mock)"]
       bus["Event bus (in-memory)"]
       repo["SQLAlchemy repository"]
     end
     db[("PostgreSQL<br/>(SQLite fallback)")]
     redis[("Redis — optional")]:::opt
 
-    components --> query --> client -->|/api/v1| routes
+    components --> query --> client -->|REST + SpecLive audio WS| routes
     components <-->|events| routes
     routes --> services
     services --> repo --> db
@@ -68,7 +70,7 @@ flowchart LR
 flowchart TB
     subgraph transport["Transport (no logic)"]
       rest["REST routers"]
-      ws["WebSocket stream"]
+      ws["Event + audio WebSockets"]
     end
     subgraph svc["Services"]
       session["SessionService"]
@@ -87,11 +89,14 @@ flowchart TB
       entities["Entities / enums / events"]
       repoport["SessionRepository (port)"]
       llmport["LanguageModelProvider (port)"]
+      sttport["SpeechToTextProvider (port)"]
       exporter["ArtifactExporter (port)"]
     end
 
     rest --> session & transcript & analysis & artifact & tree & branch & script & coverage & recommend & export
     ws --> bus["EventBus"]
+    ws --> sttport
+    sttport --> transcript
     transcript --> analysis --> artifact --> lifecycle
     analysis --> llmport
     export --> exporter

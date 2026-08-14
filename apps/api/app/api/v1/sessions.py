@@ -10,6 +10,7 @@ from ..schemas import (
     SessionCreate,
     SessionPatch,
     TranscriptSegmentCreate,
+    TranscriptSpeakerCorrection,
 )
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -58,6 +59,29 @@ def add_transcript_segment(
         end_time=body.end_time,
         is_final=body.is_final,
         sequence_number=body.sequence_number,
+        speaker_id=body.speaker_id,
+        speaker_name=body.speaker_name,
+        speaker_source=body.speaker_source,
+        speaker_confidence=body.speaker_confidence,
+    )
+
+
+@router.patch(
+    "/{session_id}/transcript/{segment_id}/speaker",
+    response_model=list[e.TranscriptSegment],
+)
+def correct_transcript_speaker(
+    session_id: str,
+    segment_id: str,
+    body: TranscriptSpeakerCorrection,
+    svc: Services = Depends(get_services),
+) -> list[e.TranscriptSegment]:
+    return svc.transcript.correct_speaker(
+        session_id,
+        segment_id,
+        speaker=body.speaker,
+        speaker_name=body.speaker_name,
+        apply_to_voice=body.apply_to_voice,
     )
 
 

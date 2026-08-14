@@ -1,7 +1,7 @@
 """Provider interfaces.
 
 These Protocols/ABCs decouple the application from any single speech-to-text or
-LLM vendor. Concrete adapters live alongside; the MVP ships mock adapters only.
+LLM vendor. Concrete adapters live alongside the provider-neutral ports.
 """
 
 from __future__ import annotations
@@ -9,6 +9,7 @@ from __future__ import annotations
 import abc
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+from uuid import uuid4
 
 from ..domain.enums import (
     ArtifactType,
@@ -18,14 +19,20 @@ from ..domain.enums import (
 
 
 @dataclass
-class TranscriptChunk:
-    """A streamed transcription fragment from an STT provider."""
+class TranscriptEvent:
+    """Provider-neutral partial or final transcription event."""
 
     text: str
-    speaker: str
-    start_time: float
-    end_time: float
-    is_final: bool = True
+    is_final: bool
+    segment_id: str = field(default_factory=lambda: str(uuid4()))
+    speaker: str | None = None
+    speaker_confidence: float | None = None
+    start_time: float | None = None
+    end_time: float | None = None
+
+
+# Backwards-compatible name for integrations built against the original MVP.
+TranscriptChunk = TranscriptEvent
 
 
 @dataclass
@@ -54,10 +61,23 @@ class ArtifactCandidate:
 
 
 class SpeechToTextProvider(abc.ABC):
-    """Streams transcript chunks from an audio source."""
+    """Consumes SpecLive PCM audio and emits normalized transcript events.
+
+    ``pcm`` is always mono signed 16-bit little-endian PCM sampled at 16 kHz.
+    Provider adapters own any vendor-specific framing or resampling.
+    """
 
     @abc.abstractmethod
-    def stream(self, session_id: str) -> AsyncIterator[TranscriptChunk]: ...
+    async def start(self, session_id: str) -> None: ...
+
+    @abc.abstractmethod
+    async def push_audio(self, session_id: str, pcm: bytes) -> None: ...
+
+    @abc.abstractmethod
+    def events(self, session_id: str) -> AsyncIterator[TranscriptEvent]: ...
+
+    @abc.abstractmethod
+    async def stop(self, session_id: str) -> None: ...
 
 
 class LanguageModelProvider(abc.ABC):

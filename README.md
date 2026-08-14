@@ -11,9 +11,9 @@ answers spawn **conversation branches**, validates inferred items through an
 explicit human-confirmation workflow, and at the end exports a structured
 **discovery package** (JSON + Markdown).
 
-> This repository is the **first production-oriented increment**. External
-> speech-to-text and LLM calls are **mocked** behind provider interfaces so the
-> whole system runs with **no API keys**. See [Current limitations](#current-limitations).
+> This repository is the **first production-oriented increment**. Speech-to-text
+> supports mock, local faster-whisper, OpenAI Realtime, and Wispr Flow adapters.
+> LLM calls remain mocked, so the default setup still runs with **no API keys**.
 
 ---
 
@@ -47,8 +47,8 @@ packages/  domain (shared TS types), client (typed API client), ui, config
 - The web app renders the six core visualizations and never embeds business
   logic — it reads typed server state and issues intent-level mutations.
 - Streaming (transcript segments, candidate artifacts, evidence, tree/branch
-  changes, recommendations) flows over a WebSocket; the transport is designed so
-  a real STT feed can replace the mock without touching components.
+  changes, recommendations) flows over WebSockets. Browser microphone audio goes
+  only to the SpecLive API; provider selection and credentials stay server-side.
 
 See [`docs/architecture/README.md`](docs/architecture/README.md) for context,
 container, component, event-flow, derivation-sequence, and data-model diagrams
@@ -106,6 +106,11 @@ See [`.env.example`](.env.example) for the full list. Key ones:
 | `DATABASE_URL` | SQLAlchemy URL | `postgresql+psycopg://copilot:copilot@db:5432/copilot` |
 | `REDIS_URL` | Optional event-bus/cache backend | _(unset → in-memory)_ |
 | `STT_PROVIDER` | Speech-to-text provider id | `mock` |
+| `STT_SPEAKER_DETECTION` | Advertise server-side voice labeling support | `false` |
+| `OPENAI_API_KEY` | Required for `STT_PROVIDER=openai` | _(unset)_ |
+| `WISPR_FLOW_API_KEY` | Required for `STT_PROVIDER=wispr` | _(unset)_ |
+| `WISPR_FLOW_ACCESS_TOKEN` | Wispr streaming-session token | _(unset)_ |
+| `FASTER_WHISPER_MODEL` | Local faster-whisper model | `small.en` |
 | `LLM_PROVIDER` | Language-model provider id | `mock` |
 | `EMBEDDING_PROVIDER` | Embedding provider id | `mock` |
 | `EVENT_BUS` | `memory` or `redis` | `memory` |
@@ -171,12 +176,14 @@ requirements-discovery-copilot/
 
 ## Current limitations
 
-- **STT and LLM are mocked.** `MockLanguageModelProvider` derives artifacts with
+- **LLM analysis is mocked.** `MockLanguageModelProvider` derives artifacts with
   deterministic keyword/heuristic rules, not a real model. Confidence values are
-  illustrative.
+  illustrative. Local STT uses fixed-duration pseudo-streaming chunks.
 - **Auth is stubbed.** A single facilitator identity is assumed; role-based
   access control is designed (see `SECURITY.md`) but not enforced.
-- **Streaming** replays mock events; there is no real audio ingestion yet.
+- **Speaker diarization:** the data model, auto/manual mode, stable voice grouping,
+  confidence, and correction workflow are implemented. Production-quality voice
+  clustering still depends on the configured server-side diarization engine.
 - **Exports:** JSON and Markdown only. CSV/DOCX/ReqIF/Jira/DOORS/SysML are
   designed for via the `ArtifactExporter` interface but not implemented.
 - **No compliance claims.** Security features are architectural placeholders
@@ -189,7 +196,7 @@ Grouped backlog lives in [`docs/product/backlog.md`](docs/product/backlog.md):
 - **MVP (this increment):** runnable web + API, schema/migrations, seeded demo,
   simulated streaming, artifact/evidence CRUD, tree, script panel, git/subway
   visualizations, coverage matrix, human confirmation, JSON/MD export, tests.
-- **Increment 2:** real STT streaming adapter, LLM-backed derivation, auth +
+- **Increment 2:** LLM-backed derivation, auth +
   RBAC, richer graph editing, CSV/DOCX export.
 - **Increment 3:** multi-facilitator collaboration, embeddings-based clustering,
   redaction pipeline, audit logging.

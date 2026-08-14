@@ -12,6 +12,7 @@ groups are planned.
 - [x] Services: session, transcript, analysis, artifact, tree, branch, script,
       coverage, recommendation, export
 - [x] Versioned REST API + OpenAPI + WebSocket stream
+- [x] Provider-neutral audio WebSocket + local/OpenAI/Wispr STT adapters
 - [x] Seeded warehouse-modernization demo session
 - [x] Web app: six visualizations, human confirmation workflow
 - [x] JSON + Markdown export with traceability appendix
@@ -20,7 +21,6 @@ groups are planned.
 
 ## Increment 2
 
-- [ ] Real STT streaming adapter behind `SpeechToTextProvider`
 - [ ] LLM-backed derivation behind `LanguageModelProvider` (with prompt/versioning)
 - [ ] Authentication + role-based access control enforcement
 - [ ] Interactive branch editing with React Flow (drag re-parent, zoom/pan)

@@ -9,8 +9,8 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 # Install dependencies first for better layer caching.
-COPY apps/api/pyproject.toml ./
-RUN pip install --upgrade pip && pip install -e .
+COPY apps/api/pyproject.toml README.md ./
+RUN pip install --upgrade pip && pip install -e ".[local]"
 
 # Application code + shared fixtures.
 COPY apps/api /app
