@@ -148,6 +148,21 @@ end-to-end scenario. Frontend coverage: components, selection state,
 transcript→artifact navigation, tree interaction, script advancement, and
 branch visualization.
 
+### Synthetic audio playback
+
+The API ingests microphone audio only over a WebSocket (16 kHz mono PCM16, no
+file upload). To exercise that path without a microphone,
+[`scripts/audio_playback_test.py`](scripts/README.md) synthesizes a
+multi-speaker discussion (Piper by default) and streams it into a live session:
+
+```bash
+python scripts/audio_playback_test.py --script scripts/sample_discussion.json
+```
+
+Run the API with `STT_PROVIDER=local` (faster-whisper) to transcribe the
+synthesized speech for real; with the default `mock` provider it validates the
+streaming plumbing end to end. See [`scripts/README.md`](scripts/README.md).
+
 ## Repository map
 
 ```
