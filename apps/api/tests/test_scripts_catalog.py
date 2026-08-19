@@ -6,6 +6,7 @@ from app.scripts_catalog import seed_catalogue
 from app.seed import seed
 
 SIX_HABITS_ID = "SCRIPT-SIX-HABITS"
+SPIN_ID = "SCRIPT-SPIN-NEEDS"
 WAREHOUSE_ID = "SCRIPT-WAREHOUSE"
 
 
@@ -26,7 +27,8 @@ def test_catalogue_seed_is_idempotent_and_lists_starter_script(client) -> None: 
     listed = client.get("/api/v1/scripts")
     assert listed.status_code == 200
     ids = {s["id"] for s in listed.json()}
-    assert SIX_HABITS_ID in ids
+    # The whole starter library is available.
+    assert {SIX_HABITS_ID, SPIN_ID} <= ids
 
     detail = client.get(f"/api/v1/scripts/{SIX_HABITS_ID}")
     assert detail.status_code == 200
@@ -38,6 +40,10 @@ def test_catalogue_seed_is_idempotent_and_lists_starter_script(client) -> None: 
     assert stages[0]["primary_prompt"].startswith("Could I trouble you")
     # Stages are ordered by sequence.
     assert [s["sequence"] for s in stages] == list(range(1, 13))
+
+    spin = client.get(f"/api/v1/scripts/{SPIN_ID}").json()
+    assert spin["name"] == "Needs Discovery (SPIN)"
+    assert [s["sequence"] for s in spin["stages"]] == list(range(1, 11))
 
 
 def test_switching_session_script_restarts_advancement(client) -> None:  # type: ignore[no-untyped-def]
