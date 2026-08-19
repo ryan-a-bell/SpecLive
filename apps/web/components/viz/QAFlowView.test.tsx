@@ -1,0 +1,143 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const selectArtifact = vi.fn();
+const selectSegment = vi.fn();
+
+vi.mock("@/lib/store", () => ({
+  useWorkspaceStore: (selector: (s: unknown) => unknown) =>
+    selector({ selectArtifact, selectSegment }),
+}));
+
+vi.mock("@/lib/hooks", () => ({
+  useConversationGraph: () => ({
+    data: {
+      session_id: "S",
+      branches: [
+        {
+          id: "BR-MAIN",
+          session_id: "S",
+          name: "Main discovery script",
+          topic: "main_script",
+          status: "active",
+          nodes: [
+            {
+              id: "M0",
+              branch_id: "BR-MAIN",
+              node_type: "script_stage",
+              label: "Business driver",
+              sequence: 0,
+            },
+            {
+              id: "M1",
+              branch_id: "BR-MAIN",
+              node_type: "script_stage",
+              label: "Current state",
+              sequence: 1,
+            },
+          ],
+        },
+        {
+          id: "BR-STATES",
+          session_id: "S",
+          name: "States and exceptions",
+          topic: "states_exceptions",
+          status: "active",
+          source_stage_id: "STAGE-2ND",
+          nodes: [
+            {
+              id: "N0",
+              branch_id: "BR-STATES",
+              node_type: "answer",
+              label: "Delayed orders discovered late",
+              transcript_segment_id: "SEG-102",
+              sequence: 0,
+            },
+            {
+              id: "N1",
+              branch_id: "BR-STATES",
+              node_type: "question",
+              label: "Which states matter?",
+              artifact_id: "Q-005",
+              sequence: 1,
+            },
+            {
+              id: "N2",
+              branch_id: "BR-STATES",
+              node_type: "requirement",
+              label: "Alert requirement",
+              sequence: 2,
+            },
+          ],
+        },
+      ],
+    },
+  }),
+  useScriptState: () => ({
+    data: {
+      current_index: 0,
+      total_stages: 2,
+      completed_stage_ids: [],
+      current_stage: null,
+      script: {
+        id: "SCRIPT",
+        name: "S",
+        version: "1",
+        description: "",
+        stages: [
+          {
+            id: "STAGE-1ST",
+            script_id: "SCRIPT",
+            sequence: 1,
+            title: "Business driver",
+            objective: "",
+            primary_prompt: "",
+            alternative_prompts: [],
+            completion_criteria: [],
+          },
+          {
+            id: "STAGE-2ND",
+            script_id: "SCRIPT",
+            sequence: 2,
+            title: "Current state",
+            objective: "",
+            primary_prompt: "",
+            alternative_prompts: [],
+            completion_criteria: [],
+          },
+        ],
+      },
+    },
+  }),
+}));
+
+import { QAFlowView } from "./QAFlowView";
+
+describe("QAFlowView (Q&A flow visualization)", () => {
+  beforeEach(() => {
+    selectArtifact.mockClear();
+    selectSegment.mockClear();
+  });
+
+  it("renders the legend, numbered questions, and a branched answer", () => {
+    render(<QAFlowView sessionId="S" />);
+    expect(screen.getByText("Question asked by SE")).toBeInTheDocument();
+    expect(screen.getByText("Answer from customer")).toBeInTheDocument();
+    // script stages are numbered as facilitator questions
+    expect(screen.getByText("Q1")).toBeInTheDocument();
+    expect(screen.getByText("Q2")).toBeInTheDocument();
+    // the follow-up question inside the branch continues the numbering
+    expect(screen.getByText("Q3")).toBeInTheDocument();
+    // the standalone customer answer that opened the branch
+    expect(screen.getAllByText(/Delayed orders discovered late/).length).toBeGreaterThan(0);
+    // a derived artifact chip
+    expect(screen.getByText("requirement")).toBeInTheDocument();
+  });
+
+  it("selects the artifact when a question node carrying one is activated", () => {
+    render(<QAFlowView sessionId="S" />);
+    // Q3 is the branch follow-up question, which carries artifact Q-005.
+    fireEvent.click(screen.getByText("Q3"));
+    expect(selectArtifact).toHaveBeenCalledWith("Q-005");
+  });
+});

@@ -62,6 +62,14 @@ def create_app() -> FastAPI:
             from .database import create_all
 
             create_all()
+        # Make the pre-canned discovery scripts available regardless of whether
+        # the demo session was seeded. Never let a catalogue hiccup block boot.
+        try:
+            from .scripts_catalog import seed_catalogue
+
+            seed_catalogue()
+        except Exception:  # pragma: no cover - defensive; logged, non-fatal
+            logger.warning("catalogue.seed_failed", exc_info=True)
         logger.info("api.startup", environment=settings.environment)
 
     return app

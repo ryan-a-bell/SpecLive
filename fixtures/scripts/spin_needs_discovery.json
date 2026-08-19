@@ -1,0 +1,98 @@
+{
+  "id": "SCRIPT-SPIN-NEEDS",
+  "name": "Needs Discovery (SPIN)",
+  "version": "1.0.0",
+  "description": "A needs-discovery script built on the SPIN sequence — Situation, Problem, Implication, Need-payoff. Move deliberately from understanding the customer's context to surfacing problems, drawing out their consequences, and letting the customer articulate the value of solving them. Ask few Situation questions and earn the right to the harder ones.",
+  "stages": [
+    {
+      "id": "STAGE-SPIN-1",
+      "sequence": 1,
+      "title": "Frame the conversation",
+      "objective": "Set expectations, agree on the agenda, and get permission to ask questions.",
+      "primary_prompt": "Before we dive in, could I confirm what you're hoping to get out of our time today, and would it be alright if I ask a few questions to understand your situation?",
+      "alternative_prompts": ["How much time do we have, and who else should be part of this conversation?"],
+      "completion_criteria": ["The agenda and goal for the session are agreed and question-asking is welcomed."]
+    },
+    {
+      "id": "STAGE-SPIN-2",
+      "sequence": 2,
+      "title": "Situation — current state",
+      "objective": "Establish the relevant facts about how things work today. Keep these brief.",
+      "primary_prompt": "Can you walk me through how this process works today — the tools, the people involved, and the steps from start to finish?",
+      "alternative_prompts": ["What systems are in place today, and roughly how long have they been running?"],
+      "completion_criteria": ["The current process, tools, and people involved are understood."]
+    },
+    {
+      "id": "STAGE-SPIN-3",
+      "sequence": 3,
+      "title": "Situation — scale and context",
+      "objective": "Capture the volume, frequency, and business context that make this matter.",
+      "primary_prompt": "To give me a sense of scale, how often does this happen and how many people or transactions does it touch?",
+      "alternative_prompts": ["Where does this sit in your team's priorities right now?"],
+      "completion_criteria": ["The scale and business context of the process are recorded."]
+    },
+    {
+      "id": "STAGE-SPIN-4",
+      "sequence": 4,
+      "title": "Problem — difficulties",
+      "objective": "Surface the specific difficulties, dissatisfactions, or gaps in the current state.",
+      "primary_prompt": "Where does this process tend to break down or frustrate the people involved?",
+      "alternative_prompts": ["What parts of this are harder than they should be?"],
+      "completion_criteria": ["At least one concrete problem or dissatisfaction is identified."]
+    },
+    {
+      "id": "STAGE-SPIN-5",
+      "sequence": 5,
+      "title": "Problem — reliability and risk",
+      "objective": "Probe where the current approach is unreliable, manual, or risky.",
+      "primary_prompt": "How reliable is the current approach — where do errors, delays, or rework typically creep in?",
+      "alternative_prompts": ["What has to go right for this to work, and what happens when it doesn't?"],
+      "completion_criteria": ["Reliability gaps or risks in the current approach are captured."]
+    },
+    {
+      "id": "STAGE-SPIN-6",
+      "sequence": 6,
+      "title": "Implication — cost of the problem",
+      "objective": "Draw out the downstream consequences so the customer feels the cost of inaction.",
+      "primary_prompt": "When that breaks down, what's the knock-on effect on the rest of the team, your customers, or the numbers you're measured on?",
+      "alternative_prompts": ["What does this cost you in time, money, or missed opportunity over a quarter?"],
+      "completion_criteria": ["The downstream cost or impact of the problem is articulated."]
+    },
+    {
+      "id": "STAGE-SPIN-7",
+      "sequence": 7,
+      "title": "Implication — trajectory",
+      "objective": "Explore how the impact grows if nothing changes.",
+      "primary_prompt": "If nothing changes over the next year, how do you expect this to play out?",
+      "alternative_prompts": ["Is this getting better, staying the same, or getting worse over time?"],
+      "completion_criteria": ["The trajectory of the problem if unaddressed is understood."]
+    },
+    {
+      "id": "STAGE-SPIN-8",
+      "sequence": 8,
+      "title": "Need-payoff — value of solving",
+      "objective": "Let the customer state the value of a solution in their own words.",
+      "primary_prompt": "If you could solve this cleanly, what would that make possible for you and your team?",
+      "alternative_prompts": ["How would it help if this were reliable and automatic?"],
+      "completion_criteria": ["The customer has described the value of solving the problem."]
+    },
+    {
+      "id": "STAGE-SPIN-9",
+      "sequence": 9,
+      "title": "Need-payoff — decision and success",
+      "objective": "Connect the payoff to how a decision gets made and what success looks like.",
+      "primary_prompt": "If this delivered that outcome, what would need to be true for you to move forward, and how would you measure success?",
+      "alternative_prompts": ["Who else would need to see this value, and what would convince them?"],
+      "completion_criteria": ["Success measures and the path to a decision are captured."]
+    },
+    {
+      "id": "STAGE-SPIN-10",
+      "sequence": 10,
+      "title": "Confirm and next steps",
+      "objective": "Summarize what you heard, confirm it, and agree on a concrete next step.",
+      "primary_prompt": "Let me play back what I heard to make sure I've got it right — and if that lands, what would be a good next step from here?",
+      "alternative_prompts": ["Did I miss anything important before we agree on next steps?"],
+      "completion_criteria": ["The understanding is confirmed and a next step is agreed."]
+    }
+  ]
+}
