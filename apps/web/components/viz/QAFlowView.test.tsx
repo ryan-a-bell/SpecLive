@@ -43,7 +43,7 @@ vi.mock("@/lib/hooks", () => ({
           name: "States and exceptions",
           topic: "states_exceptions",
           status: "active",
-          source_stage_id: "M1",
+          source_stage_id: "STAGE-2ND",
           nodes: [
             {
               id: "N0",
@@ -71,6 +71,42 @@ vi.mock("@/lib/hooks", () => ({
           ],
         },
       ],
+    },
+  }),
+  useScriptState: () => ({
+    data: {
+      current_index: 0,
+      total_stages: 2,
+      completed_stage_ids: [],
+      current_stage: null,
+      script: {
+        id: "SCRIPT",
+        name: "S",
+        version: "1",
+        description: "",
+        stages: [
+          {
+            id: "STAGE-1ST",
+            script_id: "SCRIPT",
+            sequence: 1,
+            title: "Business driver",
+            objective: "",
+            primary_prompt: "",
+            alternative_prompts: [],
+            completion_criteria: [],
+          },
+          {
+            id: "STAGE-2ND",
+            script_id: "SCRIPT",
+            sequence: 2,
+            title: "Current state",
+            objective: "",
+            primary_prompt: "",
+            alternative_prompts: [],
+            completion_criteria: [],
+          },
+        ],
+      },
     },
   }),
 }));

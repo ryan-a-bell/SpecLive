@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useConversationGraph } from "@/lib/hooks";
+import { useConversationGraph, useScriptState } from "@/lib/hooks";
 import { useWorkspaceStore } from "@/lib/store";
 
 type Graph = NonNullable<ReturnType<typeof useConversationGraph>["data"]>;
@@ -82,8 +82,11 @@ function stepsForBranch(
 
 export function QAFlowView({ sessionId }: { sessionId: string }) {
   const graph = useConversationGraph(sessionId);
+  const script = useScriptState(sessionId);
   const selectArtifact = useWorkspaceStore((s) => s.selectArtifact);
   const selectSegment = useWorkspaceStore((s) => s.selectSegment);
+
+  const stages = script.data?.script.stages;
 
   const { steps, width, height } = useMemo(() => {
     const branches = graph.data?.branches ?? [];
@@ -95,8 +98,11 @@ export function QAFlowView({ sessionId }: { sessionId: string }) {
       branches[0];
     if (!main) return { steps: [] as Step[], width: 640, height: 200 };
 
-    // Branches grouped by the stage/segment they were spawned from.
-    const childrenOfStage = new Map<string, ConversationBranch[]>();
+    // A branch names the *script stage* it was spawned from (e.g. "STAGE-3"),
+    // not a conversation-node id — so resolve that to the stage's position and
+    // attach the branch beneath the matching step on the main spine.
+    const stageIndexById = new Map((stages ?? []).map((s, i) => [s.id, i]));
+    const childrenOfStageIndex = new Map<number, ConversationBranch[]>();
     const childrenOfBranch = new Map<string, ConversationBranch[]>();
     for (const b of branches) {
       if (b.id === main.id) continue;
@@ -104,10 +110,11 @@ export function QAFlowView({ sessionId }: { sessionId: string }) {
         const list = childrenOfBranch.get(b.parent_branch_id) ?? [];
         list.push(b);
         childrenOfBranch.set(b.parent_branch_id, list);
-      } else if (b.source_stage_id) {
-        const list = childrenOfStage.get(b.source_stage_id) ?? [];
+      } else if (b.source_stage_id && stageIndexById.has(b.source_stage_id)) {
+        const idx = stageIndexById.get(b.source_stage_id)!;
+        const list = childrenOfStageIndex.get(idx) ?? [];
         list.push(b);
-        childrenOfStage.set(b.source_stage_id, list);
+        childrenOfStageIndex.set(idx, list);
       }
     }
 
@@ -115,7 +122,12 @@ export function QAFlowView({ sessionId }: { sessionId: string }) {
     let row = 0;
     let qCounter = 0;
 
-    const emitBranch = (branch: ConversationBranch, depth: number, branchFrom?: string) => {
+    const emitBranch = (
+      branch: ConversationBranch,
+      depth: number,
+      branchFrom: string | undefined,
+      isMain: boolean,
+    ) => {
       const baseX = LEFT + depth * INDENT_X;
       const chain = stepsForBranch(branch);
       let prevId: string | undefined;
@@ -135,22 +147,26 @@ export function QAFlowView({ sessionId }: { sessionId: string }) {
         row += 1;
         prevId = step.id;
 
-        // A follow-up thread drops from the answer (or the question itself).
-        const stageChildren = step.question ? (childrenOfStage.get(step.question.id) ?? []) : [];
-        for (const child of stageChildren) emitBranch(child, depth + 1, step.id);
-        const branchChildren = childrenOfBranch.get(branch.id) ?? [];
+        // Answer-driven follow-ups drop from the step that triggered them:
+        // stage-sourced branches from the matching main step, nested branches
+        // from the end of their parent branch.
+        if (isMain) {
+          for (const child of childrenOfStageIndex.get(i) ?? [])
+            emitBranch(child, depth + 1, step.id, false);
+        }
         if (i === chain.length - 1) {
-          for (const child of branchChildren) emitBranch(child, depth + 1, step.id);
+          for (const child of childrenOfBranch.get(branch.id) ?? [])
+            emitBranch(child, depth + 1, step.id, false);
         }
       });
     };
 
-    emitBranch(main, 0, undefined);
+    emitBranch(main, 0, undefined, true);
 
     const width = Math.max(640, ...laid.map((s) => s.x)) + 320;
     const height = Math.max(200, TOP + row * STEP_Y + 20);
     return { steps: laid, width, height };
-  }, [graph.data]);
+  }, [graph.data, stages]);
 
   const byId = useMemo(() => new Map(steps.map((s) => [s.id, s])), [steps]);
 
