@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useConversationGraph, useScriptState } from "@/lib/hooks";
 import { useWorkspaceStore } from "@/lib/store";
 
@@ -173,6 +173,22 @@ export function QAFlowView({ sessionId }: { sessionId: string }) {
 
   const byId = useMemo(() => new Map(steps.map((s) => [s.id, s])), [steps]);
 
+  const isSelected = (s: Step) =>
+    (s.node.artifact_id != null && s.node.artifact_id === selectedArtifactId) ||
+    (s.node.transcript_segment_id != null && s.node.transcript_segment_id === selectedSegmentId);
+
+  // Scroll the selected row into view — completes the round-trip when the
+  // selection originates from the transcript rather than a click in the flow.
+  const flowRef = useRef<HTMLDivElement>(null);
+  const selectedStepId = steps.find(isSelected)?.id;
+  useEffect(() => {
+    if (!selectedStepId) return;
+    const el = flowRef.current?.querySelector<SVGGElement>(
+      `[data-step-id="${CSS.escape(selectedStepId)}"]`,
+    );
+    el?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+  }, [selectedStepId]);
+
   if (steps.length === 0) {
     return (
       <p className="text-[12px] text-[var(--muted)]">
@@ -188,12 +204,8 @@ export function QAFlowView({ sessionId }: { sessionId: string }) {
   const width = contentLeft + 300;
   const height = TOP + rows * ROW_H + 12;
 
-  const isSelected = (s: Step) =>
-    (s.node.artifact_id != null && s.node.artifact_id === selectedArtifactId) ||
-    (s.node.transcript_segment_id != null && s.node.transcript_segment_id === selectedSegmentId);
-
   return (
-    <div className="qa-flow">
+    <div className="qa-flow" ref={flowRef}>
       <ul className="qa-legend">
         <li>
           <span className="dot se" /> Question asked by SE
@@ -272,6 +284,7 @@ export function QAFlowView({ sessionId }: { sessionId: string }) {
           return (
             <g
               key={s.id}
+              data-step-id={s.id}
               className={`qa-step ${clickable ? "clickable" : ""} ${selected ? "selected" : ""}`}
               onClick={clickable ? onActivate : undefined}
               role={clickable ? "button" : undefined}

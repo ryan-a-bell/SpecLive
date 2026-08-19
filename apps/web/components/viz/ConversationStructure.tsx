@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CoverageMatrix } from "./CoverageMatrix";
 import { FlowTranscript } from "./FlowTranscript";
 import { GitBranchView } from "./GitBranchView";
@@ -32,9 +32,25 @@ const TABS: { id: Tab; label: string; note: string }[] = [
   },
 ];
 
+const TAB_STORAGE_KEY = "speclive.conversation-structure.tab";
+const isTab = (value: string | null): value is Tab =>
+  value != null && TABS.some((t) => t.id === value);
+
 export function ConversationStructure({ sessionId }: { sessionId: string }) {
   const [active, setActive] = useState<Tab>("qa");
   const note = TABS.find((t) => t.id === active)?.note;
+
+  // Restore the last-viewed tab after mount (kept out of the initial render so
+  // the server and first client render agree).
+  useEffect(() => {
+    const stored = window.localStorage.getItem(TAB_STORAGE_KEY);
+    if (isTab(stored)) setActive(stored);
+  }, []);
+
+  const selectTab = (tab: Tab) => {
+    setActive(tab);
+    window.localStorage.setItem(TAB_STORAGE_KEY, tab);
+  };
 
   return (
     <section className="panel mx-[14px] mb-4">
@@ -55,7 +71,7 @@ export function ConversationStructure({ sessionId }: { sessionId: string }) {
                   ? "border-[var(--blue)] bg-[rgba(103,168,255,0.12)] text-white"
                   : "border-[var(--border)] bg-[var(--panel2)] text-[var(--muted)]"
               }`}
-              onClick={() => setActive(tab.id)}
+              onClick={() => selectTab(tab.id)}
             >
               {tab.label}
             </button>
