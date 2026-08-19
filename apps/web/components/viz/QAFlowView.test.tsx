@@ -129,14 +129,15 @@ describe("QAFlowView (Q&A flow visualization)", () => {
     // the follow-up question inside the branch continues the numbering
     expect(screen.getByText("Q3")).toBeInTheDocument();
     // the standalone customer answer that opened the branch
-    expect(screen.getByText("Delayed orders discover…")).toBeInTheDocument();
+    expect(screen.getAllByText(/Delayed orders discovered late/).length).toBeGreaterThan(0);
     // a derived artifact chip
     expect(screen.getByText("requirement")).toBeInTheDocument();
   });
 
   it("selects the artifact when a question node carrying one is activated", () => {
     render(<QAFlowView sessionId="S" />);
-    fireEvent.click(screen.getByText("Which states…"));
+    // Q3 is the branch follow-up question, which carries artifact Q-005.
+    fireEvent.click(screen.getByText("Q3"));
     expect(selectArtifact).toHaveBeenCalledWith("Q-005");
   });
 });

@@ -9,25 +9,26 @@ type ConversationBranch = Graph["branches"][number];
 type ConversationNode = NonNullable<ConversationBranch["nodes"]>[number];
 
 /**
- * Q&A flow — a cascading staircase of the questions the facilitator (SE) asks
- * and the answers the customer gives, with follow-up threads branching off the
- * answers that triggered them. Mirrors the classic "effective Q&A flow during
- * technical discovery" diagram, driven by the live conversation graph.
+ * Q&A flow — the questions the facilitator (SE) asks and the answers the
+ * customer gives, read top-to-bottom in conversation order. The main script is
+ * pinned to the left; answer-driven follow-ups branch to the right, indenting
+ * one level per depth. Mirrors the "effective Q&A flow during technical
+ * discovery" diagram, driven by the live conversation graph.
  *
  *   • Question asked by the facilitator  →  gray dot + "Q{n}"
  *   • Answer from the customer           →  circled "A"
  *   • Derived artifact (requirement …)   →  small colored chip
  *
- * Each answer can spawn a branch of targeted follow-ups; those branches drop
- * down and step to the right, exactly like Figure 3.
+ * Clicking a row selects its artifact / transcript segment so the companion
+ * transcript highlights the supporting evidence.
  */
 
-const STEP_X = 138; // horizontal shift per step within a chain
-const STEP_Y = 60; // vertical shift per row
-const INDENT_X = 34; // extra indent per branch nesting level
-const TOP = 30;
-const LEFT = 26;
-const CHIP_H = 30;
+const ROW_H = 46; // vertical space per row (conversation order)
+const DEPTH_X = 30; // indent per branch-nesting level
+const TOP = 16;
+const LEFT = 14;
+const CHIP_H = 28;
+const GLYPH_DX = 9; // glyph centre offset from the row's left edge
 
 type StepKind = "qa" | "answer" | "artifact";
 
@@ -38,9 +39,9 @@ interface Step {
   question?: ConversationNode;
   answer?: ConversationNode;
   node: ConversationNode; // primary node (question for "qa", else the node itself)
-  x: number;
-  y: number;
-  /** id of the step this one flows from within its chain, if any */
+  depth: number;
+  row: number;
+  /** id of the step this one flows from within its thread, if any */
   flowFrom?: string;
   /** id of the parent step a branch drops down from, if any */
   branchFrom?: string;
@@ -60,9 +61,9 @@ const isQuestion = (n: ConversationNode) =>
 /** Collapse a branch's ordered nodes into Q→A steps (and standalone chips). */
 function stepsForBranch(
   branch: ConversationBranch,
-): Omit<Step, "x" | "y" | "flowFrom" | "branchFrom">[] {
+): Pick<Step, "id" | "kind" | "question" | "answer" | "node">[] {
   const nodes = [...(branch.nodes ?? [])].sort((a, b) => a.sequence - b.sequence);
-  const out: Omit<Step, "x" | "y" | "flowFrom" | "branchFrom">[] = [];
+  const out: Pick<Step, "id" | "kind" | "question" | "answer" | "node">[] = [];
   for (let i = 0; i < nodes.length; i += 1) {
     const node = nodes[i];
     if (!node) continue;
@@ -80,26 +81,32 @@ function stepsForBranch(
   return out;
 }
 
+function truncate(text: string, max: number) {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
 export function QAFlowView({ sessionId }: { sessionId: string }) {
   const graph = useConversationGraph(sessionId);
   const script = useScriptState(sessionId);
   const selectArtifact = useWorkspaceStore((s) => s.selectArtifact);
   const selectSegment = useWorkspaceStore((s) => s.selectSegment);
+  const selectedArtifactId = useWorkspaceStore((s) => s.selectedArtifactId);
+  const selectedSegmentId = useWorkspaceStore((s) => s.selectedSegmentId);
 
   const stages = script.data?.script.stages;
 
-  const { steps, width, height } = useMemo(() => {
+  const { steps, rows } = useMemo(() => {
     const branches = graph.data?.branches ?? [];
-    if (branches.length === 0) return { steps: [] as Step[], width: 640, height: 200 };
+    if (branches.length === 0) return { steps: [] as Step[], rows: 0 };
 
     const main =
       branches.find((b) => b.topic === "main_script") ??
       branches.find((b) => (b.parent_branch_id ?? null) === null) ??
       branches[0];
-    if (!main) return { steps: [] as Step[], width: 640, height: 200 };
+    if (!main) return { steps: [] as Step[], rows: 0 };
 
     // A branch names the *script stage* it was spawned from (e.g. "STAGE-3"),
-    // not a conversation-node id — so resolve that to the stage's position and
+    // not a conversation-node id — resolve that to the stage's position and
     // attach the branch beneath the matching step on the main spine.
     const stageIndexById = new Map((stages ?? []).map((s, i) => [s.id, i]));
     const childrenOfStageIndex = new Map<number, ConversationBranch[]>();
@@ -128,14 +135,13 @@ export function QAFlowView({ sessionId }: { sessionId: string }) {
       branchFrom: string | undefined,
       isMain: boolean,
     ) => {
-      const baseX = LEFT + depth * INDENT_X;
       const chain = stepsForBranch(branch);
       let prevId: string | undefined;
       chain.forEach((raw, i) => {
         const step: Step = {
           ...raw,
-          x: baseX + i * STEP_X,
-          y: TOP + row * STEP_Y,
+          depth,
+          row,
           flowFrom: prevId,
           branchFrom: i === 0 ? branchFrom : undefined,
         };
@@ -162,10 +168,7 @@ export function QAFlowView({ sessionId }: { sessionId: string }) {
     };
 
     emitBranch(main, 0, undefined, true);
-
-    const width = Math.max(640, ...laid.map((s) => s.x)) + 320;
-    const height = Math.max(200, TOP + row * STEP_Y + 20);
-    return { steps: laid, width, height };
+    return { steps: laid, rows: row };
   }, [graph.data, stages]);
 
   const byId = useMemo(() => new Map(steps.map((s) => [s.id, s])), [steps]);
@@ -178,9 +181,16 @@ export function QAFlowView({ sessionId }: { sessionId: string }) {
     );
   }
 
-  const anchorRight = (s: Step) => ({ x: s.x + 214, y: s.y + CHIP_H / 2 });
-  const anchorLeft = (s: Step) => ({ x: s.x, y: s.y + CHIP_H / 2 });
-  const anchorBottom = (s: Step) => ({ x: s.x + 46, y: s.y + CHIP_H });
+  const spineX = (s: Step) => LEFT + s.depth * DEPTH_X + GLYPH_DX;
+  const rowCy = (s: Step) => TOP + s.row * ROW_H + CHIP_H / 2;
+  const maxDepth = steps.reduce((m, s) => Math.max(m, s.depth), 0);
+  const contentLeft = LEFT + maxDepth * DEPTH_X;
+  const width = contentLeft + 300;
+  const height = TOP + rows * ROW_H + 12;
+
+  const isSelected = (s: Step) =>
+    (s.node.artifact_id != null && s.node.artifact_id === selectedArtifactId) ||
+    (s.node.transcript_segment_id != null && s.node.transcript_segment_id === selectedSegmentId);
 
   return (
     <div className="qa-flow">
@@ -202,116 +212,137 @@ export function QAFlowView({ sessionId }: { sessionId: string }) {
         height={height}
         viewBox={`0 0 ${width} ${height}`}
         role="img"
-        aria-label="Cascading question-and-answer flow for the discovery conversation"
+        aria-label="Question-and-answer flow for the discovery conversation, in order"
       >
-        <defs>
-          <marker
-            id="qa-arrow"
-            viewBox="0 0 8 8"
-            refX="6"
-            refY="4"
-            markerWidth="7"
-            markerHeight="7"
-            orient="auto-start-reverse"
-          >
-            <path d="M0 0 L8 4 L0 8 z" fill="var(--muted)" />
-          </marker>
-        </defs>
-
         {/* Connectors first, so chips sit on top. */}
         {steps.map((s) => {
-          const paths = [];
+          const out = [];
           if (s.flowFrom && byId.has(s.flowFrom)) {
-            const from = anchorRight(byId.get(s.flowFrom)!);
-            const to = anchorLeft(s);
-            paths.push(
+            const from = byId.get(s.flowFrom)!;
+            out.push(
               <path
                 key={`flow-${s.id}`}
                 className="qa-link flow"
-                d={`M${from.x} ${from.y} H${(from.x + to.x) / 2} V${to.y} H${to.x}`}
-                markerEnd="url(#qa-arrow)"
+                d={`M${spineX(s)} ${rowCy(from)} V${rowCy(s)}`}
               />,
             );
           }
           if (s.branchFrom && byId.has(s.branchFrom)) {
-            const from = anchorBottom(byId.get(s.branchFrom)!);
-            const to = anchorLeft(s);
-            paths.push(
+            const parent = byId.get(s.branchFrom)!;
+            out.push(
               <path
                 key={`branch-${s.id}`}
                 className="qa-link branch"
-                d={`M${from.x} ${from.y} V${to.y} H${to.x}`}
-                markerEnd="url(#qa-arrow)"
+                d={`M${spineX(parent)} ${rowCy(parent)} V${rowCy(s)} H${spineX(s)}`}
               />,
             );
           }
-          return paths;
+          return out;
         })}
 
-        {/* Steps */}
+        {/* Rows */}
         {steps.map((s) => {
+          const x = LEFT + s.depth * DEPTH_X;
+          const cy = TOP + s.row * ROW_H + CHIP_H / 2;
           const clickable = Boolean(s.node.artifact_id || s.node.transcript_segment_id);
+          const selected = isSelected(s);
           const onActivate = () => {
             if (s.node.artifact_id) selectArtifact(s.node.artifact_id);
             if (s.node.transcript_segment_id) selectSegment(s.node.transcript_segment_id);
           };
+
+          let labelX = x + 20;
+          let label = "";
+          let chipClass = "qa-chip";
+          if (s.kind === "qa") {
+            labelX = x + 42;
+            label = truncate(s.question?.label ?? "", 26);
+            chipClass = "qa-chip q";
+          } else if (s.kind === "answer") {
+            labelX = x + 26;
+            label = truncate(s.node.label, 30);
+            chipClass = "qa-chip a";
+          } else {
+            labelX = x + 20;
+            label = truncate(s.node.label, 26);
+            chipClass = "qa-chip art";
+          }
+          const chipW = Math.min(258, 20 + label.length * 6.9);
+
           return (
             <g
               key={s.id}
-              transform={`translate(${s.x}, ${s.y})`}
-              className={`qa-step ${clickable ? "clickable" : ""}`}
+              className={`qa-step ${clickable ? "clickable" : ""} ${selected ? "selected" : ""}`}
               onClick={clickable ? onActivate : undefined}
               role={clickable ? "button" : undefined}
               tabIndex={clickable ? 0 : undefined}
               onKeyDown={
                 clickable
                   ? (e) => {
-                      if (e.key === "Enter" || e.key === " ") onActivate();
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onActivate();
+                      }
                     }
                   : undefined
               }
             >
+              {/* Full-row hit target */}
+              <rect
+                className="qa-hit"
+                x={x}
+                y={cy - ROW_H / 2}
+                width={chipW + (labelX - x) + 8}
+                height={ROW_H}
+                rx={8}
+              />
+
               {s.kind === "qa" && (
                 <>
-                  <circle className="qa-glyph se" cx={9} cy={CHIP_H / 2} r={5} />
-                  <text className="qa-num" x={22} y={CHIP_H / 2 + 4}>
+                  <circle className="qa-glyph se" cx={x + GLYPH_DX} cy={cy} r={4.5} />
+                  <text className="qa-num" x={x + 20} y={cy + 4}>
                     Q{s.qNum}
                   </text>
-                  <rect className="qa-chip q" x={54} y={4} rx={7} width={92} height={CHIP_H - 8} />
-                  <text className="qa-label" x={64} y={CHIP_H / 2 + 4}>
-                    {truncate(s.question?.label ?? "", 13)}
+                  <rect
+                    className={chipClass}
+                    x={labelX}
+                    y={cy - CHIP_H / 2}
+                    rx={7}
+                    width={chipW}
+                    height={CHIP_H}
+                  />
+                  <text className="qa-label" x={labelX + 10} y={cy + 4}>
+                    {label}
                   </text>
-                  {s.answer ? (
+                  {s.answer && (
                     <>
-                      <line
-                        className="qa-inline"
-                        x1={146}
-                        y1={CHIP_H / 2}
-                        x2={162}
-                        y2={CHIP_H / 2}
-                        markerEnd="url(#qa-arrow)"
-                      />
-                      <circle className="qa-ring" cx={178} cy={CHIP_H / 2} r={11} />
-                      <text className="qa-ring-label" x={178} y={CHIP_H / 2 + 4}>
+                      <circle className="qa-ansdot" cx={labelX + chipW + 12} cy={cy} r={7} />
+                      <text className="qa-ansdot-label" x={labelX + chipW + 12} y={cy + 3}>
                         A
                       </text>
-                      <title>{s.answer.label}</title>
+                      <title>{`Q: ${s.question?.label}\nA: ${s.answer.label}`}</title>
                     </>
-                  ) : (
-                    <title>{s.question?.label}</title>
                   )}
+                  {!s.answer && <title>{s.question?.label}</title>}
                 </>
               )}
 
               {s.kind === "answer" && (
                 <>
-                  <circle className="qa-ring" cx={11} cy={CHIP_H / 2} r={11} />
-                  <text className="qa-ring-label" x={11} y={CHIP_H / 2 + 4}>
+                  <circle className="qa-ring" cx={x + GLYPH_DX + 2} cy={cy} r={9} />
+                  <text className="qa-ring-label" x={x + GLYPH_DX + 2} y={cy + 4}>
                     A
                   </text>
-                  <rect className="qa-chip a" x={30} y={4} rx={7} width={172} height={CHIP_H - 8} />
-                  <text className="qa-label" x={40} y={CHIP_H / 2 + 4}>
-                    {truncate(s.node.label, 24)}
+                  <rect
+                    className={chipClass}
+                    x={labelX}
+                    y={cy - CHIP_H / 2}
+                    rx={7}
+                    width={chipW}
+                    height={CHIP_H}
+                  />
+                  <text className="qa-label" x={labelX + 10} y={cy + 4}>
+                    {label}
                   </text>
                   <title>{s.node.label}</title>
                 </>
@@ -321,23 +352,22 @@ export function QAFlowView({ sessionId }: { sessionId: string }) {
                 <>
                   <circle
                     className="qa-glyph art"
-                    cx={9}
-                    cy={CHIP_H / 2}
-                    r={5}
+                    cx={x + GLYPH_DX}
+                    cy={cy}
+                    r={4.5}
                     style={{ fill: ARTIFACT_COLOR[s.node.node_type] ?? "var(--muted)" }}
                   />
                   <rect
-                    className="qa-chip art"
-                    x={22}
-                    y={4}
+                    className={chipClass}
+                    x={labelX}
+                    y={cy - CHIP_H / 2}
                     rx={7}
-                    width={190}
-                    height={CHIP_H - 8}
+                    width={chipW}
+                    height={CHIP_H}
                     style={{ stroke: ARTIFACT_COLOR[s.node.node_type] ?? "var(--border)" }}
                   />
-                  <text className="qa-label" x={32} y={CHIP_H / 2 + 4}>
-                    <tspan className="qa-kind">{s.node.node_type}</tspan> ·{" "}
-                    {truncate(s.node.label, 20)}
+                  <text className="qa-label" x={labelX + 10} y={cy + 4}>
+                    <tspan className="qa-kind">{s.node.node_type}</tspan> · {label}
                   </text>
                   <title>{s.node.label}</title>
                 </>
@@ -348,8 +378,4 @@ export function QAFlowView({ sessionId }: { sessionId: string }) {
       </svg>
     </div>
   );
-}
-
-function truncate(text: string, max: number) {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }

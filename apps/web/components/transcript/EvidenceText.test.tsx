@@ -36,4 +36,15 @@ describe("EvidenceText (transcript → artifact navigation)", () => {
     expect(screen.getByText(/Ideally/)).toBeInTheDocument();
     expect(screen.getByText(/too stale/)).toBeInTheDocument();
   });
+
+  it("marks spans active when they belong to the selected artifact", () => {
+    const { rerender } = render(
+      <EvidenceText text={text} links={[link]} onSelect={() => {}} activeArtifactId={null} />,
+    );
+    expect(screen.getByText("within 30 seconds")).not.toHaveClass("active");
+    rerender(
+      <EvidenceText text={text} links={[link]} onSelect={() => {}} activeArtifactId="REQ-002" />,
+    );
+    expect(screen.getByText("within 30 seconds")).toHaveClass("active");
+  });
 });

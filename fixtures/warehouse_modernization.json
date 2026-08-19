@@ -206,15 +206,15 @@
 
     { "branch_id": "BR-STATES", "node_type": "answer", "label": "Delayed orders discovered late", "transcript_segment_id": "SEG-102", "sequence": 0 },
     { "branch_id": "BR-STATES", "node_type": "question", "label": "Which states matter?", "artifact_id": "Q-005", "sequence": 1 },
-    { "branch_id": "BR-STATES", "node_type": "question", "label": "Who acts, and when?", "sequence": 2 },
-    { "branch_id": "BR-STATES", "node_type": "requirement", "label": "Alert requirement", "sequence": 3 },
+    { "branch_id": "BR-STATES", "node_type": "question", "label": "Who acts, and when?", "artifact_id": "REQ-010", "sequence": 2 },
+    { "branch_id": "BR-STATES", "node_type": "requirement", "label": "Alert requirement", "artifact_id": "NEED-001", "sequence": 3 },
 
     { "branch_id": "BR-DEVICES", "node_type": "answer", "label": "Existing rugged tablets", "transcript_segment_id": "SEG-105", "artifact_id": "CON-003", "sequence": 0 },
     { "branch_id": "BR-DEVICES", "node_type": "question", "label": "OS / browser?", "sequence": 1 },
-    { "branch_id": "BR-DEVICES", "node_type": "requirement", "label": "Compatibility requirement", "sequence": 2 },
+    { "branch_id": "BR-DEVICES", "node_type": "requirement", "label": "Compatibility requirement", "artifact_id": "CON-003", "sequence": 2 },
 
     { "branch_id": "BR-WMS", "node_type": "answer", "label": "Keep current WMS", "transcript_segment_id": "SEG-105", "artifact_id": "CON-004", "sequence": 0 },
-    { "branch_id": "BR-WMS", "node_type": "question", "label": "Available interfaces?", "sequence": 1 },
+    { "branch_id": "BR-WMS", "node_type": "question", "label": "Available interfaces?", "artifact_id": "RISK-007", "sequence": 1 },
     { "branch_id": "BR-WMS", "node_type": "requirement", "label": "Interface + latency", "artifact_id": "REQ-002", "sequence": 2 },
 
     { "branch_id": "BR-OFFLINE", "node_type": "answer", "label": "Intermittent network", "transcript_segment_id": "SEG-106", "sequence": 0 },

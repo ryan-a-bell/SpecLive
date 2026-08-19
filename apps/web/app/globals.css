@@ -130,6 +130,10 @@ body {
   background: rgba(255, 171, 104, 0.14);
   color: #ffd5b5;
 }
+.evidence.active {
+  box-shadow: 0 0 0 2px var(--yellow);
+  border-radius: 4px;
+}
 .badge {
   font-size: 10px;
   border-radius: 999px;
@@ -544,10 +548,6 @@ body {
   letter-spacing: 0.04em;
   font-size: 9px;
 }
-.qa-inline {
-  stroke: var(--muted);
-  stroke-width: 1.5;
-}
 .qa-ring {
   fill: var(--panel2);
   stroke: var(--blue);
@@ -559,8 +559,25 @@ body {
   font-weight: 700;
   text-anchor: middle;
 }
+.qa-ansdot {
+  fill: rgba(103, 168, 255, 0.12);
+  stroke: var(--blue);
+  stroke-width: 1.5;
+}
+.qa-ansdot-label {
+  fill: var(--blue);
+  font-size: 9px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+.qa-hit {
+  fill: transparent;
+}
 .qa-step.clickable {
   cursor: pointer;
+}
+.qa-step.clickable:hover .qa-hit {
+  fill: rgba(103, 168, 255, 0.06);
 }
 .qa-step.clickable:hover .qa-chip,
 .qa-step.clickable:focus-visible .qa-chip {
@@ -571,6 +588,18 @@ body {
 }
 .qa-step.clickable:focus-visible .qa-num {
   fill: var(--blue);
+}
+/* Selected row — the one driving the transcript highlight. */
+.qa-step.selected .qa-hit {
+  fill: rgba(255, 211, 111, 0.1);
+}
+.qa-step.selected .qa-chip {
+  fill: rgba(255, 211, 111, 0.14);
+  stroke: var(--yellow);
+  stroke-width: 2;
+}
+.qa-step.selected .qa-num {
+  fill: var(--yellow);
 }
 
 /* --- toast -------------------------------------------------------------- */

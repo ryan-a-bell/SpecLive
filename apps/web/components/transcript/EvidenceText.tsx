@@ -6,6 +6,8 @@ interface EvidenceTextProps {
   text: string;
   links: EvidenceLink[];
   onSelect: (artifactId: string) => void;
+  /** When set, spans belonging to this artifact are emphasized as active. */
+  activeArtifactId?: string | null;
 }
 
 /**
@@ -14,7 +16,7 @@ interface EvidenceTextProps {
  * / contextual) drives the highlight color. Replaces the prototype's static
  * `<span class="evidence ...">` markup.
  */
-export function EvidenceText({ text, links, onSelect }: EvidenceTextProps) {
+export function EvidenceText({ text, links, onSelect, activeArtifactId }: EvidenceTextProps) {
   const spans = [...links]
     .filter((l) => l.quote_start >= 0 && l.quote_end <= text.length && l.quote_end > l.quote_start)
     .sort((a, b) => a.quote_start - b.quote_start);
@@ -26,10 +28,11 @@ export function EvidenceText({ text, links, onSelect }: EvidenceTextProps) {
     if (link.quote_start > cursor) {
       parts.push(<span key={`t-${i}`}>{text.slice(cursor, link.quote_start)}</span>);
     }
+    const active = activeArtifactId != null && link.artifact_id === activeArtifactId;
     parts.push(
       <span
         key={link.id}
-        className={`evidence ${link.relationship}`}
+        className={`evidence ${link.relationship}${active ? " active" : ""}`}
         role="button"
         tabIndex={0}
         title={`${link.relationship} evidence`}

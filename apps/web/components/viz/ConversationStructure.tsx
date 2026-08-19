@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CoverageMatrix } from "./CoverageMatrix";
+import { FlowTranscript } from "./FlowTranscript";
 import { GitBranchView } from "./GitBranchView";
 import { QAFlowView } from "./QAFlowView";
 import { SubwayView } from "./SubwayView";
@@ -12,7 +13,7 @@ const TABS: { id: Tab; label: string; note: string }[] = [
   {
     id: "qa",
     label: "Q&A flow",
-    note: "Every question the facilitator asks and the customer's answer, cascading in order. Answers that open a new thread branch down into their own follow-up questions — the effective Q&A flow of a technical discovery call.",
+    note: "Every question the facilitator asks and the customer's answer, read top-to-bottom. Follow-up threads branch to the right off the answer that triggered them. Click any question or requirement to highlight its supporting evidence in the transcript on the left.",
   },
   {
     id: "git",
@@ -63,7 +64,16 @@ export function ConversationStructure({ sessionId }: { sessionId: string }) {
       </header>
       <div className="min-h-[420px] overflow-auto bg-[linear-gradient(180deg,rgba(9,19,33,0.65),rgba(14,23,39,0.88))] p-3">
         <p className="mb-[11px] text-[11px] leading-snug text-[var(--muted)]">{note}</p>
-        {active === "qa" && <QAFlowView sessionId={sessionId} />}
+        {active === "qa" && (
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <div className="h-[520px] rounded-[11px] border border-[var(--border)] bg-[var(--panel2)] p-3">
+              <FlowTranscript sessionId={sessionId} />
+            </div>
+            <div className="h-[520px] overflow-auto rounded-[11px] border border-[var(--border)] bg-[var(--panel2)] p-2">
+              <QAFlowView sessionId={sessionId} />
+            </div>
+          </div>
+        )}
         {active === "git" && <GitBranchView sessionId={sessionId} />}
         {active === "subway" && <SubwayView sessionId={sessionId} />}
         {active === "matrix" && <CoverageMatrix sessionId={sessionId} />}
