@@ -7,11 +7,20 @@ at ``/api/v1/sessions/{id}/audio`` as raw **mono 16-bit little-endian PCM at
 manual/CI testing without a microphone:
 
     discussion JSON  --Piper-->  wav  --resample-->  PCM16/16k/mono
-        --> WebSocket frames (manual speaker per turn) --> transcript
+        --> WebSocket frames --> transcript
 
 It exercises the exact contract the browser uses: ``transcription.ready`` ->
-``configure`` (manual speaker) -> binary frames -> ``stop``, while a reader task
-prints every ``transcript.partial`` / ``transcript.final`` the server returns.
+``configure`` -> binary frames -> ``stop``, while a reader task prints every
+``transcript.partial`` / ``transcript.final`` the server returns.
+
+Speaker modes
+-------------
+* ``--speaker-mode manual`` (default): the harness stamps each turn's true
+  speaker before streaming its audio. Good for validating the plumbing.
+* ``--speaker-mode auto``: the harness reveals nothing; the server detects and
+  groups voices on its own. Pair it with ``STT_PROVIDER=replay`` (a scripted
+  diarization stand-in) to watch anonymous ``Voice N`` groups form, then add
+  ``--apply-corrections`` to relabel each voice to its true speaker.
 
 Requirements
 ------------
@@ -33,6 +42,14 @@ Usage
     # Bring your own synthesizer (must emit a WAV at {out}; {text} is the line):
     python scripts/audio_playback_test.py --script scripts/sample_discussion.json \
         --tts-cmd 'espeak-ng -w {out} {text}'
+
+    # Watch speaker detection + grouping + correction play out (auto mode).
+    # Start the API with:
+    #   STT_PROVIDER=replay \
+    #   REPLAY_SCRIPT=scripts/conversations/hpc_infrastructure.json uvicorn ...
+    python scripts/audio_playback_test.py \
+        --script scripts/conversations/hpc_infrastructure.json \
+        --speaker-mode auto --apply-corrections --realtime
 """
 
 from __future__ import annotations
@@ -200,7 +217,10 @@ async def reader(ws, stop: asyncio.Event) -> None:
             if kind in {"transcript.partial", "transcript.final"}:
                 tag = "FINAL" if evt.get("is_final") else "partial"
                 who = evt.get("speaker_name") or evt.get("speaker") or "?"
-                print(f"  [{tag:7}] {who}: {evt.get('text', '').strip()}")
+                src = evt.get("speaker_source", "?")
+                conf = evt.get("speaker_confidence")
+                meta = f"{src}" + (f" {conf:.2f}" if isinstance(conf, (int, float)) else "")
+                print(f"  [{tag:7}] {who:8} ({meta}): {evt.get('text', '').strip()}")
             elif kind == "transcription.error":
                 print(f"  [error] {evt.get('code')}: {evt.get('message', '')}")
             elif kind == "transcription.stopped":
@@ -212,30 +232,43 @@ async def reader(ws, stop: asyncio.Event) -> None:
 
 
 async def stream(
-    session_id: str, api_base: str, turns: list[Turn], rendered: list[bytes], realtime: bool
+    session_id: str,
+    api_base: str,
+    turns: list[Turn],
+    rendered: list[bytes],
+    realtime: bool,
+    speaker_mode: str,
 ) -> None:
     url = ws_url(api_base, session_id)
     async with websockets.connect(url, max_size=None) as ws:
         ready = json.loads(await ws.recv())
         if ready.get("type") != "transcription.ready":
             sys.exit(f"unexpected handshake: {ready}")
-        print(f"connected: {ready.get('audio')}")
+        print(f"connected: {ready.get('audio')} | speaker_mode={speaker_mode}")
 
         stop = asyncio.Event()
         reader_task = asyncio.create_task(reader(ws, stop))
 
+        if speaker_mode == "auto":
+            # Let the server's detection group voices on its own; the harness
+            # does not reveal who is speaking. Audio for all turns streams back
+            # to back — the STT provider attributes each utterance.
+            await ws.send(json.dumps({"type": "configure", "speaker_mode": "auto"}))
+
         for turn, pcm in zip(turns, rendered, strict=True):
-            await ws.send(
-                json.dumps(
-                    {
-                        "type": "configure",
-                        "speaker_mode": "manual",
-                        "speaker": turn.speaker,
-                        "speaker_id": f"synthetic:{turn.speaker_name.lower().replace(' ', '_')}",
-                        "speaker_name": turn.speaker_name,
-                    }
+            if speaker_mode == "manual":
+                voice_id = "synthetic:" + turn.speaker_name.lower().replace(" ", "_")
+                await ws.send(
+                    json.dumps(
+                        {
+                            "type": "configure",
+                            "speaker_mode": "manual",
+                            "speaker": turn.speaker,
+                            "speaker_id": voice_id,
+                            "speaker_name": turn.speaker_name,
+                        }
+                    )
                 )
-            )
             print(f"> {turn.speaker_name} ({turn.speaker}): {turn.text[:70]}...")
             for frame in frames_of(pcm):
                 if not frame:
@@ -250,6 +283,66 @@ async def stream(
         except TimeoutError:
             print("  [warn] timed out waiting for transcription.stopped")
         reader_task.cancel()
+
+
+# --------------------------------------------------------------------------- #
+# Correction workflow (auto mode): relabel detected voices to true speakers
+# --------------------------------------------------------------------------- #
+def _get_transcript(api_base: str, session_id: str) -> list[dict]:
+    with urllib.request.urlopen(f"{api_base}/api/v1/sessions/{session_id}/transcript") as resp:
+        return json.loads(resp.read())
+
+
+def apply_corrections(api_base: str, session_id: str, turns: list[Turn]) -> None:
+    """Map each detected voice to its ground-truth speaker and relabel it.
+
+    Segments persist in turn order, so the i-th segment corresponds to the i-th
+    scripted turn. We take the first segment of each detected ``speaker_id`` and
+    PATCH it with ``apply_to_voice`` so the whole voice is relabeled at once —
+    exactly the human-correction loop the auto path is built around.
+    """
+    segments = _get_transcript(api_base, session_id)
+    if not segments:
+        print("  [correct] no persisted segments to correct")
+        return
+    if len(segments) != len(turns):
+        print(
+            f"  [correct] warning: {len(segments)} segments vs {len(turns)} turns; "
+            "pairing by position as far as they align"
+        )
+
+    print("\ndetected voices:")
+    first_seg: dict[str, tuple[str, Turn]] = {}
+    for seg, turn in zip(segments, turns, strict=False):
+        voice = seg.get("speaker_id")
+        if voice and voice not in first_seg:
+            first_seg[voice] = (seg["id"], turn)
+            print(f"  {voice} -> truth {turn.speaker_name} ({turn.speaker})")
+
+    for voice, (seg_id, turn) in first_seg.items():
+        body = json.dumps(
+            {
+                "speaker": turn.speaker,
+                "speaker_name": turn.speaker_name,
+                "apply_to_voice": True,
+            }
+        ).encode()
+        req = urllib.request.Request(
+            f"{api_base}/api/v1/sessions/{session_id}/transcript/{seg_id}/speaker",
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="PATCH",
+        )
+        with urllib.request.urlopen(req) as resp:
+            updated = json.loads(resp.read())
+        print(f"  corrected {voice} -> {turn.speaker_name}: {len(updated)} segment(s) relabeled")
+
+    print("\ncorrected transcript:")
+    for seg in _get_transcript(api_base, session_id):
+        print(
+            f"  [{seg.get('speaker_source'):9}] {seg.get('speaker_name'):8}: "
+            f"{seg.get('text', '').strip()[:70]}"
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -285,6 +378,19 @@ def main() -> None:
         action="store_true",
         help="pace frames at wall-clock speed to mimic live playback",
     )
+    parser.add_argument(
+        "--speaker-mode",
+        choices=("manual", "auto"),
+        default="manual",
+        help="manual: stamp the true speaker per turn; auto: let the server detect "
+        "and group voices (use with STT_PROVIDER=replay). Default: %(default)s",
+    )
+    parser.add_argument(
+        "--apply-corrections",
+        action="store_true",
+        help="auto mode only: after streaming, relabel each detected voice to its "
+        "true speaker via the correction endpoint and print the regrouped transcript",
+    )
     args = parser.parse_args()
 
     meta, turns, _ = load_script(args.script)
@@ -299,7 +405,16 @@ def main() -> None:
     session_id = args.session_id or create_session(args.api_base, meta)
     print(f"session: {session_id}")
 
-    asyncio.run(stream(session_id, args.api_base, turns, rendered, args.realtime))
+    asyncio.run(
+        stream(session_id, args.api_base, turns, rendered, args.realtime, args.speaker_mode)
+    )
+
+    if args.apply_corrections:
+        if args.speaker_mode != "auto":
+            print("  [correct] --apply-corrections has no effect outside auto mode; skipping")
+        else:
+            apply_corrections(args.api_base, session_id, turns)
+
     print(f"\ndone. transcript: {args.api_base}/api/v1/sessions/{session_id}/transcript")
 
 

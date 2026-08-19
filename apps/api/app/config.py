@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     faster_whisper_device: str = "auto"
     faster_whisper_compute_type: str = "default"
     faster_whisper_chunk_seconds: float = 3.0
+    # Scripted replay STT (test/demo only): emits a fixture conversation's turns
+    # as anonymous *detected* voices, paced by incoming audio, so the auto
+    # speaker-grouping and correction workflow can be exercised without a real
+    # diarization engine. See scripts/README.md.
+    replay_script: str | None = None
+    replay_seconds_per_turn: float = 2.5
 
     # HTTP
     api_host: str = "0.0.0.0"

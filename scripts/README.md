@@ -49,12 +49,60 @@ The harness creates a session (or reuse one with `--session-id`), prints every
 `transcript.partial` / `transcript.final` the server returns, and finishes with a
 link to the persisted transcript.
 
+### Bundled conversations
+
+Ready-to-stream synthetic discovery calls live in
+[`conversations/`](conversations/):
+
+| File | Speakers | Topic |
+|------|----------|-------|
+| [`iot_warehouse_ml_pipeline.json`](conversations/iot_warehouse_ml_pipeline.json) | 2 (Ryan ↔ Priya) | Setting up an ML pipeline for an IoT warehouse — predictive maintenance, edge inference, drift/retraining, data residency |
+| [`hpc_infrastructure.json`](conversations/hpc_infrastructure.json) | 3 (Ryan / Marcus / Elena) | HPC infrastructure — scheduling, parallel storage, power & cooling, interconnect, multi-tenant isolation |
+
+Each is written as a real facilitator-led discovery dialogue, so it also gives
+the derivation layer objectives, requirements, constraints, and risks to chew on.
+
+### Watching speaker detection play out (auto mode)
+
+The `mock` provider only emits canned text and `faster-whisper` emits no speaker
+labels, so neither shows multi-speaker grouping. The **`replay`** provider is a
+deterministic diarization stand-in: seeded with a conversation, it replays each
+turn as an *anonymous detected voice* (`spk-1`, `spk-2`, … → `Voice 1`,
+`Voice 2`, …), paced by incoming audio. That drives the whole `auto` path —
+stable voice grouping, confidence, and the correction workflow — without a real
+diarization engine.
+
+```bash
+# 1. Start the API with the replay provider pointed at a conversation
+STT_PROVIDER=replay \
+REPLAY_SCRIPT="$PWD/scripts/conversations/hpc_infrastructure.json" \
+REPLAY_SECONDS_PER_TURN=2.5 \
+  uvicorn app.main:app --port 8000        # (run from apps/api)
+
+# 2. Stream it in auto mode and relabel each detected voice to its true speaker
+python scripts/audio_playback_test.py \
+    --script scripts/conversations/hpc_infrastructure.json \
+    --api-base http://localhost:8000 \
+    --speaker-mode auto --apply-corrections --realtime
+```
+
+You'll see anonymous `Voice 1/2/3` groups form as the conversation streams, then
+`--apply-corrections` maps each voice to its ground-truth speaker in one call
+per voice (`apply_to_voice`) and prints the regrouped transcript — the full
+detect → group → correct loop. Point `REPLAY_SCRIPT` at the 2-speaker
+conversation to see two voices instead of three.
+
+When you're ready for a **real** diarizer, implement `SpeechToTextProvider` with
+pyannote/whisperx and register it in `registry.py` — the harness and auto path
+stay exactly the same.
+
 ### Discussion script format
 
 See [`sample_discussion.json`](sample_discussion.json). Each turn's `speaker`
 must be one of the domain speaker roles (`facilitator`, `customer`,
-`participant`, `system`, `unknown`); the harness stamps it as the manual speaker
-for that turn's audio.
+`participant`, `system`, `unknown`); in manual mode the harness stamps it as the
+speaker for that turn's audio, and in auto mode it becomes the ground truth used
+by `--apply-corrections`.
 
 ```json
 {

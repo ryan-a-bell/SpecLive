@@ -18,6 +18,7 @@ from .mock import (
     MockSpeechToTextProvider,
 )
 from .openai_realtime import OpenAIRealtimeProvider
+from .replay import ReplaySpeechToTextProvider
 from .wispr_flow import WisprFlowProvider
 
 _LLM_PROVIDERS: dict[str, type[LanguageModelProvider]] = {"mock": MockLanguageModelProvider}
@@ -36,8 +37,17 @@ def get_llm_provider() -> LanguageModelProvider:
 @lru_cache
 def get_stt_provider() -> SpeechToTextProvider:
     settings = get_settings()
+    def _replay() -> SpeechToTextProvider:
+        if not settings.replay_script:
+            raise ValueError("STT_PROVIDER=replay requires REPLAY_SCRIPT to be set")
+        return ReplaySpeechToTextProvider(
+            script_path=settings.replay_script,
+            seconds_per_turn=settings.replay_seconds_per_turn,
+        )
+
     factories: dict[str, Callable[[], SpeechToTextProvider]] = {
         "mock": MockSpeechToTextProvider,
+        "replay": _replay,
         "local": lambda: FasterWhisperProvider(
             model_name=settings.faster_whisper_model,
             device=settings.faster_whisper_device,
