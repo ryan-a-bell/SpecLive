@@ -1,0 +1,87 @@
+{
+  "title": "HPC infrastructure discovery (synthetic, 3 speakers)",
+  "customer": "Helios Genomics",
+  "facilitator": "Ryan",
+  "voices": {
+    "facilitator": "en_US-ryan-high",
+    "customer": "en_US-lessac-medium",
+    "participant": "en_US-amy-medium"
+  },
+  "turns": [
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "Thanks both for joining. Marcus, you own the budget and Elena runs the clusters, so I want both lenses. Let's start with the problem — what's pushing you to rethink your compute infrastructure now?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Marcus",
+      "text": "Our genomics workloads have tripled in a year. Researchers wait days in the queue, and we're renting cloud GPUs at a burn rate the CFO is now asking hard questions about. I need to know whether we build on-prem, stay cloud, or go hybrid."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "So the objective is throughput at a defensible cost. Elena, from the systems side, where does the current setup actually break down?"
+    },
+    {
+      "speaker": "participant",
+      "speaker_name": "Elena",
+      "text": "Two places. The scheduler is the first — we're on a hand-tuned Slurm setup that can't fair-share across teams, so one big job starves everyone. The second is storage. Our variant-calling jobs are I O bound, and the NFS filer we have can't feed more than about forty nodes before it falls over."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "That's useful detail. So a requirement is a scheduler with real fair-share and preemption, and a parallel filesystem that scales past the current I O ceiling. Marcus, is on-prem even on the table given the CFO pressure?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Marcus",
+      "text": "It is, but only if the three-year total cost beats cloud. I'm not chasing the cheapest month, I'm chasing predictable spend. If we build, I need the power and cooling numbers up front, because our current data center is already near its limit."
+    },
+    {
+      "speaker": "participant",
+      "speaker_name": "Elena",
+      "text": "And that's the catch — a dense GPU rack pulls thirty to forty kilowatts. Our room is provisioned for maybe twelve per rack. So an on-prem build isn't just servers, it's a facilities project with liquid cooling, and that timeline is months not weeks."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "So there's a hard constraint hiding here: any on-prem option is gated by power and cooling capacity, and that's a facilities dependency, not just procurement. Elena, what about the interconnect — does the workload actually need InfiniBand, or is ethernet enough?"
+    },
+    {
+      "speaker": "participant",
+      "speaker_name": "Elena",
+      "text": "Most of our jobs are embarrassingly parallel, so they don't need low-latency interconnect. But the newer protein-folding models the research team wants to run are multi-node and tightly coupled. Those would need InfiniBand or they'll scale terribly."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "So we can't answer the interconnect question without the roadmap. Marcus, is tightly-coupled multi-node training a committed direction, or a maybe?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Marcus",
+      "text": "It's committed. The board approved a protein-folding initiative last quarter. So whatever we build has to at least have a path to a low-latency fabric, even if we don't buy it all on day one."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "Then that promotes it from assumption to requirement: the design must accommodate a low-latency fabric for tightly-coupled jobs. Elena, how are teams isolated today — is multi-tenancy a security need or just a scheduling nicety?"
+    },
+    {
+      "speaker": "participant",
+      "speaker_name": "Elena",
+      "text": "It's a real requirement. We handle patient-derived genomic data, so some datasets are legally walled off. Right now isolation is basically Unix permissions and trust, which won't pass our next audit. We need enforced tenant separation on both compute and storage."
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Marcus",
+      "text": "That's the one I can't compromise on. A compliance finding on patient data is existential for us, well ahead of any performance number. Whatever we choose has to be auditable from day one."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "Understood — so enforced, auditable tenant isolation is the top-ranked constraint, above raw throughput. Let me play back what I have: predictable three-year cost, fair-share scheduling, a scalable parallel filesystem, a power-and-cooling gate on any build, a path to low-latency interconnect, and hard multi-tenant isolation. We'll confirm each and rank them together."
+    }
+  ]
+}

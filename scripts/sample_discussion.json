@@ -1,0 +1,47 @@
+{
+  "title": "Warehouse modernization discovery (synthetic)",
+  "customer": "Acme Logistics",
+  "facilitator": "Ryan",
+  "voices": {
+    "facilitator": "en_US-ryan-high",
+    "customer": "en_US-amy-medium",
+    "participant": "en_US-lessac-medium"
+  },
+  "turns": [
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "Thanks for making the time today. I want to understand how your warehouse operates now, and where the biggest slowdowns are before we talk about any new system."
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Maya",
+      "text": "Our biggest pain is that inventory counts drift over the course of a week. By Friday the numbers in the system don't match what's on the shelves, and the pickers stop trusting them."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "That's useful. When the counts drift, what do the pickers do instead? Do they walk the aisle to verify, or do they escalate to a supervisor?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Maya",
+      "text": "They walk the aisle. It costs us maybe two hours a shift. We also can't promise same-day fulfilment because we never know if a bin is really stocked."
+    },
+    {
+      "speaker": "participant",
+      "speaker_name": "Dev",
+      "text": "I'll add that our scanners are ten years old and only sync when they're docked. So any count taken mid-shift isn't visible to anyone until the device is back on the cradle."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "So if I'm hearing you both correctly, a constraint is that stock accuracy has to hold in real time, and an assumption we should validate is that same-day fulfilment depends on trustworthy live counts. Does that sound right?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Maya",
+      "text": "Yes, exactly. Real-time accuracy is the requirement. Same-day fulfilment is the outcome we care about, and it's currently at risk because of the sync delay Dev mentioned."
+    }
+  ]
+}

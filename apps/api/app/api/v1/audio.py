@@ -43,6 +43,9 @@ def _transcription_capability(settings: Settings) -> TranscriptionCapability:
     elif provider in {"wispr", "wispr-flow"}:
         available = bool(settings.wispr_flow_api_key and settings.wispr_flow_access_token)
         supports_partials = True
+    elif provider == "replay":
+        available = bool(settings.replay_script)
+        supports_partials = False
     elif provider == "mock":
         available = True
         supports_partials = True
@@ -52,7 +55,9 @@ def _transcription_capability(settings: Settings) -> TranscriptionCapability:
     return TranscriptionCapability(
         available=available,
         supports_partials=supports_partials,
-        supports_speaker_detection=(provider == "mock" or settings.stt_speaker_detection),
+        supports_speaker_detection=(
+            provider in {"mock", "replay"} or settings.stt_speaker_detection
+        ),
     )
 
 
