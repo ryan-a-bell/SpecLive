@@ -12,6 +12,7 @@ import {
   DiscoveryTree,
   EvidenceLink,
   Recommendations,
+  ScriptDefinition,
   ScriptState,
   TranscriptSegment,
   TranscriptionCapability,
@@ -69,6 +70,14 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
     // sessions
     listSessions: () => request("/sessions", z.array(DiscoverySession)),
     getSession: (id: string) => request(`/sessions/${id}`, DiscoverySession),
+    patchSession: (
+      id: string,
+      body: Partial<{ title: string; status: string; script_id: string; metadata: object }>,
+    ) =>
+      request(`/sessions/${id}`, DiscoverySession, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
     createSession: (body: {
       title: string;
       customer: string;
@@ -102,10 +111,14 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
       segmentId: string,
       body: { speaker: Speaker; speaker_name: string; apply_to_voice: boolean },
     ) =>
-      request(`/sessions/${sessionId}/transcript/${segmentId}/speaker`, z.array(TranscriptSegment), {
-        method: "PATCH",
-        body: JSON.stringify(body),
-      }),
+      request(
+        `/sessions/${sessionId}/transcript/${segmentId}/speaker`,
+        z.array(TranscriptSegment),
+        {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        },
+      ),
     transcriptionSocketUrl: (id: string) =>
       `${socketRoot}/api/v1/sessions/${encodeURIComponent(id)}/audio`,
     parseTranscriptionFrame: (data: string) => TranscriptionServerFrame.parse(JSON.parse(data)),
@@ -173,6 +186,8 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
     getRecommendations: (id: string) => request(`/sessions/${id}/recommendations`, Recommendations),
 
     // script
+    listScripts: () => request("/scripts", z.array(ScriptDefinition)),
+    getScript: (scriptId: string) => request(`/scripts/${scriptId}`, ScriptDefinition),
     getScriptState: (id: string) => request(`/sessions/${id}/script`, ScriptState),
     advanceScript: (id: string) =>
       request(`/sessions/${id}/script/advance`, ScriptState, { method: "POST" }),

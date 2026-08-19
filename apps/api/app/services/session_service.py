@@ -64,6 +64,11 @@ class SessionService:
                 value = SessionStatus(value).value
                 if value == SessionStatus.COMPLETED.value:
                     row.ended_at = datetime.now(UTC)
+            if key == "script_id" and value != row.script_id:
+                # Switching scripts restarts advancement at the first stage.
+                meta = dict(row.meta or {})
+                meta["script_stage_index"] = 0
+                row.meta = meta
             setattr(row, attr, value)
         self._repo.commit()
         return session_to_domain(row)

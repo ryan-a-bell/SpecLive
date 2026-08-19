@@ -58,6 +58,12 @@ def _now() -> datetime:
 
 def seed(*, if_empty: bool = False) -> str:
     create_all()
+
+    # Always make the pre-canned starter scripts available in the catalogue.
+    from .scripts_catalog import seed_catalogue
+
+    seed_catalogue()
+
     data = _load_fixture()
     session_id = data["session"]["id"]
 

@@ -14,6 +14,7 @@ const keys = {
   coverage: (id: string) => ["coverage", id] as const,
   recommendations: (id: string) => ["recommendations", id] as const,
   script: (id: string) => ["script", id] as const,
+  scripts: ["scripts"] as const,
   transcriptionCapability: ["transcription-capability"] as const,
 };
 
@@ -65,6 +66,28 @@ export function useRecommendations(id: string) {
 
 export function useScriptState(id: string) {
   return useQuery({ queryKey: keys.script(id), queryFn: () => api.getScriptState(id) });
+}
+
+export function useScripts() {
+  return useQuery({
+    queryKey: keys.scripts,
+    queryFn: () => api.listScripts(),
+    staleTime: 60_000,
+  });
+}
+
+export function useSetSessionScript(sessionId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (scriptId: string) => api.patchSession(sessionId, { script_id: scriptId }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: keys.session(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: keys.script(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: keys.recommendations(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: keys.coverage(sessionId) }),
+      ]),
+  });
 }
 
 export function useTranscriptionCapability() {

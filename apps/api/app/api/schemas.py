@@ -30,6 +30,7 @@ class SessionCreate(BaseModel):
 class SessionPatch(BaseModel):
     title: str | None = None
     status: SessionStatus | None = None
+    script_id: str | None = None
     metadata: dict | None = None
 
 

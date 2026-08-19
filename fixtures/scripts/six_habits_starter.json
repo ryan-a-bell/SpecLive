@@ -1,0 +1,118 @@
+{
+  "id": "SCRIPT-SIX-HABITS",
+  "name": "Technical Discovery Starter (Six Habits)",
+  "version": "1.0.0",
+  "description": "A starter set of technical-discovery questions from The Six Habits of Highly Effective Sales Engineers. Use them verbatim or adapt them to your selling situation. Guiding principle: ask in the customer's context, not yours — frame every question from their perspective.",
+  "stages": [
+    {
+      "id": "STAGE-SH-1",
+      "sequence": 1,
+      "title": "Project overview",
+      "objective": "Hear the project in the customer's own words before you frame it in yours.",
+      "primary_prompt": "Could I trouble you to provide me with an overview of the project in your own words?",
+      "alternative_prompts": [],
+      "completion_criteria": ["The customer has described the project and its scope in their own words."]
+    },
+    {
+      "id": "STAGE-SH-2",
+      "sequence": 2,
+      "title": "Why now",
+      "objective": "Understand what prompted them to evaluate tools like yours.",
+      "primary_prompt": "Is it possible to provide some background as to why you're looking at tools such as ours?",
+      "alternative_prompts": [],
+      "completion_criteria": ["The trigger or motivation for the evaluation is recorded."]
+    },
+    {
+      "id": "STAGE-SH-3",
+      "sequence": 3,
+      "title": "Prior experience",
+      "objective": "Learn from past attempts — what was tried, how it went, and why it succeeded or failed.",
+      "primary_prompt": "Does the organization have any previous experience with other tools or solutions like ours? If so, how did it go? If it failed, why?",
+      "alternative_prompts": [],
+      "completion_criteria": ["Prior tools/solutions and their outcomes are captured."]
+    },
+    {
+      "id": "STAGE-SH-4",
+      "sequence": 4,
+      "title": "Desired outcome",
+      "objective": "Pin down what they ultimately hope to accomplish.",
+      "primary_prompt": "At the end of the day, what are you hoping to accomplish with this solution or with this project?",
+      "alternative_prompts": [],
+      "completion_criteria": ["The intended business outcome of the project is recorded."]
+    },
+    {
+      "id": "STAGE-SH-5",
+      "sequence": 5,
+      "title": "Definition of success",
+      "objective": "Make success concrete and measurable in their terms.",
+      "primary_prompt": "What does success look like for your organization?",
+      "alternative_prompts": [],
+      "completion_criteria": ["A concrete definition of success is captured."]
+    },
+    {
+      "id": "STAGE-SH-6",
+      "sequence": 6,
+      "title": "Standards and frameworks",
+      "objective": "Surface any standards, frameworks, or guidelines they must or want to follow.",
+      "primary_prompt": "Are there specific industry standards, frameworks, or guidelines that you are required to do or attempting to follow? Are you even familiar with them and are they important to you?",
+      "alternative_prompts": [],
+      "completion_criteria": ["Relevant standards/frameworks and their importance are recorded."]
+    },
+    {
+      "id": "STAGE-SH-7",
+      "sequence": 7,
+      "title": "Target areas",
+      "objective": "Identify the business areas, domains, or teams they want to start with.",
+      "primary_prompt": "Are there certain business areas, domains, or internal organizations that you are targeting or focusing on to begin with?",
+      "alternative_prompts": [],
+      "completion_criteria": ["Initial target areas or organizations are identified."]
+    },
+    {
+      "id": "STAGE-SH-8",
+      "sequence": 8,
+      "title": "Demonstration context",
+      "objective": "Decide whether the demo must be set in their business context to land.",
+      "primary_prompt": "Will the business context of the demonstration make a difference to you and your group?",
+      "alternative_prompts": [
+        "For example: if they are an insurance agency, will a demonstration that includes sample data from a fictitious manufacturing company make it difficult for them to follow?"
+      ],
+      "completion_criteria": ["Whether the demo needs their business context is decided."]
+    },
+    {
+      "id": "STAGE-SH-9",
+      "sequence": 9,
+      "title": "Sample data",
+      "objective": "If context matters, find out whether they can supply representative sample data.",
+      "primary_prompt": "If so, do they have any sample data that they could provide to be included in the demonstration?",
+      "alternative_prompts": [],
+      "completion_criteria": ["Availability of sample data for the demo is confirmed."]
+    },
+    {
+      "id": "STAGE-SH-10",
+      "sequence": 10,
+      "title": "Required capabilities",
+      "objective": "Capture the specific capabilities they are looking for.",
+      "primary_prompt": "Are there specific capabilities that you're looking for?",
+      "alternative_prompts": [],
+      "completion_criteria": ["Specific desired capabilities are recorded."]
+    },
+    {
+      "id": "STAGE-SH-11",
+      "sequence": 11,
+      "title": "Attendees and roles",
+      "objective": "Know who will attend and what each person's role and stake is.",
+      "primary_prompt": "Who's going to be in attendance? What are their roles? Are they hands-on users, technical principals, management, decision makers, etc.?",
+      "alternative_prompts": [],
+      "completion_criteria": ["Attendees and their roles are identified."]
+    },
+    {
+      "id": "STAGE-SH-12",
+      "sequence": 12,
+      "title": "Meeting logistics",
+      "objective": "Confirm the practical logistics so the session runs without surprises.",
+      "primary_prompt": "What are the meeting logistics? Is it a secure environment? Will I have internet access? Are we meeting in a conference room or someone's office?",
+      "alternative_prompts": [],
+      "completion_criteria": ["Environment, connectivity, and location logistics are confirmed."]
+    }
+  ]
+}

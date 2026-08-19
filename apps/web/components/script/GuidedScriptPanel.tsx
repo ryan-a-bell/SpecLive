@@ -1,6 +1,12 @@
 "use client";
 
-import { useAdvanceScript, useConversationGraph, useScriptState } from "@/lib/hooks";
+import {
+  useAdvanceScript,
+  useConversationGraph,
+  useScripts,
+  useScriptState,
+  useSetSessionScript,
+} from "@/lib/hooks";
 import { useWorkspaceStore } from "@/lib/store";
 import { useToast } from "@/lib/toast";
 import { Panel } from "@/components/ui/Panel";
@@ -9,6 +15,8 @@ export function GuidedScriptPanel({ sessionId }: { sessionId: string }) {
   const script = useScriptState(sessionId);
   const graph = useConversationGraph(sessionId);
   const advance = useAdvanceScript(sessionId);
+  const scripts = useScripts();
+  const setScript = useSetSessionScript(sessionId);
   const loadPrompt = useWorkspaceStore((s) => s.loadPrompt);
   const activeBranchId = useWorkspaceStore((s) => s.activeBranchId);
   const setActiveBranch = useWorkspaceStore((s) => s.setActiveBranch);
@@ -18,6 +26,8 @@ export function GuidedScriptPanel({ sessionId }: { sessionId: string }) {
   const stage = state?.current_stage ?? null;
   const total = state?.total_stages ?? 0;
   const currentIndex = state?.current_index ?? 0;
+  const activeScriptId = state?.script.id ?? "";
+  const options = scripts.data ?? [];
 
   // Side branches (exclude the main script branch).
   const branches = (graph.data?.branches ?? []).filter((b) => b.topic !== "main_script");
@@ -32,6 +42,47 @@ export function GuidedScriptPanel({ sessionId }: { sessionId: string }) {
         </span>
       }
     >
+      <div className="mb-3">
+        <label
+          className="text-[10px] uppercase tracking-wide text-[var(--muted)]"
+          htmlFor="script-picker"
+        >
+          Discovery script
+        </label>
+        <select
+          id="script-picker"
+          className="mt-1 w-full rounded-[9px] border border-[var(--border)] bg-[var(--panel2)] px-[9px] py-[7px] text-xs text-white disabled:opacity-60"
+          value={activeScriptId}
+          disabled={setScript.isPending || options.length === 0}
+          onChange={(event) => {
+            const nextId = event.target.value;
+            if (!nextId || nextId === activeScriptId) return;
+            setScript.mutate(nextId, {
+              onSuccess: (session) => {
+                const picked = options.find((s) => s.id === nextId);
+                toast(`Script switched to ${picked?.name ?? "selected script"}`);
+                void session;
+              },
+              onError: () => toast("Could not switch the discovery script"),
+            });
+          }}
+        >
+          {options.length === 0 && activeScriptId && (
+            <option value={activeScriptId}>{state?.script.name}</option>
+          )}
+          {options.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        {state?.script.description && (
+          <p className="mt-1 text-[10px] leading-snug text-[var(--muted)]">
+            {state.script.description}
+          </p>
+        )}
+      </div>
+
       <div className="mb-3 flex items-center gap-[6px]">
         {Array.from({ length: total }).map((_, i) => (
           <i
