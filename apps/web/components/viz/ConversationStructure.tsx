@@ -3,11 +3,17 @@
 import { useState } from "react";
 import { CoverageMatrix } from "./CoverageMatrix";
 import { GitBranchView } from "./GitBranchView";
+import { QAFlowView } from "./QAFlowView";
 import { SubwayView } from "./SubwayView";
 
-type Tab = "git" | "subway" | "matrix";
+type Tab = "qa" | "git" | "subway" | "matrix";
 
 const TABS: { id: Tab; label: string; note: string }[] = [
+  {
+    id: "qa",
+    label: "Q&A flow",
+    note: "Every question the facilitator asks and the customer's answer, cascading in order. Answers that open a new thread branch down into their own follow-up questions — the effective Q&A flow of a technical discovery call.",
+  },
   {
     id: "git",
     label: "Git branch tree",
@@ -26,7 +32,7 @@ const TABS: { id: Tab; label: string; note: string }[] = [
 ];
 
 export function ConversationStructure({ sessionId }: { sessionId: string }) {
-  const [active, setActive] = useState<Tab>("git");
+  const [active, setActive] = useState<Tab>("qa");
   const note = TABS.find((t) => t.id === active)?.note;
 
   return (
@@ -57,6 +63,7 @@ export function ConversationStructure({ sessionId }: { sessionId: string }) {
       </header>
       <div className="min-h-[420px] overflow-auto bg-[linear-gradient(180deg,rgba(9,19,33,0.65),rgba(14,23,39,0.88))] p-3">
         <p className="mb-[11px] text-[11px] leading-snug text-[var(--muted)]">{note}</p>
+        {active === "qa" && <QAFlowView sessionId={sessionId} />}
         {active === "git" && <GitBranchView sessionId={sessionId} />}
         {active === "subway" && <SubwayView sessionId={sessionId} />}
         {active === "matrix" && <CoverageMatrix sessionId={sessionId} />}

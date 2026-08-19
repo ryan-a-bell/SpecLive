@@ -460,6 +460,119 @@ body {
   border-color: var(--green);
 }
 
+/* --- Q&A flow ----------------------------------------------------------- */
+.qa-flow {
+  overflow: auto;
+}
+.qa-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.qa-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.qa-legend .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.qa-legend .dot.se {
+  background: var(--muted);
+}
+.qa-legend .dot.art {
+  background: var(--green);
+}
+.qa-legend .ring {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--blue);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--blue);
+}
+.qa-svg {
+  display: block;
+}
+.qa-link {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+.qa-link.branch {
+  stroke: var(--blue);
+  stroke-dasharray: 4 3;
+  opacity: 0.75;
+}
+.qa-glyph.se {
+  fill: var(--muted);
+}
+.qa-num {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+.qa-chip {
+  fill: var(--panel2);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.qa-chip.q {
+  stroke: rgba(103, 168, 255, 0.5);
+}
+.qa-chip.a {
+  fill: rgba(103, 168, 255, 0.08);
+  stroke: rgba(103, 168, 255, 0.4);
+}
+.qa-label {
+  fill: var(--text);
+  font-size: 11px;
+}
+.qa-kind {
+  fill: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 9px;
+}
+.qa-inline {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+}
+.qa-ring {
+  fill: var(--panel2);
+  stroke: var(--blue);
+  stroke-width: 2;
+}
+.qa-ring-label {
+  fill: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+.qa-step.clickable {
+  cursor: pointer;
+}
+.qa-step.clickable:hover .qa-chip,
+.qa-step.clickable:focus-visible .qa-chip {
+  stroke: var(--blue);
+}
+.qa-step:focus-visible {
+  outline: none;
+}
+.qa-step.clickable:focus-visible .qa-num {
+  fill: var(--blue);
+}
+
 /* --- toast -------------------------------------------------------------- */
 .toast {
   position: fixed;
