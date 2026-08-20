@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SpecLive — Conversation Trajectory Map</title>
+  <meta name="description" content="A map-first prototype for seeing how a discovery conversation evolves into traceable requirements.">
+  <style>
+    :root {
+      --night: #121823;
+      --night-2: #1a2230;
+      --panel: #202a39;
+      --line: #374355;
+      --text: #edf0e9;
+      --muted: #9aa6b5;
+      --lime: #d7ff63;
+      --cyan: #62dbe8;
+      --violet: #aa88ff;
+      --orange: #ff9566;
+      --pink: #f478ad;
+      --green: #72d49d;
+      --yellow: #f2cf64;
+      --red: #ff7777;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; color: var(--text); background: var(--night); font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; overflow-x: hidden; }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible { outline: 3px solid rgba(98,219,232,.3); outline-offset: 2px; }
+    .app { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+
+    .header { display: grid; grid-template-columns: 260px 1fr auto; gap: 20px; align-items: center; padding: 13px 18px; border-bottom: 1px solid var(--line); background: rgba(18,24,35,.92); backdrop-filter: blur(16px); z-index: 20; }
+    .brand { display: flex; gap: 10px; align-items: center; }
+    .mark { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 50%; color: var(--night); background: var(--lime); font-weight: 950; letter-spacing: -.08em; }
+    .brand strong { display: block; font-size: 14px; }
+    .brand span { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
+    .session-title { min-width: 0; text-align: center; }
+    .session-title h1 { margin: 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .session-title p { margin: 3px 0 0; color: var(--muted); font-size: 10px; }
+    .header-actions { display: flex; gap: 7px; }
+    .btn { min-height: 36px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 9px; background: var(--night-2); cursor: pointer; font-size: 10px; font-weight: 780; transition: .15s; }
+    .btn:hover { border-color: #68768a; background: #253143; }
+    .btn.lime { color: var(--night); border-color: var(--lime); background: var(--lime); }
+    .btn.icon { width: 36px; padding: 0; font-size: 16px; }
+
+    .body { min-height: 0; display: grid; grid-template-columns: 224px minmax(0, 1fr) 292px; }
+    .sidebar, .inspector { padding: 17px; background: #171f2b; }
+    .sidebar { border-right: 1px solid var(--line); }
+    .inspector { border-left: 1px solid var(--line); overflow-y: auto; }
+    .eyebrow { margin: 0 0 9px; color: var(--muted); font-size: 8px; font-weight: 850; text-transform: uppercase; letter-spacing: .14em; }
+    .lens-list { display: flex; flex-direction: column; gap: 5px; }
+    .lens { width: 100%; display: grid; grid-template-columns: 9px 1fr auto; gap: 8px; align-items: center; padding: 9px; border: 1px solid transparent; border-radius: 9px; background: transparent; cursor: pointer; text-align: left; font-size: 10px; font-weight: 720; }
+    .lens:hover, .lens.active { border-color: var(--line); background: var(--panel); }
+    .lens i { width: 8px; height: 8px; border-radius: 2px; background: var(--lens, var(--lime)); }
+    .lens b { color: var(--muted); font-size: 9px; }
+    .sidebar-section { margin-top: 25px; }
+    .legend { display: grid; gap: 8px; color: var(--muted); font-size: 9px; }
+    .legend-row { display: flex; gap: 8px; align-items: center; }
+    .legend-symbol { width: 10px; height: 10px; border-radius: 50%; background: var(--symbol); }
+    .legend-symbol.square { border-radius: 2px; }
+    .legend-symbol.hollow { background: transparent; border: 2px solid var(--symbol); }
+    .coverage-card { margin-top: 25px; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--night); }
+    .coverage-card strong { display: block; font-family: Georgia, serif; font-size: 19px; font-weight: 500; }
+    .coverage-card span { display: block; margin-top: 5px; color: var(--muted); font-size: 9px; line-height: 1.45; }
+    .coverage-bars { display: flex; gap: 3px; height: 33px; align-items: end; margin-top: 11px; }
+    .coverage-bars i { flex: 1; border-radius: 2px 2px 0 0; background: var(--lime); opacity: .8; }
+    .coverage-bars i:nth-child(1) { height: 80%; } .coverage-bars i:nth-child(2) { height: 95%; } .coverage-bars i:nth-child(3) { height: 68%; } .coverage-bars i:nth-child(4) { height: 30%; background: var(--orange); } .coverage-bars i:nth-child(5) { height: 52%; } .coverage-bars i:nth-child(6) { height: 22%; background: var(--orange); } .coverage-bars i:nth-child(7) { height: 9%; background: var(--red); }
+
+    .map-area { position: relative; min-width: 0; min-height: calc(100vh - 62px); overflow: hidden; background: radial-gradient(circle at 50% 48%, #202b3b 0%, #151c27 58%, #111721 100%); }
+    .map-toolbar { position: absolute; z-index: 12; left: 16px; right: 16px; top: 13px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+    .map-toolbar > * { pointer-events: auto; }
+    .map-label h2 { margin: 0; font-family: Georgia, serif; font-size: 20px; font-weight: 500; }
+    .map-label p { margin: 4px 0 0; color: var(--muted); font-size: 9px; }
+    .zoom { display: flex; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: rgba(18,24,35,.85); }
+    .zoom button { width: 30px; height: 28px; border: 0; background: transparent; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .zoom button:hover { background: var(--panel); }
+
+    .map-scroll { position: absolute; inset: 0; overflow: auto; padding: 75px 24px 115px; }
+    .map-canvas { position: relative; width: 1260px; height: 680px; transform-origin: left top; transition: transform .2s ease; }
+    .grid-line { position: absolute; top: 20px; bottom: 10px; width: 1px; background: rgba(154,166,181,.08); }
+    .grid-line::before { content: attr(data-stage); position: absolute; top: -2px; left: 8px; width: 110px; color: #657285; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .11em; }
+    .route-label { position: absolute; left: 0; color: var(--route); font-size: 8px; font-weight: 850; text-transform: uppercase; letter-spacing: .1em; }
+    .route-label::before { content: ""; display: inline-block; width: 18px; height: 2px; margin-right: 7px; vertical-align: middle; background: var(--route); }
+
+    .path { position: absolute; height: 3px; transform-origin: left center; border-radius: 99px; background: var(--path, #516076); opacity: .74; }
+    .path.branch { height: 2px; }
+    .path.dashed { height: 0; border-top: 2px dashed var(--path, #516076); background: transparent; }
+    .path.future { opacity: .18; }
+
+    .map-node { position: absolute; z-index: 3; width: var(--size, 24px); height: var(--size, 24px); transform: translate(-50%, -50%); border: 3px solid var(--node, var(--cyan)); border-radius: 50%; background: var(--night); cursor: pointer; box-shadow: 0 0 0 5px rgba(18,24,35,.72); transition: opacity .2s, transform .15s, box-shadow .15s; }
+    .map-node:hover, .map-node.active { transform: translate(-50%, -50%) scale(1.2); box-shadow: 0 0 0 6px color-mix(in srgb, var(--node) 18%, transparent); }
+    .map-node.answer { background: var(--node); }
+    .map-node.requirement { border-radius: 5px; background: var(--node); }
+    .map-node.gap { background: transparent; border-style: dashed; }
+    .map-node.decision::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--night); font-size: 11px; font-weight: 950; }
+    .map-node.faded { opacity: .13; }
+    .map-node.filtered { opacity: .06; pointer-events: none; }
+    .node-label { position: absolute; z-index: 4; width: 135px; transform: translateX(-50%); color: #c8d0d9; font-size: 9px; line-height: 1.3; text-align: center; pointer-events: none; transition: opacity .2s; }
+    .node-label strong { display: block; color: white; font-size: 9px; }
+    .node-label.above { transform: translate(-50%, -100%); }
+    .node-label.faded, .node-label.filtered { opacity: .1; }
+    .artifact-tag { position: absolute; z-index: 5; transform: translate(-50%, -50%); padding: 5px 7px; border: 1px solid color-mix(in srgb, var(--tag) 55%, var(--line)); border-radius: 6px; color: var(--tag); background: #18212e; cursor: pointer; font-size: 8px; font-weight: 850; white-space: nowrap; transition: opacity .2s, transform .15s; }
+    .artifact-tag:hover, .artifact-tag.active { transform: translate(-50%, -50%) translateY(-2px); background: #222d3d; }
+    .artifact-tag.faded, .artifact-tag.filtered { opacity: .08; pointer-events: none; }
+    .fork-note { position: absolute; z-index: 2; width: 145px; padding: 7px 8px; border-left: 2px solid var(--fork); color: var(--muted); background: rgba(18,24,35,.72); font-size: 8px; line-height: 1.35; }
+    .fork-note b { display: block; color: var(--fork); margin-bottom: 2px; }
+
+    .playback { position: absolute; z-index: 15; left: 18px; right: 18px; bottom: 16px; display: grid; grid-template-columns: auto 1fr auto; gap: 13px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(18,24,35,.92); backdrop-filter: blur(13px); }
+    .playback strong { min-width: 84px; font-size: 9px; }
+    .playback input { width: 100%; accent-color: var(--lime); }
+    .playback time { min-width: 74px; color: var(--lime); text-align: right; font-size: 9px; font-weight: 800; }
+
+    .inspector-empty { color: var(--muted); font-family: Georgia, serif; font-size: 17px; line-height: 1.45; }
+    .inspector-kind { color: var(--selected, var(--cyan)); font-size: 8px; font-weight: 850; text-transform: uppercase; letter-spacing: .12em; }
+    .inspector h2 { margin: 7px 0 8px; font-family: Georgia, serif; font-size: 23px; line-height: 1.12; font-weight: 500; }
+    .inspector-copy { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+    .inspector-section { margin-top: 21px; }
+    .inspector-section h3 { margin: 0 0 8px; font-size: 8px; text-transform: uppercase; letter-spacing: .12em; }
+    .quote { margin: 0; padding: 11px; border-left: 2px solid var(--selected, var(--cyan)); background: var(--night); color: #dce3e8; font-family: Georgia, serif; font-size: 14px; line-height: 1.4; }
+    .quote small { display: block; margin-top: 7px; color: var(--muted); font-family: Inter, sans-serif; font-size: 8px; }
+    .trajectory { display: flex; align-items: center; gap: 5px; overflow: hidden; }
+    .trajectory span { flex: 1; min-width: 0; padding: 7px 5px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); text-align: center; font-size: 7px; line-height: 1.25; }
+    .trajectory i { color: var(--muted); font-style: normal; font-size: 8px; }
+    .open-list { display: grid; gap: 6px; }
+    .open-item { padding: 8px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); background: var(--night); font-size: 8px; line-height: 1.4; }
+    .open-item b { color: var(--yellow); }
+    .related { display: flex; flex-wrap: wrap; gap: 5px; }
+    .related button { padding: 5px 7px; border: 1px solid var(--line); border-radius: 99px; color: var(--muted); background: transparent; cursor: pointer; font-size: 8px; }
+    .related button:hover { color: white; border-color: #657286; }
+
+    .toast { position: fixed; z-index: 60; left: 50%; bottom: 22px; transform: translate(-50%, 10px); opacity: 0; pointer-events: none; padding: 9px 12px; border-radius: 9px; color: var(--night); background: var(--lime); font-size: 9px; font-weight: 850; transition: .2s; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 1080px) { .body { grid-template-columns: 185px minmax(0,1fr); } .inspector { position: fixed; z-index: 30; right: 0; top: 62px; bottom: 0; width: 292px; box-shadow: -20px 0 40px rgba(0,0,0,.3); transform: translateX(100%); transition: .2s; } .inspector.open { transform: none; } }
+    @media (max-width: 720px) { .header { grid-template-columns: 1fr auto; } .session-title, .header-actions .btn:not(.lime) { display: none; } .body { display: block; } .sidebar { display: none; } .map-area { min-height: calc(100vh - 62px); } .map-scroll { padding-left: 14px; } .map-label p { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="brand"><div class="mark">S·</div><div><strong>SpecLive</strong><span>Trajectory map</span></div></div>
+      <div class="session-title"><h1>Warehouse Modernization Discovery</h1><p>Acme Logistics · Live session · 13 artifacts across 5 active threads</p></div>
+      <div class="header-actions"><button class="btn" data-toast="Map snapshot saved">Save snapshot</button><button class="btn lime" data-toast="Validation route prepared">Plan the close</button></div>
+    </header>
+
+    <div class="body">
+      <aside class="sidebar">
+        <p class="eyebrow">Map lens</p>
+        <div class="lens-list">
+          <button class="lens active" data-lens="all" style="--lens:var(--lime)"><i></i><span>Everything</span><b>24</b></button>
+          <button class="lens" data-lens="conversation" style="--lens:var(--cyan)"><i></i><span>Conversation only</span><b>11</b></button>
+          <button class="lens" data-lens="requirements" style="--lens:var(--violet)"><i></i><span>Requirements</span><b>6</b></button>
+          <button class="lens" data-lens="gaps" style="--lens:var(--orange)"><i></i><span>Open gaps</span><b>4</b></button>
+        </div>
+
+        <section class="sidebar-section">
+          <p class="eyebrow">How to read the map</p>
+          <div class="legend">
+            <div class="legend-row"><i class="legend-symbol hollow" style="--symbol:var(--cyan)"></i>Facilitator question</div>
+            <div class="legend-row"><i class="legend-symbol" style="--symbol:var(--cyan)"></i>Customer answer</div>
+            <div class="legend-row"><i class="legend-symbol square" style="--symbol:var(--violet)"></i>Derived requirement</div>
+            <div class="legend-row"><i class="legend-symbol hollow" style="--symbol:var(--orange)"></i>Unresolved gap</div>
+          </div>
+        </section>
+
+        <article class="coverage-card">
+          <p class="eyebrow">Trajectory quality</p><strong>Good shape,<br>weak ending.</strong><span>The conversation establishes the problem and constraints, but success measures and validation are still thin.</span>
+          <div class="coverage-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </article>
+      </aside>
+
+      <main class="map-area">
+        <div class="map-toolbar">
+          <div class="map-label"><h2>The shape of this conversation</h2><p>Branches show where an answer opened a new line of inquiry. Squares show where meaning became a requirement.</p></div>
+          <div class="zoom" aria-label="Map zoom"><button id="zoomOut" aria-label="Zoom out">−</button><button id="zoomReset" aria-label="Reset zoom">100</button><button id="zoomIn" aria-label="Zoom in">+</button></div>
+        </div>
+
+        <div class="map-scroll" id="mapScroll">
+          <div class="map-canvas" id="mapCanvas">
+            <i class="grid-line" style="left:40px" data-stage="Business driver"></i><i class="grid-line" style="left:220px" data-stage="Current state"></i><i class="grid-line" style="left:400px" data-stage="Workflow"></i><i class="grid-line" style="left:580px" data-stage="Measures"></i><i class="grid-line" style="left:760px" data-stage="Environment"></i><i class="grid-line" style="left:940px" data-stage="Constraints"></i><i class="grid-line" style="left:1120px" data-stage="Validate"></i>
+
+            <span class="route-label" style="top:302px;--route:var(--cyan)">Main conversation</span>
+            <span class="route-label" style="top:112px;--route:var(--violet)">States & alerts</span>
+            <span class="route-label" style="top:455px;--route:var(--orange)">Devices + WMS</span>
+            <span class="route-label" style="top:590px;--route:var(--green)">Offline operations</span>
+
+            <i class="path" style="left:88px;top:320px;width:982px;--path:var(--cyan)"></i>
+            <i class="path branch" style="left:347px;top:317px;width:148px;transform:rotate(-48deg);--path:var(--violet)"></i>
+            <i class="path branch" style="left:447px;top:207px;width:375px;--path:var(--violet)"></i>
+            <i class="path branch" style="left:583px;top:322px;width:174px;transform:rotate(43deg);--path:var(--orange)"></i>
+            <i class="path branch" style="left:710px;top:438px;width:250px;--path:var(--orange)"></i>
+            <i class="path branch" style="left:797px;top:321px;width:155px;transform:rotate(67deg);--path:var(--green)"></i>
+            <i class="path branch future" style="left:858px;top:462px;width:260px;--path:var(--green)"></i>
+            <i class="path dashed" style="left:510px;top:209px;width:145px;transform:rotate(-62deg);--path:var(--violet)"></i>
+            <i class="path dashed" style="left:790px;top:439px;width:110px;transform:rotate(-72deg);--path:var(--orange)"></i>
+
+            <button class="map-node" style="left:90px;top:320px;--node:var(--cyan)" data-id="q_problem" data-step="1" data-category="conversation" aria-label="Opening problem question"></button><span class="node-label" style="left:90px;top:342px"><strong>Opening question</strong>What problem matters now?</span>
+            <button class="map-node answer" style="left:205px;top:320px;--node:var(--cyan);--size:27px" data-id="a_visibility" data-step="2" data-category="conversation" aria-label="Visibility gap answer"></button><span class="node-label above" style="left:205px;top:300px"><strong>Visibility gap</strong>Delays discovered too late</span>
+            <button class="map-node" style="left:340px;top:320px;--node:var(--cyan)" data-id="q_timing" data-step="3" data-category="conversation" aria-label="Timing question"></button><span class="node-label" style="left:340px;top:343px"><strong>Probe for timing</strong>How fresh is useful?</span>
+            <button class="map-node answer" style="left:470px;top:320px;--node:var(--cyan);--size:27px" data-id="a_30sec" data-step="4" data-category="conversation" aria-label="30 second answer"></button><span class="node-label above" style="left:470px;top:300px"><strong>30-second target</strong>Stale after two minutes</span>
+            <button class="map-node answer" style="left:595px;top:320px;--node:var(--cyan);--size:27px" data-id="a_devices" data-step="5" data-category="conversation" aria-label="Device and WMS answer"></button><span class="node-label" style="left:595px;top:343px"><strong>Hard boundaries</strong>Tablets + retain WMS</span>
+            <button class="map-node" style="left:795px;top:320px;--node:var(--cyan)" data-id="q_offline" data-step="6" data-category="conversation" aria-label="Offline question"></button><span class="node-label above" style="left:795px;top:300px"><strong>Probe degraded mode</strong>What must keep working?</span>
+            <button class="map-node answer" style="left:920px;top:320px;--node:var(--cyan);--size:27px" data-id="a_offline" data-step="7" data-category="conversation" aria-label="Offline answer"></button><span class="node-label" style="left:920px;top:343px"><strong>Yard Wi-Fi drops</strong>Must continue working</span>
+            <button class="map-node gap" style="left:1070px;top:320px;--node:var(--orange);--size:29px" data-id="gap_success" data-step="8" data-category="gaps" aria-label="Success measure gap"></button><span class="node-label above" style="left:1070px;top:298px"><strong style="color:var(--orange)">Missing destination</strong>No measurable success target</span>
+
+            <button class="map-node answer" style="left:447px;top:207px;--node:var(--violet)" data-id="branch_states" data-step="4" data-category="conversation" aria-label="States branch"></button><span class="node-label above" style="left:447px;top:185px"><strong>States branch opens</strong>What must they see?</span>
+            <button class="map-node gap" style="left:625px;top:207px;--node:var(--orange)" data-id="gap_states" data-step="6" data-category="gaps" aria-label="Order states gap"></button><span class="node-label above" style="left:625px;top:185px"><strong>Open question</strong>Which exceptions trigger action?</span>
+            <button class="map-node requirement" style="left:820px;top:207px;--node:var(--violet)" data-id="req_access" data-step="8" data-category="requirements" aria-label="Role access requirement"></button><span class="node-label" style="left:820px;top:229px"><strong>REQ-010</strong>Role-based reassignment</span>
+
+            <button class="map-node answer" style="left:710px;top:438px;--node:var(--orange)" data-id="branch_devices" data-step="5" data-category="conversation" aria-label="Device branch"></button><span class="node-label" style="left:710px;top:460px"><strong>Two threads split</strong>Compatibility + integration</span>
+            <button class="map-node gap" style="left:850px;top:438px;--node:var(--orange)" data-id="gap_interfaces" data-step="7" data-category="gaps" aria-label="Interface gap"></button><span class="node-label above" style="left:850px;top:416px"><strong>Unknown interface</strong>Can the WMS emit changes?</span>
+            <button class="map-node requirement decision" style="left:960px;top:438px;--node:var(--orange)" data-id="con_wms" data-step="9" data-category="requirements" aria-label="WMS constraint confirmed"></button><span class="node-label" style="left:960px;top:460px"><strong>CON-004 · confirmed</strong>Retain current WMS</span>
+
+            <button class="map-node answer" style="left:858px;top:462px;--node:var(--green)" data-id="branch_offline" data-step="7" data-category="conversation" aria-label="Offline branch"></button>
+            <button class="map-node requirement" style="left:965px;top:462px;--node:var(--green)" data-id="req_offline" data-step="8" data-category="requirements" aria-label="Offline requirement"></button>
+            <button class="map-node gap" style="left:1115px;top:462px;--node:var(--orange)" data-id="gap_duration" data-step="10" data-category="gaps" aria-label="Offline duration gap"></button>
+            <span class="node-label" style="left:940px;top:495px"><strong>REQ-012 → open</strong>Offline behavior needs duration + sync rules</span>
+
+            <button class="artifact-tag" style="left:470px;top:118px;--tag:var(--violet)" data-id="req_refresh" data-step="5" data-category="requirements">REQ-002 · 30-second refresh</button>
+            <button class="artifact-tag" style="left:782px;top:520px;--tag:var(--orange)" data-id="con_tablet" data-step="6" data-category="requirements">CON-003 · existing tablets</button>
+            <button class="artifact-tag" style="left:895px;top:575px;--tag:var(--green)" data-id="req_offline" data-step="8" data-category="requirements">REQ-012 · offline + sync</button>
+
+            <aside class="fork-note" style="left:365px;top:240px;--fork:var(--violet)"><b>Answer changed trajectory</b>“Real-time view” opened a thread about states and exceptions.</aside>
+            <aside class="fork-note" style="left:625px;top:360px;--fork:var(--orange)"><b>Two constraints collide</b>The refresh target now depends on retained WMS interfaces and existing devices.</aside>
+            <aside class="fork-note" style="left:955px;top:375px;--fork:var(--green)"><b>Branch is incomplete</b>“Keep working” needs a duration, function set, and sync policy.</aside>
+          </div>
+        </div>
+
+        <div class="playback"><strong id="playLabel">Full conversation</strong><input id="scrubber" type="range" min="1" max="10" value="10" aria-label="Conversation playback position"><time id="playTime">03:56 · now</time></div>
+      </main>
+
+      <aside class="inspector" id="inspector" style="--selected:var(--violet)">
+        <p class="inspector-kind" id="inspectorKind">Requirement · REQ-002</p>
+        <h2 id="inspectorTitle">Status refresh within 30 seconds</h2>
+        <p class="inspector-copy" id="inspectorCopy">The solution shall refresh order-status information within 30 seconds of a source-system state change.</p>
+        <section class="inspector-section"><h3>Evidence at this point</h3><blockquote class="quote" id="inspectorQuote">“Ideally within 30 seconds. Anything over a couple of minutes is probably too stale to act on.”<small>Morgan · 02:42</small></blockquote></section>
+        <section class="inspector-section"><h3>Trajectory</h3><div class="trajectory" id="inspectorTrajectory"><span>Problem</span><i>→</i><span>Timing probe</span><i>→</i><span>REQ-002</span></div></section>
+        <section class="inspector-section"><h3>What remains unresolved</h3><div class="open-list" id="inspectorOpen"><div class="open-item"><b>Trigger:</b> Does the timer begin when WMS records a change?</div><div class="open-item"><b>Tolerance:</b> Must every update meet 30 seconds?</div></div></section>
+        <section class="inspector-section"><h3>Related map points</h3><div class="related"><button data-select="a_30sec">Source answer</button><button data-select="con_wms">WMS constraint</button><button data-select="gap_interfaces">Interface gap</button></div></section>
+      </aside>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    const details = {
+      q_problem: ["Facilitator question", "What problem matters now?", "The opening prompt anchors the conversation in an operational outcome rather than a proposed feature.", "“What is the biggest operational problem you are trying to solve?”", ["Opening", "Problem frame"], ["Cost and urgency were not quantified."], "var(--cyan)"],
+      a_visibility: ["Customer answer", "Visibility gap", "Supervisors discover picking delays only after a truck is already waiting.", "“We usually find out about delays after a truck is already waiting.”", ["Problem", "Customer evidence", "OBJ-001"], ["Current truck-wait baseline is unknown."], "var(--cyan)"],
+      q_timing: ["Facilitator question", "Probe for useful freshness", "A precise follow-up turns “real-time” into a potential measurable requirement.", "“How quickly would the data need to update for it to be useful?”", ["Need", "Timing probe"], ["The source event is not yet defined."], "var(--cyan)"],
+      a_30sec: ["Customer answer", "30-second target", "The customer supplies a quantitative target and an upper bound for usefulness.", "“Ideally within 30 seconds. Anything over a couple of minutes is too stale.”", ["Timing probe", "Answer", "REQ-002"], ["Trigger point and percentile remain open."], "var(--cyan)"],
+      req_refresh: ["Requirement · REQ-002", "Status refresh within 30 seconds", "The solution shall refresh order-status information within 30 seconds of a source-system state change.", "“Ideally within 30 seconds. Anything over a couple of minutes is probably too stale to act on.”", ["Problem", "Timing probe", "REQ-002"], ["Does the timer begin when WMS records a change?", "Must every update meet 30 seconds?"], "var(--violet)"],
+      a_devices: ["Customer answer", "Hard solution boundaries", "One answer creates two parallel lines of inquiry: compatibility and integration.", "“Work on the rugged tablets… cannot replace the warehouse management system this year.”", ["Workflow", "Boundary answer", "2 branches"], ["Device baseline and WMS interfaces are unknown."], "var(--cyan)"],
+      branch_states: ["Conversation branch", "States and exceptions", "The broad visibility need branches into which states matter, who acts, and when alerts should occur.", "“Where orders are in the picking process.”", ["Visibility gap", "States thread"], ["Which exceptions trigger action?", "Who owns each response?"], "var(--violet)"],
+      gap_states: ["Open gap", "Which exceptions trigger action?", "The conversation names visibility but not the information supervisors need to make decisions.", "No direct answer captured yet.", ["States branch", "Missing detail"], ["Order states", "Exception types", "Alert ownership"], "var(--orange)"],
+      req_access: ["Requirement · REQ-010", "Role-based reassignment", "Shift supervisors can reassign picks; floor staff can view status without changing it.", "“Only shift supervisors should be able to reassign picks.”", ["States", "Actors", "REQ-010"], ["Authentication source and role administration."], "var(--violet)"],
+      branch_devices: ["Branch point", "Device and WMS split", "This answer creates two dependent threads that constrain the earlier performance target.", "“Rugged tablets… cannot replace the WMS.”", ["Boundary answer", "Device", "Integration"], ["Both threads need technical characterization."], "var(--orange)"],
+      gap_interfaces: ["Open gap", "Available WMS interfaces", "The 30-second target may be infeasible until the retained system's interfaces are understood.", "No interface evidence captured yet.", ["WMS constraint", "Feasibility gap"], ["API, event, and polling options", "Expected interface latency"], "var(--orange)"],
+      con_wms: ["Constraint · CON-004", "Retain the current WMS", "The solution must integrate with the existing WMS without requiring replacement this fiscal year.", "“We cannot replace the warehouse management system this year.”", ["Boundary answer", "CON-004", "Confirmed"], ["Available interfaces remain unknown."], "var(--orange)"],
+      con_tablet: ["Constraint · CON-003", "Use existing rugged tablets", "The solution must operate on hardware already carried by floor leads.", "“The rugged tablets the floor leads already carry.”", ["Boundary answer", "CON-003"], ["Model, OS, browser, and storage."], "var(--orange)"],
+      q_offline: ["Facilitator question", "Probe degraded operation", "The facilitator follows the device thread into connectivity constraints.", "“Which functions have to remain available if connectivity is degraded?”", ["Environment", "Offline probe"], ["Duration was not asked explicitly."], "var(--cyan)"],
+      a_offline: ["Customer answer", "Yard Wi-Fi drops", "The answer confirms a connectivity problem but leaves “keep working” ambiguous.", "“It must keep working when the Wi-Fi drops in the yard.”", ["Offline probe", "Answer", "REQ-012"], ["Functions, duration, and reconciliation behavior."], "var(--green)"],
+      branch_offline: ["Conversation branch", "Offline operations", "A degraded-connectivity branch emerges from the yard operating environment.", "“When the Wi-Fi drops in the yard.”", ["Environment", "Offline thread"], ["Essential functions and outage duration."], "var(--green)"],
+      req_offline: ["Requirement · REQ-012", "Offline operation and sync", "Core status functions continue during connectivity loss and reconcile after reconnection.", "“It must keep working when the Wi-Fi drops in the yard.”", ["Connectivity", "Inference", "REQ-012"], ["Which functions?", "For how long?", "Conflict policy?"], "var(--green)"],
+      gap_duration: ["Open gap", "Offline duration and sync policy", "The requirement cannot be verified until degraded-mode behavior is bounded.", "No direct answer captured yet.", ["REQ-012", "Clarification gap"], ["Outage duration", "Permitted offline actions", "Reconciliation policy"], "var(--orange)"],
+      gap_success: ["Trajectory warning", "Missing measurable destination", "The conversation has a clear problem but no agreed measure of a successful outcome.", "Truck wait time should fall, but no baseline or target was stated.", ["Business driver", "Missing success measure", "Validation risk"], ["Current wait time", "Target reduction", "Measurement window"], "var(--red)"]
+    };
+
+    const inspector = document.getElementById("inspector");
+    function selectPoint(id) {
+      const item = details[id]; if (!item) return;
+      document.querySelectorAll("[data-id]").forEach(node => node.classList.toggle("active", node.dataset.id === id));
+      inspector.style.setProperty("--selected", item[6]);
+      document.getElementById("inspectorKind").textContent = item[0];
+      document.getElementById("inspectorTitle").textContent = item[1];
+      document.getElementById("inspectorCopy").textContent = item[2];
+      document.getElementById("inspectorQuote").innerHTML = `${item[3]}<small>Transcript evidence at this map point</small>`;
+      document.getElementById("inspectorTrajectory").innerHTML = item[4].map((step, index) => `${index ? "<i>→</i>" : ""}<span>${step}</span>`).join("");
+      document.getElementById("inspectorOpen").innerHTML = item[5].map(text => `<div class="open-item"><b>Open:</b> ${text}</div>`).join("");
+      inspector.classList.add("open");
+    }
+
+    function setLens(lens) {
+      document.querySelectorAll(".lens").forEach(button => button.classList.toggle("active", button.dataset.lens === lens));
+      document.querySelectorAll("[data-category]").forEach(node => {
+        const match = lens === "all" || node.dataset.category === lens;
+        node.classList.toggle("filtered", !match);
+        const label = node.nextElementSibling;
+        if (label && label.classList.contains("node-label")) label.classList.toggle("filtered", !match);
+      });
+    }
+
+    const times = ["00:18", "00:51", "01:29", "02:42", "02:59", "03:31", "03:56", "04:20", "05:05", "End"];
+    function scrub(step) {
+      document.querySelectorAll("[data-step]").forEach(node => {
+        const faded = Number(node.dataset.step) > step;
+        node.classList.toggle("faded", faded);
+        const label = node.nextElementSibling;
+        if (label && label.classList.contains("node-label")) label.classList.toggle("faded", faded);
+      });
+      document.getElementById("playLabel").textContent = step === 10 ? "Full conversation" : `Playback · step ${step}`;
+      document.getElementById("playTime").textContent = step === 10 ? "03:56 · now" : times[step - 1];
+    }
+
+    let scale = 1;
+    function applyZoom(next) { scale = Math.max(.7, Math.min(1.35, next)); document.getElementById("mapCanvas").style.transform = `scale(${scale})`; document.getElementById("zoomReset").textContent = Math.round(scale * 100); }
+    const toast = document.getElementById("toast"); let toastTimer;
+    function showToast(message) { toast.textContent = message; toast.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 1900); }
+
+    document.addEventListener("click", event => {
+      const button = event.target.closest("button"); if (!button) return;
+      if (button.dataset.id) selectPoint(button.dataset.id);
+      if (button.dataset.select) selectPoint(button.dataset.select);
+      if (button.dataset.lens) setLens(button.dataset.lens);
+      if (button.dataset.toast) showToast(button.dataset.toast);
+    });
+    document.getElementById("scrubber").addEventListener("input", event => scrub(Number(event.target.value)));
+    document.getElementById("zoomIn").addEventListener("click", () => applyZoom(scale + .1));
+    document.getElementById("zoomOut").addEventListener("click", () => applyZoom(scale - .1));
+    document.getElementById("zoomReset").addEventListener("click", () => applyZoom(1));
+    selectPoint("req_refresh");
+  </script>
+</body>
+</html>
