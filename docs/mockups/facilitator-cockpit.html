@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SpecLive — Facilitator Cockpit Concept</title>
+  <meta name="description" content="An alternative live requirements-discovery interface for SpecLive.">
+  <style>
+    :root {
+      --ink: #17221d;
+      --muted: #69736d;
+      --paper: #f4f1e9;
+      --surface: #fffdf7;
+      --line: #d9d6ca;
+      --forest: #173f32;
+      --mint: #c9f07e;
+      --mint-soft: #eaf8cb;
+      --orange: #f2794a;
+      --orange-soft: #ffe5d8;
+      --blue: #396cc3;
+      --blue-soft: #dfeaff;
+      --violet: #7a5daf;
+      --violet-soft: #eee6ff;
+      --red: #b83a38;
+      --red-soft: #ffe1dc;
+      --shadow: 0 16px 40px rgba(27, 36, 31, .09);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 84% -10%, rgba(201, 240, 126, .46), transparent 31rem),
+        linear-gradient(180deg, #f8f5ed 0%, var(--paper) 62%, #ece8dd 100%);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, textarea { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(57, 108, 195, .28); outline-offset: 2px; }
+    .hidden { display: none !important; }
+
+    .shell { min-height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      display: grid; grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+      gap: 18px; align-items: center;
+      padding: 12px 24px;
+      background: rgba(248, 245, 237, .88);
+      border-bottom: 1px solid rgba(23, 34, 29, .11);
+      backdrop-filter: blur(18px);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .mark {
+      width: 34px; height: 34px; border-radius: 10px; flex: 0 0 auto;
+      display: grid; place-items: center;
+      color: var(--mint); background: var(--forest); font-weight: 900; letter-spacing: -.08em;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+    }
+    .brand strong { display: block; letter-spacing: -.025em; }
+    .brand span { display: block; margin-top: 1px; color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .live-status { display: flex; align-items: center; justify-content: center; gap: 9px; color: var(--forest); font-size: 12px; font-weight: 750; }
+    .pulse { width: 9px; height: 9px; border-radius: 99px; background: var(--orange); box-shadow: 0 0 0 5px rgba(242,121,74,.14); animation: pulse 1.8s infinite; }
+    @keyframes pulse { 50% { box-shadow: 0 0 0 8px rgba(242,121,74,0); } }
+    .top-actions { justify-self: end; display: flex; gap: 8px; }
+
+    .btn {
+      min-height: 38px; border-radius: 11px; border: 1px solid var(--line);
+      background: rgba(255,253,247,.75); padding: 8px 12px; cursor: pointer; font-size: 12px; font-weight: 760;
+      transition: transform .16s ease, border-color .16s ease, background .16s ease;
+    }
+    .btn:hover { transform: translateY(-1px); border-color: #aaa99f; background: #fff; }
+    .btn.primary { color: white; background: var(--forest); border-color: var(--forest); }
+    .btn.primary:hover { background: #205342; }
+    .btn.mint { background: var(--mint); border-color: #b1dc5c; color: #1d341f; }
+    .btn.danger { color: var(--red); }
+    .icon-btn { width: 38px; padding: 0; display: inline-grid; place-items: center; font-size: 17px; }
+
+    .workspace {
+      display: grid; grid-template-columns: 220px minmax(540px, 1fr) 340px;
+      gap: 16px; max-width: 1660px; width: 100%; margin: 0 auto; padding: 16px 20px 28px;
+    }
+    .rail, .queue { min-width: 0; }
+    .rail { display: flex; flex-direction: column; gap: 10px; }
+    .eyebrow { margin: 0 0 8px; color: var(--muted); font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .12em; }
+    .rail-title { margin: 0 0 4px; font-size: 12px; }
+    .phase-track { position: relative; padding: 5px 0 4px 17px; }
+    .phase-track::before { content: ""; position: absolute; left: 5px; top: 14px; bottom: 14px; width: 2px; background: var(--line); }
+    .phase {
+      position: relative; width: 100%; border: 0; background: none; padding: 8px 7px 8px 14px; text-align: left; border-radius: 10px; cursor: pointer;
+    }
+    .phase::before { content: ""; position: absolute; left: -16px; top: 15px; width: 8px; height: 8px; border-radius: 50%; background: #bbbdb6; border: 3px solid var(--paper); }
+    .phase.done::before { background: var(--forest); }
+    .phase.active { background: var(--surface); box-shadow: 0 5px 18px rgba(27,36,31,.07); }
+    .phase.active::before { background: var(--orange); box-shadow: 0 0 0 3px var(--orange-soft); }
+    .phase strong { display: block; font-size: 12px; }
+    .phase span { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
+    .topic-stack { display: flex; flex-direction: column; gap: 7px; }
+    .topic {
+      width: 100%; display: grid; grid-template-columns: 9px 1fr auto; gap: 8px; align-items: center;
+      padding: 9px 10px; background: transparent; border: 1px solid transparent; border-radius: 11px; cursor: pointer; text-align: left;
+    }
+    .topic:hover, .topic.active { background: rgba(255,253,247,.75); border-color: var(--line); }
+    .topic-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--topic); }
+    .topic-name { min-width: 0; font-size: 11px; font-weight: 720; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .topic-count { padding: 2px 6px; border-radius: 99px; color: var(--muted); background: rgba(23,34,29,.06); font-size: 9px; font-weight: 800; }
+    .session-health { margin-top: auto; padding: 13px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,253,247,.5); }
+    .health-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 750; }
+    .meter { height: 6px; margin: 8px 0 9px; border-radius: 99px; background: #dddcd4; overflow: hidden; }
+    .meter > i { display: block; width: 68%; height: 100%; background: linear-gradient(90deg, var(--forest), #75a65e); border-radius: inherit; }
+    .health-note { color: var(--muted); font-size: 10px; line-height: 1.45; }
+
+    .stage { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+    .focus-card {
+      position: relative; overflow: hidden; min-height: 222px;
+      padding: 24px 26px; border-radius: 24px; color: #eff8ea; background: var(--forest); box-shadow: var(--shadow);
+    }
+    .focus-card::after { content: ""; position: absolute; width: 260px; height: 260px; right: -100px; top: -135px; border-radius: 50%; border: 52px solid rgba(201,240,126,.1); }
+    .focus-meta { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .focus-kicker { color: var(--mint); font-size: 11px; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
+    .answer-signal { display: flex; align-items: center; gap: 7px; color: #d5e6db; font-size: 10px; }
+    .signal-bars { display: flex; gap: 2px; align-items: end; height: 14px; }
+    .signal-bars i { display: block; width: 3px; border-radius: 2px; background: var(--mint); }
+    .signal-bars i:nth-child(1) { height: 5px; } .signal-bars i:nth-child(2) { height: 9px; } .signal-bars i:nth-child(3) { height: 13px; } .signal-bars i:nth-child(4) { height: 7px; opacity: .32; }
+    .focus-card h1 { position: relative; z-index: 1; max-width: 780px; margin: 22px 0 17px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(27px, 3vw, 43px); line-height: 1.08; font-weight: 500; letter-spacing: -.035em; }
+    .focus-actions { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 8px; }
+    .focus-actions .btn { color: white; border-color: rgba(255,255,255,.19); background: rgba(255,255,255,.08); }
+    .focus-actions .btn:hover { background: rgba(255,255,255,.14); }
+    .focus-actions .btn.mint { color: #193225; background: var(--mint); border-color: var(--mint); }
+
+    .mode-tabs { display: flex; align-items: center; gap: 4px; padding: 4px; width: max-content; max-width: 100%; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,253,247,.66); }
+    .mode-tab { border: 0; background: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; color: var(--muted); font-size: 11px; font-weight: 760; }
+    .mode-tab.active { color: var(--ink); background: white; box-shadow: 0 3px 10px rgba(27,36,31,.08); }
+
+    .conversation {
+      min-height: 420px; padding: 19px; border: 1px solid var(--line); border-radius: var(--radius); background: rgba(255,253,247,.76); box-shadow: var(--shadow);
+    }
+    .conversation-head { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 16px; }
+    .conversation-head h2 { margin: 0; font-size: 15px; letter-spacing: -.02em; }
+    .conversation-head p { margin: 3px 0 0; color: var(--muted); font-size: 10px; }
+    .quiet-control { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 11px; font-weight: 700; }
+    .stream { display: flex; flex-direction: column; gap: 5px; }
+    .utterance { position: relative; display: grid; grid-template-columns: 76px 1fr; gap: 14px; padding: 12px 10px; border-radius: 12px; }
+    .utterance:hover { background: rgba(23,34,29,.035); }
+    .speaker { color: var(--muted); font-size: 10px; font-weight: 790; text-transform: uppercase; letter-spacing: .05em; }
+    .speaker time { display: block; margin-top: 4px; font-size: 9px; font-weight: 550; letter-spacing: 0; }
+    .speech { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 17px; line-height: 1.55; }
+    .evidence {
+      padding: 1px 3px 2px; border: 0; border-bottom: 2px solid var(--evidence-color, var(--blue)); border-radius: 4px 4px 0 0;
+      background: color-mix(in srgb, var(--evidence-color, var(--blue)) 12%, transparent); cursor: pointer;
+    }
+    .evidence:hover { background: color-mix(in srgb, var(--evidence-color, var(--blue)) 22%, transparent); }
+    .derived-row { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .artifact-chip { border: 1px solid var(--line); border-radius: 99px; background: white; padding: 5px 8px; cursor: pointer; font-size: 9px; font-weight: 780; }
+    .artifact-chip::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: var(--chip, var(--blue)); }
+    .now-line { display: grid; grid-template-columns: 76px 1fr; gap: 14px; align-items: center; margin: 3px 10px; color: var(--orange); font-size: 9px; font-weight: 850; text-transform: uppercase; letter-spacing: .1em; }
+    .now-line i { height: 1px; background: var(--orange); }
+    .composer { display: grid; grid-template-columns: 1fr auto; gap: 9px; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--line); }
+    .composer textarea { width: 100%; min-height: 42px; max-height: 100px; resize: vertical; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 11px 12px; color: var(--ink); }
+
+    .synthesis { display: none; }
+    .synthesis.active { display: block; }
+    .conversation.hidden-mode { display: none; }
+    .readback-list { display: flex; flex-direction: column; gap: 10px; }
+    .readback-card { display: grid; grid-template-columns: 28px 1fr auto; gap: 11px; align-items: start; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+    .readback-num { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: white; background: var(--forest); font-size: 10px; font-weight: 850; }
+    .readback-card h3 { margin: 0 0 4px; font-family: Georgia, "Times New Roman", serif; font-size: 18px; }
+    .readback-card p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .confirm-tag { border: 0; border-radius: 99px; padding: 6px 8px; background: var(--mint-soft); color: #355c2a; cursor: pointer; font-size: 9px; font-weight: 850; }
+
+    .decomp-layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 16px; }
+    .decomp-canvas { min-width: 0; padding: 16px; border-radius: 15px; background: #f3f1e9; overflow-x: auto; }
+    .decomp-level { position: relative; display: flex; justify-content: center; gap: 10px; min-width: 540px; }
+    .decomp-level + .decomp-level { margin-top: 29px; }
+    .decomp-level + .decomp-level::before { content: ""; position: absolute; left: 50%; top: -29px; width: 1px; height: 18px; background: #b8b9b0; }
+    .decomp-level.children::after { content: ""; position: absolute; left: 14%; right: 14%; top: -11px; height: 1px; background: #b8b9b0; }
+    .decomp-node {
+      position: relative; width: min(240px, 31%); min-height: 88px; padding: 11px; text-align: left; cursor: pointer;
+      border: 1px solid var(--line); border-radius: 12px; background: white; box-shadow: 0 5px 15px rgba(27,36,31,.05);
+    }
+    .decomp-level.children .decomp-node::before { content: ""; position: absolute; left: 50%; top: -12px; width: 1px; height: 12px; background: #b8b9b0; }
+    .decomp-node:hover, .decomp-node.active { border-color: var(--node-color, var(--blue)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--node-color, var(--blue)) 12%, transparent); }
+    .decomp-node small { display: block; color: var(--node-color, var(--blue)); font-size: 8px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+    .decomp-node strong { display: block; margin-top: 5px; font-family: Georgia, "Times New Roman", serif; font-size: 14px; line-height: 1.2; }
+    .decomp-node span { display: block; margin-top: 6px; color: var(--muted); font-size: 9px; line-height: 1.35; }
+    .decomp-node.root { width: 285px; --node-color: var(--forest); }
+    .decomp-node.need { width: 320px; --node-color: var(--violet); }
+    .decomp-inspector { padding: 15px; border: 1px solid var(--line); border-radius: 15px; background: #fff; }
+    .decomp-inspector h3 { margin: 5px 0 8px; font-family: Georgia, "Times New Roman", serif; font-size: 21px; line-height: 1.15; }
+    .decomp-inspector > p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .spec-facts { display: grid; gap: 8px; margin: 14px 0; }
+    .spec-fact { padding: 9px; border-radius: 9px; background: #f5f3ed; }
+    .spec-fact small { display: block; color: var(--muted); font-size: 8px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
+    .spec-fact strong { display: block; margin-top: 3px; font-size: 10px; line-height: 1.35; }
+    .child-list { margin: 7px 0 0; padding-left: 17px; color: var(--muted); font-size: 10px; line-height: 1.55; }
+
+    .queue { display: flex; flex-direction: column; gap: 11px; }
+    .queue-head { display: flex; justify-content: space-between; align-items: end; padding: 4px 2px 0; }
+    .queue-head h2 { margin: 0; font-size: 15px; }
+    .queue-head span { color: var(--muted); font-size: 10px; }
+    .decision-card {
+      position: relative; padding: 15px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,253,247,.86); box-shadow: 0 9px 24px rgba(27,36,31,.06); transition: opacity .2s, transform .2s;
+    }
+    .decision-card.resolved { opacity: .45; transform: scale(.98); }
+    .card-meta { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .kind { display: inline-flex; align-items: center; gap: 6px; color: var(--kind, var(--blue)); font-size: 9px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
+    .kind::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .confidence { color: var(--muted); font-size: 9px; font-weight: 750; }
+    .decision-card h3 { margin: 10px 0 6px; font-family: Georgia, "Times New Roman", serif; font-size: 18px; line-height: 1.18; }
+    .decision-card > p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.48; }
+    .why { margin-top: 10px; padding: 9px 10px; border-left: 3px solid var(--kind, var(--blue)); background: rgba(23,34,29,.035); border-radius: 0 8px 8px 0; font-size: 10px; line-height: 1.4; }
+    .card-actions { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; margin-top: 11px; }
+    .card-actions .btn { min-height: 33px; padding: 6px 8px; font-size: 10px; }
+    .gap-card { padding: 15px; border-radius: 16px; background: var(--orange-soft); border: 1px solid #f5c7b2; }
+    .gap-card h3 { margin: 0 0 5px; font-size: 12px; }
+    .gap-card p { margin: 0 0 11px; color: #7b4938; font-size: 10px; line-height: 1.45; }
+    .gap-card .btn { border-color: #e5b49e; background: rgba(255,255,255,.48); }
+
+    .drawer {
+      position: fixed; inset: 0; z-index: 40; display: none; align-items: stretch; justify-content: flex-end; background: rgba(23,34,29,.28); backdrop-filter: blur(3px);
+    }
+    .drawer.open { display: flex; }
+    .drawer-panel { width: min(510px, 100%); overflow-y: auto; padding: 22px; background: var(--surface); box-shadow: -20px 0 60px rgba(23,34,29,.18); animation: slide .2s ease-out; }
+    @keyframes slide { from { transform: translateX(30px); opacity: 0; } }
+    .drawer-head { display: flex; justify-content: space-between; align-items: start; gap: 20px; }
+    .drawer-head h2 { margin: 4px 0 0; font-family: Georgia, "Times New Roman", serif; font-size: 28px; line-height: 1.1; }
+    .drawer-section { margin-top: 24px; }
+    .drawer-section h3 { margin: 0 0 9px; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; }
+    .quote { margin: 0; padding: 15px; border-radius: 13px; background: var(--blue-soft); font-family: Georgia, "Times New Roman", serif; font-size: 18px; line-height: 1.45; }
+    .quote small { display: block; margin-top: 9px; color: var(--blue); font-family: Inter, sans-serif; font-size: 9px; font-weight: 800; }
+    .trace-flow { display: grid; grid-template-columns: 1fr 18px 1fr; gap: 8px; align-items: center; }
+    .trace-node { padding: 11px; border: 1px solid var(--line); border-radius: 11px; font-size: 10px; line-height: 1.4; }
+    .trace-arrow { color: var(--muted); text-align: center; }
+    .history { display: flex; flex-direction: column; gap: 8px; }
+    .history-row { display: grid; grid-template-columns: 58px 1fr; gap: 9px; color: var(--muted); font-size: 10px; }
+    .history-row strong { color: var(--ink); }
+
+    .toast { position: fixed; z-index: 60; left: 50%; bottom: 22px; transform: translate(-50%, 12px); padding: 10px 14px; border-radius: 10px; color: white; background: var(--forest); box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: .2s; font-size: 11px; font-weight: 750; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 1180px) {
+      .workspace { grid-template-columns: 190px minmax(500px, 1fr); }
+      .queue { grid-column: 2; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .queue-head { grid-column: 1 / -1; }
+    }
+    @media (max-width: 820px) {
+      .topbar { grid-template-columns: 1fr auto; padding: 10px 14px; }
+      .live-status { display: none; }
+      .top-actions .btn:not(.primary) { display: none; }
+      .workspace { display: block; padding: 12px; }
+      .rail { display: none; }
+      .queue { display: flex; margin-top: 12px; }
+      .focus-card { min-height: 205px; padding: 20px; }
+      .utterance { grid-template-columns: 52px 1fr; gap: 8px; }
+      .now-line { grid-template-columns: 52px 1fr; gap: 8px; }
+      .speech { font-size: 16px; }
+      .decomp-layout { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) {
+      .brand span { display: none; }
+      .top-actions .primary { padding: 8px 10px; }
+      .focus-card h1 { font-size: 27px; }
+      .answer-signal { display: none; }
+      .mode-tabs { width: 100%; }
+      .mode-tab { flex: 1; padding-inline: 6px; }
+      .conversation { padding: 13px; }
+      .utterance { display: block; }
+      .speaker { margin-bottom: 5px; }
+      .speaker time { display: inline; margin-left: 5px; }
+      .derived-row { margin-left: 0; }
+      .composer { grid-template-columns: 1fr; }
+      .composer .btn { width: 100%; }
+      .readback-card { grid-template-columns: 28px 1fr; }
+      .confirm-tag { grid-column: 2; justify-self: start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">S·</div>
+        <div><strong>SpecLive</strong><span>Warehouse Modernization · Acme Logistics</span></div>
+      </div>
+      <div class="live-status"><i class="pulse" aria-hidden="true"></i> Listening · 03:56</div>
+      <div class="top-actions">
+        <button class="btn" data-toast="Checkpoint saved">Save checkpoint</button>
+        <button class="btn primary" data-mode="readback">Prepare read-back</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="rail" aria-label="Discovery progress and topic threads">
+        <section>
+          <p class="eyebrow">Conversation arc</p>
+          <div class="phase-track">
+            <button class="phase done"><strong>Business driver</strong><span>2 findings locked</span></button>
+            <button class="phase done"><strong>Current state</strong><span>3 findings locked</span></button>
+            <button class="phase active"><strong>Workflow decisions</strong><span>In conversation now</span></button>
+            <button class="phase"><strong>Success measures</strong><span>1 gap identified</span></button>
+            <button class="phase"><strong>Environment</strong><span>2 threads started</span></button>
+            <button class="phase"><strong>Constraints & risks</strong><span>Not started</span></button>
+            <button class="phase"><strong>Validate & close</strong><span>Not started</span></button>
+          </div>
+        </section>
+
+        <section>
+          <p class="eyebrow">Live topic threads</p>
+          <div class="topic-stack">
+            <button class="topic active" style="--topic:#396cc3" data-topic="Order states"><i class="topic-dot"></i><span class="topic-name">Order states</span><span class="topic-count">3</span></button>
+            <button class="topic" style="--topic:#7a5daf" data-topic="Rugged tablets"><i class="topic-dot"></i><span class="topic-name">Rugged tablets</span><span class="topic-count">1</span></button>
+            <button class="topic" style="--topic:#f2794a" data-topic="WMS integration"><i class="topic-dot"></i><span class="topic-name">WMS integration</span><span class="topic-count">2</span></button>
+            <button class="topic" style="--topic:#4e946a" data-topic="Offline operation"><i class="topic-dot"></i><span class="topic-name">Offline operation</span><span class="topic-count">2</span></button>
+          </div>
+        </section>
+
+        <section class="session-health">
+          <div class="health-row"><span>Discovery health</span><strong>68%</strong></div>
+          <div class="meter"><i></i></div>
+          <div class="health-note">Strong on the problem and timing. Weakest on measurable outcomes and offline duration.</div>
+        </section>
+      </aside>
+
+      <section class="stage">
+        <article class="focus-card">
+          <div class="focus-meta">
+            <span class="focus-kicker">Best next move · Workflow decisions</span>
+            <span class="answer-signal"><span class="signal-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span> Answer signal: strong</span>
+          </div>
+          <h1>Which order states and exceptions must supervisors see to prevent a loading delay?</h1>
+          <div class="focus-actions">
+            <button class="btn mint" id="askButton">Ask this</button>
+            <button class="btn" data-prompt="Who acts on each exception, and how quickly?">Use alternative</button>
+            <button class="btn" data-toast="Question skipped — still available in the thread">Skip for now</button>
+          </div>
+        </article>
+
+        <div class="mode-tabs" role="tablist" aria-label="Workspace mode">
+          <button class="mode-tab active" role="tab" aria-selected="true" data-mode="live">Live conversation</button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="requirements">Requirement map</button>
+          <button class="mode-tab" role="tab" aria-selected="false" data-mode="readback">Read-back</button>
+        </div>
+
+        <section class="conversation" id="liveView" aria-label="Live conversation stream">
+          <header class="conversation-head">
+            <div><h2>The conversation, with meaning attached</h2><p>Click underlined evidence to inspect how a candidate was derived.</p></div>
+            <button class="quiet-control" data-toast="Earlier transcript would load here">Show earlier</button>
+          </header>
+
+          <div class="stream">
+            <article class="utterance">
+              <div class="speaker">Ryan<time>02:33</time></div>
+              <div><p class="speech">How quickly would the data need to update for it to be useful?</p></div>
+            </article>
+            <article class="utterance">
+              <div class="speaker">Morgan<time>02:42</time></div>
+              <div>
+                <p class="speech">Ideally <button class="evidence" style="--evidence-color:#396cc3" data-artifact="refresh">within 30 seconds</button>. Anything over a couple of minutes is probably too stale to act on.</p>
+                <div class="derived-row"><button class="artifact-chip" style="--chip:#396cc3" data-artifact="refresh">REQ-002 · refresh target</button></div>
+              </div>
+            </article>
+            <article class="utterance">
+              <div class="speaker">Morgan<time>02:59</time></div>
+              <div>
+                <p class="speech">We also need it to work on the <button class="evidence" style="--evidence-color:#7a5daf" data-artifact="tablet">rugged tablets the floor leads already carry</button>, and we <button class="evidence" style="--evidence-color:#f2794a" data-artifact="wms">cannot replace the warehouse management system this year</button>.</p>
+                <div class="derived-row">
+                  <button class="artifact-chip" style="--chip:#7a5daf" data-artifact="tablet">CON-003 · existing devices</button>
+                  <button class="artifact-chip" style="--chip:#f2794a" data-artifact="wms">CON-004 · retain WMS</button>
+                </div>
+              </div>
+            </article>
+            <div class="now-line"><span>Now</span><i></i></div>
+            <article class="utterance">
+              <div class="speaker">Ryan<time>03:51</time></div>
+              <div><p class="speech" id="lastPrompt">Which functions have to remain available if connectivity is degraded?</p></div>
+            </article>
+            <article class="utterance">
+              <div class="speaker">Morgan<time>03:56</time></div>
+              <div>
+                <p class="speech">It must keep working when the <button class="evidence" style="--evidence-color:#4e946a" data-artifact="offline">Wi-Fi drops in the yard</button>…</p>
+                <div class="derived-row"><button class="artifact-chip" style="--chip:#4e946a" data-artifact="offline">REQ-012 · offline operation</button></div>
+              </div>
+            </article>
+          </div>
+
+          <div class="composer">
+            <textarea id="composer" aria-label="Prompt or facilitator note" placeholder="Ask a question or capture a facilitator note…"></textarea>
+            <button class="btn primary" id="sendButton">Add to conversation</button>
+          </div>
+        </section>
+
+        <section class="conversation synthesis" id="readbackView" aria-label="Customer read-back">
+          <header class="conversation-head">
+            <div><h2>Here’s what I heard</h2><p>A clean, customer-safe view—without confidence scores or model terminology.</p></div>
+            <button class="btn" data-toast="Read-back link copied">Share view</button>
+          </header>
+          <div class="readback-list">
+            <article class="readback-card"><span class="readback-num">1</span><div><h3>The outcome</h3><p>Prevent avoidable truck-loading delays by giving supervisors timely order visibility.</p></div><button class="confirm-tag" data-confirm>Confirmed</button></article>
+            <article class="readback-card"><span class="readback-num">2</span><div><h3>The timing</h3><p>Order status should refresh within 30 seconds of a source-system change.</p></div><button class="confirm-tag" data-confirm>Needs confirmation</button></article>
+            <article class="readback-card"><span class="readback-num">3</span><div><h3>The boundaries</h3><p>Use existing rugged tablets, retain the current WMS this year, and launch before the end of Q3.</p></div><button class="confirm-tag" data-confirm>Confirmed</button></article>
+            <article class="readback-card"><span class="readback-num">4</span><div><h3>Still to decide</h3><p>Which status changes trigger an alert, how long offline use must last, and what WMS interfaces are available.</p></div><button class="confirm-tag" data-confirm>Discuss</button></article>
+          </div>
+        </section>
+
+        <section class="conversation synthesis" id="requirementsView" aria-label="Requirement decomposition">
+          <header class="conversation-head">
+            <div><h2>Requirement architecture</h2><p>Follow the decomposition from business outcome to need, requirement, and verifiable behavior.</p></div>
+            <button class="btn" data-toast="Requirement map expanded to full workspace">Expand map</button>
+          </header>
+          <div class="decomp-layout">
+            <div class="decomp-canvas" aria-label="Requirement hierarchy">
+              <div class="decomp-level">
+                <button class="decomp-node root active" data-decomp="objective"><small>Objective · OBJ-001</small><strong>Prevent avoidable loading delays</strong><span>Why the initiative exists</span></button>
+              </div>
+              <div class="decomp-level">
+                <button class="decomp-node need" data-decomp="need"><small>Stakeholder need · NEED-001</small><strong>Timely operational visibility</strong><span>What supervisors need to accomplish</span></button>
+              </div>
+              <div class="decomp-level children">
+                <button class="decomp-node" style="--node-color:#396cc3" data-decomp="refresh"><small>Requirement · REQ-002</small><strong>Refresh within 30 seconds</strong><span>3 behaviors · 2 open decisions</span></button>
+                <button class="decomp-node" style="--node-color:#396cc3" data-decomp="access"><small>Requirement · REQ-010</small><strong>Role-based reassignment</strong><span>2 roles · 2 permissions</span></button>
+                <button class="decomp-node" style="--node-color:#4e946a" data-decomp="offline"><small>Requirement · REQ-012</small><strong>Offline operation & sync</strong><span>3 behaviors · clarification needed</span></button>
+              </div>
+              <div class="decomp-level children">
+                <button class="decomp-node" style="--node-color:#f2794a" data-decomp="wms"><small>Constraint · CON-004</small><strong>Retain current WMS</strong><span>Constrains refresh architecture</span></button>
+                <button class="decomp-node" style="--node-color:#7a5daf" data-decomp="tablet"><small>Constraint · CON-003</small><strong>Use existing tablets</strong><span>Constrains access and offline design</span></button>
+                <button class="decomp-node" style="--node-color:#b83a38" data-decomp="latency"><small>Risk · RISK-007</small><strong>Interface latency</strong><span>Threatens the refresh target</span></button>
+              </div>
+            </div>
+
+            <aside class="decomp-inspector" aria-live="polite">
+              <p class="eyebrow" id="decompKind">Objective · Confirmed</p>
+              <h3 id="decompTitle">Prevent avoidable loading delays</h3>
+              <p id="decompStatement">Improve warehouse flow by preventing delays discovered only after a truck is waiting.</p>
+              <div class="spec-facts">
+                <div class="spec-fact"><small>Traced to</small><strong id="decompTrace">2 customer statements</strong></div>
+                <div class="spec-fact"><small>Verification</small><strong id="decompVerify">Reduction in truck wait time — target still open</strong></div>
+                <div class="spec-fact"><small>Decomposes into</small><ul class="child-list" id="decompChildren"><li>Timely operational visibility</li><li>Q3 delivery constraint</li></ul></div>
+              </div>
+              <button class="btn primary" id="decompAction" data-artifact="refresh">Inspect source trace</button>
+            </aside>
+          </div>
+        </section>
+      </section>
+
+      <aside class="queue" aria-label="Decision queue">
+        <header class="queue-head"><div><p class="eyebrow">Human-in-the-loop</p><h2>Decision queue</h2></div><span><b id="queueCount">3</b> to review</span></header>
+
+        <article class="decision-card" style="--kind:#396cc3" data-card>
+          <div class="card-meta"><span class="kind">Requirement</span><span class="confidence">95% grounded</span></div>
+          <h3>Status refresh within 30 seconds</h3>
+          <p>The solution shall refresh order status within 30 seconds of a source-system state change.</p>
+          <div class="why">Direct phrase captured. “Source-system state change” is an interpretation that still needs agreement.</div>
+          <div class="card-actions"><button class="btn mint" data-resolve="Confirmed">Confirm</button><button class="btn" data-artifact="refresh">Inspect trace</button><button class="btn icon-btn danger" aria-label="Reject candidate" data-resolve="Rejected">×</button></div>
+        </article>
+
+        <article class="decision-card" style="--kind:#7a5daf" data-card>
+          <div class="card-meta"><span class="kind">Constraint</span><span class="confidence">90% grounded</span></div>
+          <h3>Operate on existing rugged tablets</h3>
+          <p>Device models, operating system, browser, and local-storage limits are still unknown.</p>
+          <div class="card-actions"><button class="btn" data-prompt="What make, model, operating system, and browser are used on the rugged tablets?">Ask gap</button><button class="btn" data-artifact="tablet">Inspect trace</button><button class="btn icon-btn danger" aria-label="Reject candidate" data-resolve="Rejected">×</button></div>
+        </article>
+
+        <article class="decision-card" style="--kind:#4e946a" data-card>
+          <div class="card-meta"><span class="kind">Requirement</span><span class="confidence">62% grounded</span></div>
+          <h3>Offline operation and sync</h3>
+          <p>Likely requirement, but “keep working” does not yet define functions, duration, or reconciliation behavior.</p>
+          <div class="card-actions"><button class="btn" data-prompt="Which functions must remain available during a Wi-Fi outage, and for how long?">Clarify</button><button class="btn" data-artifact="offline">Inspect trace</button><button class="btn icon-btn danger" aria-label="Reject candidate" data-resolve="Rejected">×</button></div>
+        </article>
+
+        <article class="gap-card">
+          <p class="eyebrow">Highest-value gap</p>
+          <h3>Success is not measurable yet</h3>
+          <p>You know truck wait time should fall, but not the current baseline or target.</p>
+          <button class="btn" data-prompt="What reduction in truck wait time would make this a clear success?">Load question</button>
+        </article>
+      </aside>
+    </main>
+  </div>
+
+  <div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+    <div class="drawer-panel">
+      <header class="drawer-head"><div><p class="eyebrow" id="drawerKind">Requirement · REQ-002</p><h2 id="drawerTitle">Status refresh within 30 seconds</h2></div><button class="btn icon-btn" id="closeDrawer" aria-label="Close trace">×</button></header>
+      <section class="drawer-section"><h3>Source evidence</h3><blockquote class="quote" id="drawerQuote">“Ideally within 30 seconds. Anything over a couple of minutes is probably too stale to act on.”<small>Morgan · 02:42 · direct evidence</small></blockquote></section>
+      <section class="drawer-section"><h3>How SpecLive got here</h3><div class="trace-flow"><div class="trace-node" id="traceSource"><strong>Customer language</strong><br>“within 30 seconds”</div><div class="trace-arrow">→</div><div class="trace-node" id="traceMeaning"><strong>Structured meaning</strong><br>Refresh target: 30 seconds</div></div></section>
+      <section class="drawer-section"><h3>Interpretation boundary</h3><p id="drawerRationale" style="font-size:12px;line-height:1.55;color:var(--muted)">The customer supplied a desired interval. The trigger point, percentile, and failure tolerance remain unresolved.</p></section>
+      <section class="drawer-section"><h3>Revision trail</h3><div class="history"><div class="history-row"><span>02:43</span><div><strong>Candidate detected</strong><br>From live transcript</div></div><div class="history-row"><span>02:44</span><div><strong>Clarified wording</strong><br>Separated source phrase from interpreted trigger</div></div><div class="history-row"><span>Pending</span><div><strong>Customer confirmation</strong><br>Requires facilitator action</div></div></div></section>
+      <div class="card-actions" style="margin-top:24px"><button class="btn mint" data-toast="Candidate confirmed by facilitator">Confirm candidate</button><button class="btn" data-prompt="Does the 30-second target start when the WMS records the change?">Ask clarification</button><button class="btn danger" data-toast="Candidate rejected">Reject</button></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const artifacts = {
+      refresh: { kind: "Requirement · REQ-002", title: "Status refresh within 30 seconds", quote: "“Ideally within 30 seconds. Anything over a couple of minutes is probably too stale to act on.”", source: "“within 30 seconds”", meaning: "Refresh target: 30 seconds", rationale: "The customer supplied a desired interval. The trigger point, percentile, and failure tolerance remain unresolved." },
+      tablet: { kind: "Constraint · CON-003", title: "Operate on existing rugged tablets", quote: "“We also need it to work on the rugged tablets the floor leads already carry.”", source: "“rugged tablets”", meaning: "Reuse existing hardware", rationale: "The device constraint is explicit. Compatibility details—model, OS, browser, and storage—have not been characterized." },
+      wms: { kind: "Constraint · CON-004", title: "Retain the current WMS", quote: "“We cannot replace the warehouse management system this year.”", source: "“cannot replace”", meaning: "Integrate, do not replace", rationale: "The customer explicitly ruled out replacement this year. Available interfaces and supported latency remain unknown." },
+      offline: { kind: "Requirement · REQ-012", title: "Offline operation and sync", quote: "“It must keep working when the Wi-Fi drops in the yard.”", source: "“keep working”", meaning: "Degraded-connectivity mode", rationale: "The need is clear, but the phrase does not define which functions, for how long, or how data should reconcile after reconnection." }
+    };
+
+    const decomposition = {
+      objective: { kind: "Objective · Confirmed", title: "Prevent avoidable loading delays", statement: "Improve warehouse flow by preventing delays discovered only after a truck is waiting.", trace: "2 customer statements", verify: "Reduction in truck wait time — target still open", children: ["Timely operational visibility", "Q3 delivery constraint"] },
+      need: { kind: "Stakeholder need · Confirmed", title: "Timely operational visibility", statement: "Warehouse supervisors need timely visibility into order status throughout picking.", trace: "SEG-102 · direct customer evidence", verify: "Supervisor can identify a threatened load before the truck waits", children: ["30-second refresh", "Role-based reassignment", "Offline operation"] },
+      refresh: { kind: "Requirement · Clarified", title: "Refresh within 30 seconds", statement: "Order status refreshes within 30 seconds after a source-system state change.", trace: "SEG-104 · “within 30 seconds”", verify: "Measure end-to-end latency from WMS event to visible state", children: ["Detect source-system change", "Propagate update", "Render current state", "Open: percentile and failure tolerance"] },
+      access: { kind: "Requirement · Inferred", title: "Role-based reassignment", statement: "Shift supervisors may reassign picks; floor staff have read-only access.", trace: "SEG-108 · direct customer evidence", verify: "Permission tests for supervisor and floor-staff roles", children: ["Supervisor: view + reassign", "Floor staff: view only"] },
+      offline: { kind: "Requirement · Inferred", title: "Offline operation and sync", statement: "Core status functions remain available through connectivity loss and reconcile after reconnection.", trace: "SEG-107 · “Wi-Fi drops in the yard”", verify: "Disconnect, operate, reconnect, then compare state", children: ["Cache essential order data", "Queue permitted changes", "Reconcile on reconnect", "Open: duration and conflict policy"] },
+      wms: { kind: "Constraint · Confirmed", title: "Retain current WMS", statement: "The solution integrates with the existing WMS without replacing it this fiscal year.", trace: "SEG-105 · direct customer evidence", verify: "Architecture uses supported WMS interfaces", children: ["Discover available interfaces", "Validate event latency"] },
+      tablet: { kind: "Constraint · Inferred", title: "Use existing rugged tablets", statement: "The solution operates on the tablets already issued to floor leads.", trace: "SEG-105 · direct customer evidence", verify: "Compatibility test on named device baseline", children: ["Open: model and OS", "Open: browser", "Open: local storage"] },
+      latency: { kind: "Risk · Inferred", title: "Interface latency", statement: "Available WMS interfaces may not support the 30-second end-to-end target.", trace: "REQ-002 + CON-004", verify: "Interface spike under realistic load", children: ["Characterize interface", "Measure event-to-screen latency", "Define fallback"] }
+    };
+
+    const toast = document.getElementById("toast");
+    let toastTimer;
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    const composer = document.getElementById("composer");
+    function loadPrompt(text) {
+      composer.value = text;
+      setMode("live");
+      composer.focus();
+      composer.scrollIntoView({ behavior: "smooth", block: "center" });
+      showToast("Question loaded into the composer");
+    }
+
+    function setMode(mode) {
+      const readback = mode === "readback";
+      const requirements = mode === "requirements";
+      document.getElementById("liveView").classList.toggle("hidden-mode", readback || requirements);
+      document.getElementById("readbackView").classList.toggle("active", readback);
+      document.getElementById("requirementsView").classList.toggle("active", requirements);
+      document.querySelectorAll(".mode-tab").forEach(tab => {
+        const active = tab.dataset.mode === mode;
+        tab.classList.toggle("active", active);
+        tab.setAttribute("aria-selected", String(active));
+      });
+      if (readback) document.getElementById("readbackView").scrollIntoView({ behavior: "smooth", block: "start" });
+      if (requirements) document.getElementById("requirementsView").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function selectDecomposition(id) {
+      const item = decomposition[id];
+      if (!item) return;
+      document.querySelectorAll(".decomp-node").forEach(node => node.classList.toggle("active", node.dataset.decomp === id));
+      document.getElementById("decompKind").textContent = item.kind;
+      document.getElementById("decompTitle").textContent = item.title;
+      document.getElementById("decompStatement").textContent = item.statement;
+      document.getElementById("decompTrace").textContent = item.trace;
+      document.getElementById("decompVerify").textContent = item.verify;
+      document.getElementById("decompChildren").innerHTML = item.children.map(child => `<li>${child}</li>`).join("");
+      const action = document.getElementById("decompAction");
+      action.dataset.artifact = artifacts[id] ? id : "refresh";
+    }
+
+    const drawer = document.getElementById("drawer");
+    function openTrace(id) {
+      const item = artifacts[id];
+      if (!item) return;
+      document.getElementById("drawerKind").textContent = item.kind;
+      document.getElementById("drawerTitle").textContent = item.title;
+      document.getElementById("drawerQuote").innerHTML = `${item.quote}<small>Morgan · live transcript · direct evidence</small>`;
+      document.getElementById("traceSource").innerHTML = `<strong>Customer language</strong><br>${item.source}`;
+      document.getElementById("traceMeaning").innerHTML = `<strong>Structured meaning</strong><br>${item.meaning}`;
+      document.getElementById("drawerRationale").textContent = item.rationale;
+      drawer.classList.add("open");
+      document.getElementById("closeDrawer").focus();
+    }
+    function closeTrace() { drawer.classList.remove("open"); }
+
+    document.addEventListener("click", event => {
+      const target = event.target.closest("button");
+      if (!target) return;
+      if (target.dataset.toast) showToast(target.dataset.toast);
+      if (target.dataset.prompt) loadPrompt(target.dataset.prompt);
+      if (target.dataset.artifact) openTrace(target.dataset.artifact);
+      if (target.dataset.mode) setMode(target.dataset.mode);
+      if (target.dataset.topic) showToast(`${target.dataset.topic} thread focused`);
+      if (target.dataset.decomp) selectDecomposition(target.dataset.decomp);
+      if (target.dataset.confirm !== undefined) {
+        target.textContent = target.textContent === "Confirmed" ? "Needs confirmation" : "Confirmed";
+        showToast("Read-back status updated");
+      }
+      if (target.dataset.resolve) {
+        const card = target.closest("[data-card]");
+        if (!card || card.classList.contains("resolved")) return;
+        card.classList.add("resolved");
+        card.querySelectorAll("button").forEach(button => button.disabled = true);
+        const count = document.getElementById("queueCount");
+        count.textContent = Math.max(0, Number(count.textContent) - 1);
+        showToast(`${target.dataset.resolve} — decision recorded`);
+      }
+    });
+
+    document.getElementById("askButton").addEventListener("click", () => loadPrompt("Which order states and exceptions must supervisors see to prevent a loading delay?"));
+    document.getElementById("sendButton").addEventListener("click", () => {
+      const value = composer.value.trim();
+      if (!value) return showToast("Write a question or note first");
+      document.getElementById("lastPrompt").textContent = value;
+      composer.value = "";
+      showToast("Added to the live conversation");
+    });
+    document.getElementById("closeDrawer").addEventListener("click", closeTrace);
+    drawer.addEventListener("click", event => { if (event.target === drawer) closeTrace(); });
+    document.addEventListener("keydown", event => { if (event.key === "Escape") closeTrace(); });
+  </script>
+</body>
+</html>
