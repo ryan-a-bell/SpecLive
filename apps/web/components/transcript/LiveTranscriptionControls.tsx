@@ -25,6 +25,8 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
   );
   const [manualName, setManualName] = useState("");
   const [partialSpeaker, setPartialSpeaker] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const phaseRef = useRef<CapturePhase>("idle");
   const socketRef = useRef<WebSocket | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -209,6 +211,38 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
     }
   }
 
+  async function uploadRecording(file: File) {
+    if (uploading || phaseRef.current === "recording") return;
+    setError(null);
+    setUploading(true);
+    try {
+      const fallbackName =
+        manualSpeaker === "facilitator"
+          ? (session.data?.facilitator ?? "Facilitator")
+          : manualSpeaker === "customer"
+            ? (session.data?.customer ?? "Customer")
+            : "Participant";
+      const result = await api.uploadRecording(sessionId, file, {
+        filename: file.name,
+        speakerMode: autoDetect ? "auto" : "manual",
+        speaker: autoDetect ? undefined : manualSpeaker,
+        speakerName: autoDetect ? undefined : manualName || fallbackName,
+      });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.transcript(sessionId) });
+      toast(
+        result.segment_count > 0
+          ? `Transcribed ${file.name} (${result.segment_count} segments)`
+          : `Processed ${file.name}, no speech detected`,
+      );
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Could not transcribe recording";
+      setError(message);
+      toast(message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
   useEffect(
     () => () => {
       processorRef.current?.disconnect();
@@ -302,9 +336,31 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
           className={`btn ${phase === "recording" ? "recording" : "primary"}`}
           onClick={phase === "recording" ? stop : start}
           disabled={unavailable || phase === "requesting" || phase === "stopping"}
-          aria-label={phase === "recording" ? "Stop live transcription" : "Start live transcription"}
+          aria-label={
+            phase === "recording" ? "Stop live transcription" : "Start live transcription"
+          }
         >
           {phase === "recording" ? "Stop recording" : "Start recording"}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="audio/*,.mp3,.m4a,.wav,.ogg,.webm,.flac"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (file) void uploadRecording(file);
+          }}
+        />
+        <button
+          type="button"
+          className="btn"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={unavailable || busy || uploading}
+          aria-label="Upload an audio recording to transcribe"
+        >
+          {uploading ? "Transcribing…" : "Upload recording"}
         </button>
         <span className="text-[11px] text-[var(--muted)]">{statusLabel}</span>
         <div
