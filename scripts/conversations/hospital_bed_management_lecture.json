@@ -1,0 +1,50 @@
+{
+  "title": "Hospital bed management modernization — guest lecture (synthetic, 1 speaker / lecture)",
+  "customer": "Ridgeline Health",
+  "facilitator": null,
+  "voices": {
+    "customer": "en_US-lessac-medium"
+  },
+  "turns": [
+    {
+      "speaker": "customer",
+      "speaker_name": "Dr. Naomi Fields",
+      "text": "Good morning, everyone. Today I want to walk you through a real problem I'm trying to solve at Ridgeline Health, because it's a good case study in how a vague operational complaint turns into a set of hard requirements. About eight months ago, our ER admissions started missing our four-hour boarding target more than a third of the time, and it's costing us diversions — ambulances get turned away and sent to other hospitals. That's real revenue and real patient-safety risk, and it's the reason bed management is suddenly a board-level priority instead of an IT backlog item."
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Dr. Naomi Fields",
+      "text": "Let me describe how bed assignment actually works today, because it's more manual than you'd expect. When a patient is ready for discharge, the bedside nurse marks it in the EHR, but housekeeping doesn't get notified automatically — a charge nurse has to physically call or page environmental services. Cleaning a room takes anywhere from twenty minutes to two hours depending on the unit, and nobody upstream can see that a room is even in the cleaning queue. So the bed control coordinator is often working from a whiteboard and a phone, trying to figure out which of our four hundred and twelve beds are actually available right now."
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Dr. Naomi Fields",
+      "text": "The exceptions are where it really falls apart. Isolation patients need a specific room type, pediatric beds can't take adult patients, and post-surgical patients sometimes need a bed near a particular unit for recovery monitoring. Right now those rules live in the coordinator's head, not in any system. When she's out sick, the person covering for her makes mistakes, and we've had patients boarded in the ER for six or seven hours because nobody realized a compatible bed had actually been open for an hour."
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Dr. Naomi Fields",
+      "text": "So here's what I need this system to actually move. First, average ER boarding time — we're at just under five hours today, and the target the board has set is under two. Second, bed turnover time, meaning discharge to ready-for-next-patient, needs to come down from an average of ninety minutes to under forty. And third — this one's non-negotiable — ambulance diversion hours per month need to drop by at least half within two quarters of go-live, or the executive team will consider this a failed project regardless of what the software does technically."
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Dr. Naomi Fields",
+      "text": "On the technical side, everything has to integrate with our existing Epic EHR instance — that's non-negotiable, we are not replacing Epic. Epic exposes bed status and ADT events through an HL7 interface engine we already run, so realistically any new system is a consumer of that feed, not a system of record for admissions itself. Charge nurses and the bed coordinator work from hospital-issued iPads, and environmental services staff carry basic Android handhelds with no data plan beyond hospital Wi-Fi, which does not reach the sub-basement mechanical areas."
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Dr. Naomi Fields",
+      "text": "Now, constraints, and there are some real ones. This is a HIPAA environment, so any bed-status view has to be scoped — housekeeping should see room and cleaning status, not diagnosis or patient name, and that access boundary has to be enforced by the system, not just by policy. Budget-wise we have capital approved for this fiscal year only, so whatever we build has to be live before the fiscal year closes at the end of June, which is about five months from today. And I want to be blunt: our last two software rollouts in this hospital failed because clinical staff didn't trust the data, so user adoption is as much a requirement as any technical spec."
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Dr. Naomi Fields",
+      "text": "A couple of things I genuinely don't have answers to yet, and I want to flag them rather than pretend otherwise. I don't know whether environmental services needs a mobile app or whether a simple SMS or paging trigger is enough — that's a question for your team to help me answer with real usage data. And I don't yet know how we handle a bed that's clean and ready but held for a specific incoming transfer — that reservation-versus-available distinction touches almost every part of this design, and I haven't seen a hospital system get it right without a real workflow study first."
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Dr. Naomi Fields",
+      "text": "Let me just play back what I've described, because I want you to practice pulling requirements out of exactly this kind of unstructured narrative. We have an objective — cut ER boarding time in half. We have stakeholder needs — the bed coordinator needs a real-time, rule-aware view of bed availability, and environmental services needs a notification the moment a room is vacated. We have hard constraints — Epic integration only, HIPAA-scoped visibility, a five-month delivery window, and device limitations in the sub-basement. We have measurable success criteria — boarding time, turnover time, and diversion hours. And we have at least two open questions that need real answers before we can finalize the design. That's the whole exercise: find all of that in what I just said, and tell me what you'd ask me next."
+    }
+  ]
+}
