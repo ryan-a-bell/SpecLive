@@ -233,6 +233,28 @@ button,textarea,input{font:inherit}
 .empty p{margin:0 0 18px;color:var(--muted);font-size:13px;max-width:440px;line-height:1.5}
 .empty .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 
+/* database / library tiles */
+.db-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.seg{display:inline-flex;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:3px}
+.seg button{border:none;background:transparent;color:var(--muted);padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:750}
+.seg button.active{background:rgba(103,168,255,.16);color:#fff}
+.db-chips{display:flex;gap:7px;flex-wrap:wrap;margin-left:auto}
+.db-chip{font-size:11px;color:var(--muted);border:1px solid var(--border);background:var(--panel2);border-radius:99px;padding:6px 11px;cursor:pointer}
+.db-chip.active{color:#fff;border-color:var(--blue);background:rgba(103,168,255,.12)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(244px,1fr));gap:12px}
+.tile{border:1px solid var(--border);background:var(--panel);border-radius:14px;padding:13px;box-shadow:var(--shadow);cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:9px;min-height:132px;text-align:left;color:var(--text)}
+.tile:hover{border-color:var(--blue);transform:translateY(-2px)}
+.tile .thead{display:flex;align-items:center;gap:9px}
+.tile .tava{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:11px;font-weight:850;background:#22344f;color:#cfe0f6;flex:0 0 auto}
+.tile .tname{font-size:13px;font-weight:820;line-height:1.2}
+.tile .topp{font-size:10.5px;color:var(--muted);margin-top:2px}
+.tile .snippet{font-size:11.5px;color:#c7d4e6;line-height:1.45;flex:1}
+.tile .tfoot{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:auto}
+.tstat{font-size:9.5px;color:#7d90ac;border:1px solid var(--border);border-radius:99px;padding:3px 7px;background:var(--panel2)}
+.tstat.good{color:#c8f3e0;border-color:rgba(100,214,155,.35)}
+.tstat.live{color:#ffd2d8;border-color:rgba(255,127,143,.4)}
+.tile.art .type-dot{width:10px;height:10px}
+
 .view{display:none}.view.active{display:block}
 
 /* scrim for mobile drawer */
@@ -345,6 +367,11 @@ button,textarea,input{font:inherit}
       </div>
       <button class="nav-item" data-view="package" onclick="openView('package',this)">
         <span class="ico">⤓</span><span class="collapse-hide">Discovery package</span><span class="kbd collapse-hide">3</span>
+      </button>
+
+      <div class="section-label">Library</div>
+      <button class="nav-item" data-view="database" onclick="openView('database',this)">
+        <span class="ico">⊟</span><span class="collapse-hide">Database</span><span class="kbd collapse-hide">4</span>
       </button>
     </div>
 
@@ -524,6 +551,109 @@ button,textarea,input{font:inherit}
         </div>
       </section>
 
+      <!-- ---------- DATABASE ---------- -->
+      <section class="view" id="view-database">
+        <div class="db-toolbar">
+          <div class="seg">
+            <button class="active" data-dbmode="sessions" onclick="dbMode('sessions',this)">Sessions</button>
+            <button data-dbmode="artifacts" onclick="dbMode('artifacts',this)">Artifacts</button>
+          </div>
+          <div class="db-chips" id="dbChips">
+            <button class="db-chip active" data-filter="all" onclick="dbFilter('all',this)">All</button>
+            <button class="db-chip" data-filter="confirmed" onclick="dbFilter('confirmed',this)">Confirmed</button>
+            <button class="db-chip" data-filter="inprogress" onclick="dbFilter('inprogress',this)">In progress</button>
+            <button class="db-chip" data-filter="draft" onclick="dbFilter('draft',this)">Draft</button>
+            <button class="db-chip" data-filter="exported" onclick="dbFilter('exported',this)">Exported</button>
+          </div>
+        </div>
+
+        <div class="tiles" id="dbSessions">
+          <button class="tile" data-status="inprogress" onclick="toast('Opening Acme Logistics')">
+            <div class="thead"><span class="tava">AL</span><div><div class="tname">Acme Logistics</div><div class="topp">Warehouse Modernization</div></div></div>
+            <div class="snippet">Real-time picking visibility; order status refresh ≤30s on existing rugged tablets, keep current WMS.</div>
+            <div class="tfoot"><span class="tstat live">● Live</span><span class="tstat">3 req</span><span class="tstat">72%</span><span class="tstat">today</span></div>
+          </button>
+          <button class="tile" data-status="confirmed" onclick="toast('Opening Northwind Trading')">
+            <div class="thead"><span class="tava">NW</span><div><div class="tname">Northwind Trading</div><div class="topp">Returns &amp; RMA Portal</div></div></div>
+            <div class="snippet">Self-service returns with automated RMA numbers, carrier label generation, and refund policy routing.</div>
+            <div class="tfoot"><span class="tstat good">Confirmed</span><span class="tstat">12 req</span><span class="tstat">100%</span><span class="tstat">2d</span></div>
+          </button>
+          <button class="tile" data-status="confirmed" onclick="toast('Opening Globex')">
+            <div class="thead"><span class="tava">GX</span><div><div class="tname">Globex</div><div class="topp">Field Service Mobile App</div></div></div>
+            <div class="snippet">Offline-first work orders with parts lookup, photo capture, and customer signature at job completion.</div>
+            <div class="tfoot"><span class="tstat good">Confirmed</span><span class="tstat">8 req</span><span class="tstat">88%</span><span class="tstat">5d</span></div>
+          </button>
+          <button class="tile" data-status="draft" onclick="toast('Opening Initech')">
+            <div class="thead"><span class="tava">IT</span><div><div class="tname">Initech</div><div class="topp">Billing Platform Migration</div></div></div>
+            <div class="snippet">Phased migration off legacy billing; dunning workflows, proration, and a pluggable tax engine.</div>
+            <div class="tfoot"><span class="tstat">Draft</span><span class="tstat">1 req</span><span class="tstat">28%</span><span class="tstat">1w</span></div>
+          </button>
+          <button class="tile" data-status="exported" onclick="toast('Opening Umbrella Health')">
+            <div class="thead"><span class="tava">UB</span><div><div class="tname">Umbrella Health</div><div class="topp">Patient Intake Redesign</div></div></div>
+            <div class="snippet">Digital intake with insurance verification, e-signatures, and HIPAA-compliant audit logging.</div>
+            <div class="tfoot"><span class="tstat good">Exported</span><span class="tstat">15 req</span><span class="tstat">100%</span><span class="tstat">2w</span></div>
+          </button>
+          <button class="tile" data-status="confirmed" onclick="toast('Opening Wayne Enterprises')">
+            <div class="thead"><span class="tava">WE</span><div><div class="tname">Wayne Enterprises</div><div class="topp">Access Control Upgrade</div></div></div>
+            <div class="snippet">Badge plus biometric entry, zone-based access policies, and a visitor check-in workflow.</div>
+            <div class="tfoot"><span class="tstat good">Confirmed</span><span class="tstat">9 req</span><span class="tstat">94%</span><span class="tstat">3w</span></div>
+          </button>
+          <button class="tile" data-status="draft" onclick="toast('Opening Stark Industries')">
+            <div class="thead"><span class="tava">SI</span><div><div class="tname">Stark Industries</div><div class="topp">Supplier Portal</div></div></div>
+            <div class="snippet">Supplier onboarding, purchase-order collaboration, and quality-document exchange.</div>
+            <div class="tfoot"><span class="tstat">Draft</span><span class="tstat">2 req</span><span class="tstat">19%</span><span class="tstat">3w</span></div>
+          </button>
+          <button class="tile" data-status="inprogress" onclick="toast('Opening Soylent Corp')">
+            <div class="thead"><span class="tava">SC</span><div><div class="tname">Soylent Corp</div><div class="topp">Inventory Forecasting</div></div></div>
+            <div class="snippet">Demand forecasting with seasonality, safety-stock targets, and supplier lead-time inputs.</div>
+            <div class="tfoot"><span class="tstat">In progress</span><span class="tstat">6 req</span><span class="tstat">64%</span><span class="tstat">4w</span></div>
+          </button>
+        </div>
+
+        <div class="tiles" id="dbArtifacts" style="display:none">
+          <button class="tile art" onclick="toast('REQ-002 provenance')">
+            <div class="thead"><i class="type-dot requirement"></i><span class="tname" style="font-size:12px">REQ-002</span><span class="tstat" style="margin-left:auto">95%</span></div>
+            <div class="snippet">Refresh order-status information within 30 seconds of a source-system state change.</div>
+            <div class="tfoot"><span class="tstat good">Requirement</span><span class="tstat">Acme Logistics</span><span class="tstat">quantified</span></div>
+          </button>
+          <button class="tile art" onclick="toast('NEED-001 provenance')">
+            <div class="thead"><i class="type-dot need"></i><span class="tname" style="font-size:12px">NEED-001</span><span class="tstat" style="margin-left:auto">92%</span></div>
+            <div class="snippet">Supervisors need timely visibility into order status throughout the picking process.</div>
+            <div class="tfoot"><span class="tstat">Need</span><span class="tstat">Acme Logistics</span><span class="tstat good">confirmed</span></div>
+          </button>
+          <button class="tile art" onclick="toast('CON-004 provenance')">
+            <div class="thead"><i class="type-dot constraint"></i><span class="tname" style="font-size:12px">CON-004</span><span class="tstat" style="margin-left:auto">93%</span></div>
+            <div class="snippet">Solution must integrate with the existing WMS without replacing it this fiscal year.</div>
+            <div class="tfoot"><span class="tstat">Constraint</span><span class="tstat">Acme Logistics</span><span class="tstat">schedule</span></div>
+          </button>
+          <button class="tile art" onclick="toast('RISK-007 provenance')">
+            <div class="thead"><i class="type-dot risk"></i><span class="tname" style="font-size:12px">RISK-007</span><span class="tstat" style="margin-left:auto">71%</span></div>
+            <div class="snippet">Available WMS interfaces may not sustain a 30-second end-to-end refresh target.</div>
+            <div class="tfoot"><span class="tstat">Risk</span><span class="tstat">Acme Logistics</span><span class="tstat">inferred</span></div>
+          </button>
+          <button class="tile art" onclick="toast('OBJ-001 provenance')">
+            <div class="thead"><i class="type-dot objective"></i><span class="tname" style="font-size:12px">OBJ-001</span><span class="tstat" style="margin-left:auto">94%</span></div>
+            <div class="snippet">Improve warehouse flow and prevent avoidable truck-loading delays.</div>
+            <div class="tfoot"><span class="tstat">Objective</span><span class="tstat">Acme Logistics</span><span class="tstat good">confirmed</span></div>
+          </button>
+          <button class="tile art" onclick="toast('REQ-114 provenance')">
+            <div class="thead"><i class="type-dot requirement"></i><span class="tname" style="font-size:12px">REQ-114</span><span class="tstat" style="margin-left:auto">90%</span></div>
+            <div class="snippet">Offline work orders must sync within 5 minutes of the device regaining connectivity.</div>
+            <div class="tfoot"><span class="tstat good">Requirement</span><span class="tstat">Globex</span><span class="tstat">quantified</span></div>
+          </button>
+          <button class="tile art" onclick="toast('CON-201 provenance')">
+            <div class="thead"><i class="type-dot constraint"></i><span class="tname" style="font-size:12px">CON-201</span><span class="tstat" style="margin-left:auto">96%</span></div>
+            <div class="snippet">All patient-intake edits must be captured in a HIPAA-compliant audit log.</div>
+            <div class="tfoot"><span class="tstat">Constraint</span><span class="tstat">Umbrella Health</span><span class="tstat">policy</span></div>
+          </button>
+          <button class="tile art" onclick="toast('Q-005 provenance')">
+            <div class="thead"><i class="type-dot question"></i><span class="tname" style="font-size:12px">Q-005</span><span class="tstat" style="margin-left:auto">—</span></div>
+            <div class="snippet">Which order states, exceptions, and alerts must supervisors see?</div>
+            <div class="tfoot"><span class="tstat">Open question</span><span class="tstat">Acme Logistics</span><span class="tstat">gap</span></div>
+          </button>
+        </div>
+      </section>
+
       <!-- ---------- NEW / EMPTY ---------- -->
       <section class="view" id="view-empty">
         <div class="empty">
@@ -586,7 +716,7 @@ function updateSub(s){
 }
 
 /* ---- switch view (replaces top tabs) ---- */
-function viewName(v){return {workspace:'Workspace',git:'Git branch tree',subway:'Conversation subway',matrix:'Coverage matrix',package:'Discovery package',empty:'New session'}[v]||v;}
+function viewName(v){return {workspace:'Workspace',git:'Git branch tree',subway:'Conversation subway',matrix:'Coverage matrix',package:'Discovery package',database:'Database',empty:'New session'}[v]||v;}
 function openView(v,el){
   currentView=v;
   document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
@@ -618,12 +748,29 @@ function filterConvos(q){
   });
 }
 
-/* ---- keyboard 1/2/3 ---- */
+/* ---- database view ---- */
+function dbMode(m,el){
+  document.querySelectorAll('.seg [data-dbmode]').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('dbSessions').style.display=(m==='sessions')?'':'none';
+  document.getElementById('dbArtifacts').style.display=(m==='artifacts')?'':'none';
+  document.getElementById('dbChips').style.visibility=(m==='sessions')?'visible':'hidden';
+}
+function dbFilter(f,el){
+  document.querySelectorAll('#dbChips .db-chip').forEach(c=>c.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.querySelectorAll('#dbSessions .tile').forEach(t=>{
+    t.style.display=(f==='all'||t.dataset.status===f)?'':'none';
+  });
+}
+
+/* ---- keyboard 1/2/3/4 ---- */
 document.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
   if(e.key==='1')openView('workspace');
   if(e.key==='2')openView('git');
   if(e.key==='3')openView('package');
+  if(e.key==='4')openView('database');
 });
 
 /* ---- toast ---- */
