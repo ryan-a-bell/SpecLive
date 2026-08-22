@@ -54,6 +54,14 @@ def create_app() -> FastAPI:
 
     app.include_router(api_router)
 
+    # Draft candidate artifacts automatically as soon as any segment is finalized
+    # (idempotent per process). The event bus is provider-neutral, so this covers
+    # live mic, file upload, and manual entry alike.
+    from .events import get_event_bus
+    from .services.auto_analysis import register_auto_analysis
+
+    register_auto_analysis(get_event_bus())
+
     @app.on_event("startup")
     def _startup() -> None:
         # For the SQLite fallback (tests / keyless local runs) create tables if the

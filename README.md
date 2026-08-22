@@ -116,6 +116,7 @@ See [`.env.example`](.env.example) for the full list. Key ones:
 | `WISPR_FLOW_ACCESS_TOKEN` | Wispr streaming-session token | _(unset)_ |
 | `FASTER_WHISPER_MODEL` | Local faster-whisper model | `small.en` |
 | `LLM_PROVIDER` | Language-model provider id | `mock` |
+| `AUTO_ANALYZE` | Auto-draft candidates when a segment finalizes | `true` |
 | `EMBEDDING_PROVIDER` | Embedding provider id | `mock` |
 | `EVENT_BUS` | `memory` or `redis` | `memory` |
 | `CORS_ORIGINS` | Allowed web origins | `http://localhost:3000` |

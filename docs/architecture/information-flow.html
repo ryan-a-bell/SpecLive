@@ -251,7 +251,7 @@
         <line class="flow" x1="115" y1="106" x2="115" y2="250" marker-end="url(#ah)"></line>
         <text class="lbl" x="123" y="182">mic · file · text</text>
         <line class="flow" x1="625" y1="106" x2="625" y2="250" marker-end="url(#ah)"></line>
-        <text class="lbl" x="633" y="182">POST /analyze</text>
+        <text class="lbl" x="633" y="182">re-analyze (opt.)</text>
         <line class="flow" x1="965" y1="106" x2="965" y2="250" marker-end="url(#ah)"></line>
         <text class="lbl" x="835" y="182">confirm · reject · export</text>
 
@@ -293,7 +293,7 @@
         <line class="flow" x1="360" y1="290" x2="380" y2="290" marker-end="url(#ah)"></line>
         <text class="lbl" x="370" y="243" text-anchor="middle">text</text>
         <line class="flow" x1="530" y1="290" x2="550" y2="290" marker-end="url(#ah)"></line>
-        <text class="lbl" x="540" y="243" text-anchor="middle">segments</text>
+        <text class="lbl" x="540" y="243" text-anchor="middle">on finalize</text>
         <line class="flow" x1="700" y1="290" x2="720" y2="290" marker-end="url(#ah)"></line>
         <text class="lbl" x="710" y="243" text-anchor="middle">candidates</text>
         <line class="flow" x1="870" y1="290" x2="890" y2="290" marker-end="url(#ah)"></line>
@@ -344,10 +344,11 @@
       which proposes candidate artifacts plus the evidence span each came from; they land
       as <em>detected / inferred</em>. A human then confirms, edits, or rejects at the
       amber <b>Validate</b> gate — the only path to a baselined requirement, since a
-      lifecycle guardrail blocks any automated confirmation. Analysis runs on
-      <b>POST /analyze</b>: fired automatically after a typed statement today, and
-      invoked for live-audio and file-upload sessions. Every write publishes a domain
-      event that streams back to the browser, so the six visualizations update live.
+      lifecycle guardrail blocks any automated confirmation. Drafting fires
+      <b>automatically</b> the moment a segment is finalized — for every ingest path —
+      so the blueprint appears without any extra action (<code>POST /analyze</code>
+      remains for a full re-analysis). Every write publishes a domain event that streams
+      back to the browser, so the six visualizations update live.
     </figcaption>
   </figure>
 
@@ -404,7 +405,7 @@
         </tr>
         <tr>
           <td class="stage">Analyze</td>
-          <td><code>POST /sessions/{id}/analyze</code></td>
+          <td>auto on segment finalize · <code>POST /analyze</code> to re-run</td>
           <td>AnalysisService + LanguageModelProvider</td>
           <td>artifacts (detected / inferred)</td>
         </tr>
