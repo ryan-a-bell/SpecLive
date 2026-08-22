@@ -6,6 +6,11 @@ provider abstractions; the front end renders the six visualizations over typed
 server state. This document uses the C4 model (context → container → component)
 plus event-flow, derivation-sequence, and data-model diagrams.
 
+> For a single-page visual walkthrough of how information moves through the
+> system — ingest → transcript → model-drafted requirements → human validation →
+> export, with the live event stream — open
+> [`information-flow.html`](information-flow.html) in a browser.
+
 ## 1. System context
 
 ```mermaid

@@ -1,6 +1,6 @@
 "use client";
 
-import { useAddSegment, useAnalyze } from "@/lib/hooks";
+import { useAddSegment } from "@/lib/hooks";
 import { useWorkspaceStore } from "@/lib/store";
 import { useToast } from "@/lib/toast";
 
@@ -8,18 +8,16 @@ export function StatementComposer({ sessionId }: { sessionId: string }) {
   const composerText = useWorkspaceStore((s) => s.composerText);
   const setComposerText = useWorkspaceStore((s) => s.setComposerText);
   const addSegment = useAddSegment(sessionId);
-  const analyze = useAnalyze(sessionId);
   const toast = useToast((s) => s.show);
 
   async function submit() {
     const text = composerText.trim();
     if (!text) return;
+    // The server drafts candidate artifacts automatically once the segment is
+    // finalized (see auto_analysis on the API), so no explicit analyze call.
     await addSegment.mutateAsync({ speaker: "customer", text });
     setComposerText("");
-    toast("Transcript segment added");
-    // Kick off analysis so candidate artifacts appear (mock provider).
-    await analyze.mutateAsync();
-    toast("Segment analyzed for discovery nodes");
+    toast("Statement added — drafting discovery nodes…");
   }
 
   return (
@@ -34,7 +32,7 @@ export function StatementComposer({ sessionId }: { sessionId: string }) {
       <button
         className="btn primary self-end"
         onClick={submit}
-        disabled={addSegment.isPending || analyze.isPending}
+        disabled={addSegment.isPending}
       >
         Add statement
       </button>
