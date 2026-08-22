@@ -21,6 +21,7 @@ from ..services.analysis_service import AnalysisService
 from ..services.artifact_service import ArtifactService
 from ..services.branch_service import BranchService
 from ..services.context_strategy import get_context_strategy
+from ..services.conversation_graph_service import ConversationGraphService
 from ..services.coverage_service import CoverageService
 from ..services.export_service import ExportService
 from ..services.recommendation_service import RecommendationService
@@ -38,6 +39,7 @@ class Services:
     analysis: AnalysisService
     tree: TreeService
     branches: BranchService
+    conversation_graph: ConversationGraphService
     scripts: ScriptService
     coverage: CoverageService
     recommendations: RecommendationService
@@ -53,13 +55,15 @@ def get_services(db: Session = Depends(get_db)) -> Iterator[Services]:
     context_strategy = get_context_strategy(
         settings.analysis_context_mode, window_seconds=settings.analysis_window_seconds
     )
+    branches = BranchService(repo, bus)
     yield Services(
         sessions=SessionService(repo, bus),
         transcript=TranscriptService(repo, bus),
         artifacts=artifacts,
         analysis=AnalysisService(repo, artifacts, llm, context_strategy=context_strategy),
         tree=TreeService(repo),
-        branches=BranchService(repo, bus),
+        branches=branches,
+        conversation_graph=ConversationGraphService(repo, branches),
         scripts=ScriptService(repo, bus),
         coverage=CoverageService(repo, bus),
         recommendations=RecommendationService(repo, llm),
