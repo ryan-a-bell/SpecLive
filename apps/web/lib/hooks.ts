@@ -16,6 +16,7 @@ const keys = {
   script: (id: string) => ["script", id] as const,
   scripts: ["scripts"] as const,
   transcriptionCapability: ["transcription-capability"] as const,
+  analysisSettings: ["analysis-settings"] as const,
 };
 
 export function useSession(id: string) {
@@ -95,6 +96,14 @@ export function useTranscriptionCapability() {
     queryKey: keys.transcriptionCapability,
     queryFn: api.getTranscriptionCapability,
     staleTime: 30_000,
+  });
+}
+
+export function useAnalysisSettings() {
+  return useQuery({
+    queryKey: keys.analysisSettings,
+    queryFn: api.getAnalysisSettings,
+    staleTime: 60_000,
   });
 }
 

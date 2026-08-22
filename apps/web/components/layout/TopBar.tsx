@@ -1,12 +1,32 @@
 "use client";
 
-import { useSession } from "@/lib/hooks";
+import { useAnalysisSettings, useSession } from "@/lib/hooks";
 import { api } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 
+const MODE_LABEL: Record<string, string> = {
+  full: "full transcript",
+  window: "sliding window",
+  segment: "per segment",
+};
+
+const PROVIDER_LABEL: Record<string, string> = {
+  mock: "mock",
+  openai_compatible: "LLM",
+};
+
 export function TopBar({ sessionId }: { sessionId: string }) {
   const session = useSession(sessionId);
+  const settings = useAnalysisSettings();
   const toast = useToast((s) => s.show);
+
+  const s = settings.data;
+  const modeLabel = s ? (MODE_LABEL[s.context_mode] ?? s.context_mode) : null;
+  const modeDetail = s?.context_mode === "window" ? ` · ${Math.round(s.window_seconds)}s` : "";
+  const providerLabel = s ? (PROVIDER_LABEL[s.llm_provider] ?? s.llm_provider) : null;
+  const providerHost = s?.llm_api_base
+    ? s.llm_api_base.replace(/^https?:\/\//, "").replace(/\/v1\/?$/, "")
+    : null;
 
   async function generatePackage() {
     try {
@@ -38,6 +58,30 @@ export function TopBar({ sessionId }: { sessionId: string }) {
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-[9px]">
+        {s && (
+          <span
+            className="status"
+            title={
+              `Requirement derivation runs in "${s.context_mode}" context mode` +
+              (s.context_mode === "window" ? ` (${Math.round(s.window_seconds)}s windows)` : "") +
+              ` via the ${s.llm_provider} provider` +
+              (providerHost ? ` at ${providerHost}` : "") +
+              `. Auto-analyze is ${s.auto_analyze ? "on" : "off"}. ` +
+              "Read-only — set via server environment variables."
+            }
+          >
+            <span
+              className="inline-block h-[7px] w-[7px] rounded-full"
+              style={{
+                background:
+                  s.llm_provider === "mock" ? "var(--muted)" : "var(--purple)",
+              }}
+            />
+            {modeLabel}
+            {modeDetail} · {providerLabel}
+            {providerHost ? ` → ${providerHost}` : ""}
+          </span>
+        )}
         <span className="status">
           <span className="dot" /> {session.data?.status ?? "loading"}
         </span>

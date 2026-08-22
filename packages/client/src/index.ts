@@ -5,6 +5,7 @@
  * validated, fully-typed data. The client holds no UI or business logic.
  */
 import {
+  AnalysisSettings,
   Coverage,
   ConversationGraph,
   DiscoveryArtifact,
@@ -225,6 +226,7 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
       request(`/sessions/${id}/script/advance`, ScriptState, { method: "POST" }),
 
     // analysis + export
+    getAnalysisSettings: () => request("/settings/analysis", AnalysisSettings),
     analyze: (id: string) =>
       request(`/sessions/${id}/analyze`, z.array(DiscoveryArtifact), { method: "POST" }),
     exportPackage: (id: string, format: "json" | "markdown") =>

@@ -325,6 +325,16 @@ export const TranscriptionServerFrame = z.union([
 ]);
 export type TranscriptionServerFrame = z.infer<typeof TranscriptionServerFrame>;
 
+export const AnalysisSettings = z.object({
+  context_mode: z.string(),
+  window_seconds: z.number(),
+  auto_analyze: z.boolean(),
+  llm_provider: z.string(),
+  llm_api_base: z.string().nullable().optional(),
+  llm_model: z.string().nullable().optional(),
+});
+export type AnalysisSettings = z.infer<typeof AnalysisSettings>;
+
 export const TranscriptionCapability = z.object({
   available: z.boolean(),
   supports_partials: z.boolean(),

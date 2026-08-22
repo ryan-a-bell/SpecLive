@@ -78,6 +78,25 @@ class FileTranscriptionResult(BaseModel):
     segments: list[dict] = Field(default_factory=list)
 
 
+class AnalysisSettingsInfo(BaseModel):
+    """Read-only view of the deployment's requirement-derivation configuration.
+
+    Deliberately excludes any secret (notably ``LLM_API_KEY``): this reports
+    *what mode/provider is active* so the UI can show it, never credentials.
+    Config is env-var-driven and immutable at runtime, so there is no PATCH
+    counterpart — see GitHub issue on whether these should become editable.
+    """
+
+    context_mode: str
+    window_seconds: float
+    auto_analyze: bool
+    llm_provider: str
+    # Only populated for the openai_compatible provider; the base URL and model
+    # are non-secret configuration, the API key is never included.
+    llm_api_base: str | None = None
+    llm_model: str | None = None
+
+
 # --- artifacts ------------------------------------------------------------
 class ArtifactCreate(BaseModel):
     artifact_type: ArtifactType
