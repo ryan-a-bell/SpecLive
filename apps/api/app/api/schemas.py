@@ -68,6 +68,16 @@ class TranscriptionCapability(BaseModel):
     max_frame_seconds: int = 5
 
 
+class FileTranscriptionResult(BaseModel):
+    """Outcome of transcribing an uploaded recording (non-streaming)."""
+
+    session_id: str
+    source_filename: str | None = None
+    audio_seconds: float
+    segment_count: int
+    segments: list[dict] = Field(default_factory=list)
+
+
 # --- artifacts ------------------------------------------------------------
 class ArtifactCreate(BaseModel):
     artifact_type: ArtifactType

@@ -337,3 +337,12 @@ export const TranscriptionCapability = z.object({
   max_frame_seconds: z.number().int().positive(),
 });
 export type TranscriptionCapability = z.infer<typeof TranscriptionCapability>;
+
+export const FileTranscriptionResult = z.object({
+  session_id: z.string(),
+  source_filename: z.string().nullable().optional(),
+  audio_seconds: z.number(),
+  segment_count: z.number().int().nonnegative(),
+  segments: z.array(z.record(z.unknown())),
+});
+export type FileTranscriptionResult = z.infer<typeof FileTranscriptionResult>;

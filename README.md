@@ -49,6 +49,10 @@ packages/  domain (shared TS types), client (typed API client), ui, config
 - Streaming (transcript segments, candidate artifacts, evidence, tree/branch
   changes, recommendations) flows over WebSockets. Browser microphone audio goes
   only to the SpecLive API; provider selection and credentials stay server-side.
+- Recorded audio can also be **uploaded as a file** (`POST /sessions/{id}/transcribe`).
+  The server decodes it to canonical PCM once and runs it through the *same*
+  provider-neutral ingest pipeline as the live mic, so an upload yields the same
+  persisted segments, evidence, and derived artifacts.
 
 See [`docs/architecture/README.md`](docs/architecture/README.md) for context,
 container, component, event-flow, derivation-sequence, and data-model diagrams
@@ -112,6 +116,7 @@ See [`.env.example`](.env.example) for the full list. Key ones:
 | `WISPR_FLOW_ACCESS_TOKEN` | Wispr streaming-session token | _(unset)_ |
 | `FASTER_WHISPER_MODEL` | Local faster-whisper model | `small.en` |
 | `LLM_PROVIDER` | Language-model provider id | `mock` |
+| `AUTO_ANALYZE` | Auto-draft candidates when a segment finalizes | `true` |
 | `EMBEDDING_PROVIDER` | Embedding provider id | `mock` |
 | `EVENT_BUS` | `memory` or `redis` | `memory` |
 | `CORS_ORIGINS` | Allowed web origins | `http://localhost:3000` |
@@ -148,10 +153,29 @@ end-to-end scenario. Frontend coverage: components, selection state,
 transcript→artifact navigation, tree interaction, script advancement, and
 branch visualization.
 
+### Uploading a recorded file
+
+Besides the live microphone WebSocket, a finished recording can be transcribed
+by uploading it:
+
+```bash
+curl -F "file=@discovery-call.mp3" \
+  http://localhost:8000/api/v1/sessions/<session-id>/transcribe
+```
+
+The server decodes the file to 16 kHz mono PCM and streams it through the
+configured `STT_PROVIDER` (mock/local/openai/wispr) exactly like live audio, so
+the response and the session end up with the same segments and derived
+artifacts. WAV uploads decode with no extra dependencies; compressed formats
+(MP3, M4A, OGG, …) require `ffmpeg` on the API host (bundled in the Docker
+image). Optional `speaker_mode=manual` with `speaker` and `speaker_name` form
+fields stamp every segment with a fixed speaker; the default `auto` mode uses
+provider-detected voices. In the web app, the transcript panel's **Upload
+recording** button does the same thing.
+
 ### Synthetic audio playback
 
-The API ingests microphone audio only over a WebSocket (16 kHz mono PCM16, no
-file upload). To exercise that path without a microphone,
+To exercise the live streaming path without a microphone,
 [`scripts/audio_playback_test.py`](scripts/README.md) synthesizes a
 multi-speaker discussion (Piper by default) and streams it into a live session:
 

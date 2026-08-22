@@ -11,6 +11,7 @@ import {
   DiscoverySession,
   DiscoveryTree,
   EvidenceLink,
+  FileTranscriptionResult,
   Recommendations,
   ScriptDefinition,
   ScriptState,
@@ -119,6 +120,37 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
           body: JSON.stringify(body),
         },
       ),
+    uploadRecording: async (
+      id: string,
+      file: Blob,
+      options?: {
+        filename?: string;
+        speakerMode?: "auto" | "manual";
+        speaker?: Speaker;
+        speakerName?: string;
+      },
+    ) => {
+      const form = new FormData();
+      form.append("file", file, options?.filename ?? "recording");
+      if (options?.speakerMode) form.append("speaker_mode", options.speakerMode);
+      if (options?.speaker) form.append("speaker", options.speaker);
+      if (options?.speakerName) form.append("speaker_name", options.speakerName);
+      // No Content-Type header: the browser sets the multipart boundary itself.
+      const res = await doFetch(`${root}/api/v1/sessions/${encodeURIComponent(id)}/transcribe`, {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) {
+        let detail = res.statusText;
+        try {
+          detail = (await res.json())?.detail ?? detail;
+        } catch {
+          /* ignore */
+        }
+        throw new ApiError(res.status, detail);
+      }
+      return FileTranscriptionResult.parse(await res.json());
+    },
     transcriptionSocketUrl: (id: string) =>
       `${socketRoot}/api/v1/sessions/${encodeURIComponent(id)}/audio`,
     parseTranscriptionFrame: (data: string) => TranscriptionServerFrame.parse(JSON.parse(data)),

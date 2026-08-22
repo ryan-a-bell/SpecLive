@@ -28,6 +28,13 @@ class Settings(BaseSettings):
     embedding_provider: str = "mock"
     exporter: str = "default"
 
+    # When true, the language model drafts candidate artifacts automatically as
+    # soon as each transcript segment is finalized — for every ingest path (live
+    # mic, file upload, manual entry) — so the facilitator sees a blueprint
+    # without an extra action. Derived items are always proposals; confirmation
+    # stays an explicit human step. Set false to require an explicit POST /analyze.
+    auto_analyze: bool = True
+
     # Speech-to-text adapters. The browser always sends mono PCM16 at 16 kHz;
     # adapters handle provider-specific resampling and framing server-side.
     stt_language: str | None = None
