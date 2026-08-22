@@ -51,12 +51,14 @@ class Settings(BaseSettings):
     replay_seconds_per_turn: float = 2.5
 
     # Analysis context strategy: how much surrounding transcript a
-    # LanguageModelProvider sees per call. "segment" (default) = each
-    # segment alone, matching the original per-turn heuristics; "window" =
-    # consecutive segments grouped into ANALYSIS_WINDOW_SECONDS time-boxed
-    # chunks; "full" = the whole session in one call. See
+    # LanguageModelProvider sees per call. "full" (default) = the whole
+    # session transcript in one call, so cross-turn requirements (a
+    # facilitator's paraphrase of an answer given several turns earlier)
+    # are visible; "window" = consecutive segments grouped into
+    # ANALYSIS_WINDOW_SECONDS time-boxed chunks; "segment" = each segment
+    # alone, matching the original per-turn heuristics. See
     # app/services/context_strategy.py.
-    analysis_context_mode: str = "segment"
+    analysis_context_mode: str = "full"
     analysis_window_seconds: float = 300.0
 
     # LLM provider selection. "mock" (default) is a deterministic
