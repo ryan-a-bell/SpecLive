@@ -76,6 +76,9 @@ class SessionRepository(abc.ABC):
     def list_branches(self, session_id: str) -> list[m.ConversationBranchORM]: ...
 
     @abc.abstractmethod
+    def delete_branch(self, branch_id: str) -> None: ...
+
+    @abc.abstractmethod
     def add_node(self, row: m.ConversationNodeORM) -> m.ConversationNodeORM: ...
 
     @abc.abstractmethod
@@ -200,6 +203,12 @@ class SqlAlchemySessionRepository(SessionRepository):
                 .order_by(m.ConversationBranchORM.created_at)
             )
         )
+
+    def delete_branch(self, branch_id: str) -> None:
+        row = self._db.get(m.ConversationBranchORM, branch_id)
+        if row is not None:
+            self._db.delete(row)  # cascade removes the branch's nodes
+            self._db.flush()
 
     def add_node(self, row: m.ConversationNodeORM) -> m.ConversationNodeORM:
         return self._add(row)

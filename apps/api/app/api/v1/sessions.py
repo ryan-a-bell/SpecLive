@@ -112,6 +112,15 @@ def conversation_graph(session_id: str, svc: Services = Depends(get_services)) -
     return svc.branches.graph(session_id)
 
 
+@router.post("/{session_id}/conversation-graph/build")
+def build_conversation_graph(session_id: str, svc: Services = Depends(get_services)) -> dict:
+    """Reconstruct branches + nodes from the transcript and its derived
+    artifacts, so an imported/post-processed session lands on the same populated
+    Q&A-flow, git-branch and subway views as a live-steered one. Idempotent."""
+
+    return svc.conversation_graph.build(session_id)
+
+
 @router.get("/{session_id}/coverage")
 def coverage(session_id: str, svc: Services = Depends(get_services)) -> dict:
     return svc.coverage.build(session_id)
@@ -127,7 +136,11 @@ def recommendations(session_id: str, svc: Services = Depends(get_services)) -> d
 def analyze_session(
     session_id: str, svc: Services = Depends(get_services)
 ) -> list[e.DiscoveryArtifact]:
-    return svc.analysis.analyze_session(session_id)
+    artifacts = svc.analysis.analyze_session(session_id)
+    # Rebuild the conversation graph from the freshly derived artifacts so any
+    # ingest path (import, upload, mic) lands on the same populated views.
+    svc.conversation_graph.build(session_id)
+    return artifacts
 
 
 # --- script ---------------------------------------------------------------

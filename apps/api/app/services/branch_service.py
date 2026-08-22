@@ -34,12 +34,14 @@ class BranchService:
         source_stage_id: str | None = None,
         parent_branch_id: str | None = None,
         created_from_segment_id: str | None = None,
+        merge_target_stage_id: str | None = None,
         status: BranchStatus = BranchStatus.OPEN,
+        branch_id: str | None = None,
     ) -> e.ConversationBranch:
         if self._repo.get_session(session_id) is None:
             raise NotFoundError(f"Session {session_id} not found")
         row = m.ConversationBranchORM(
-            id=str(uuid4()),
+            id=branch_id or str(uuid4()),
             session_id=session_id,
             parent_branch_id=parent_branch_id,
             source_stage_id=source_stage_id,
@@ -47,6 +49,7 @@ class BranchService:
             topic=topic,
             status=BranchStatus(status).value,
             created_from_segment_id=created_from_segment_id,
+            merge_target_stage_id=merge_target_stage_id,
         )
         self._repo.add_branch(row)
         self._repo.commit()
@@ -70,13 +73,14 @@ class BranchService:
         artifact_id: str | None = None,
         parent_node_id: str | None = None,
         sequence: int | None = None,
+        node_id: str | None = None,
     ) -> e.ConversationNode:
         branch = self._repo.get_branch(branch_id)
         if branch is None:
             raise NotFoundError(f"Branch {branch_id} not found")
         seq = sequence if sequence is not None else len(self._repo.list_nodes(branch_id))
         row = m.ConversationNodeORM(
-            id=str(uuid4()),
+            id=node_id or str(uuid4()),
             branch_id=branch_id,
             node_type=ConversationNodeType(node_type).value,
             label=label,
