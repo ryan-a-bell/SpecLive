@@ -1,15 +1,23 @@
 """Turns transcript segments into candidate artifacts + evidence via the LLM
 provider. All artifacts produced here are proposals (detected/inferred) — never
 confirmed.
+
+How much surrounding transcript a given call sees is decided by a pluggable
+``ContextStrategy`` (see ``context_strategy.py``): per-segment (no context),
+sliding time window, or the full session. The strategy only decides how
+segments are grouped into an ``AnalysisUnit``; this service is agnostic to
+which mode is active, and works the same way against any provider.
 """
 
 from __future__ import annotations
 
 from ..domain import entities as e
 from ..domain.enums import DerivationMethod, ValidationState
-from ..providers.base import LanguageModelProvider
+from ..providers.base import AnalysisUnit, LanguageModelProvider
 from ..repositories import SessionRepository
+from ..repositories.mappers import segment_to_domain
 from .artifact_service import ArtifactService
+from .context_strategy import ContextStrategy, PerSegmentStrategy
 from .errors import NotFoundError
 
 
@@ -19,34 +27,46 @@ class AnalysisService:
         repo: SessionRepository,
         artifact_service: ArtifactService,
         llm: LanguageModelProvider,
+        context_strategy: ContextStrategy | None = None,
     ) -> None:
         self._repo = repo
         self._artifacts = artifact_service
         self._llm = llm
+        # Default matches the original, always-available behavior: each
+        # segment analyzed alone, no context strategy configured.
+        self._context_strategy = context_strategy or PerSegmentStrategy()
 
     def analyze_segment(self, segment_id: str, session_id: str) -> list[e.DiscoveryArtifact]:
-        """Analyze a single segment (by id) and persist candidate artifacts."""
+        """Analyze a single segment (by id) and persist candidate artifacts.
 
-        segment = next(
+        This bypasses the configured context strategy on purpose — it's an
+        explicit request to (re)analyze one segment, so it always builds a
+        single-segment unit regardless of ``ANALYSIS_CONTEXT_MODE``.
+        """
+
+        row = next(
             (s for s in self._repo.list_segments(session_id) if s.id == segment_id), None
         )
-        if segment is None:
+        if row is None:
             raise NotFoundError(f"Segment {segment_id} not found in session {session_id}")
-        return self._analyze(session_id, segment)
+        return self._run(session_id, AnalysisUnit(segments=[segment_to_domain(row)]))
 
     def analyze_session(self, session_id: str) -> list[e.DiscoveryArtifact]:
-        """(Re)analyze every segment in the session. Idempotency is out of scope
-        for the MVP mock; callers typically run this once on demand."""
+        """(Re)analyze the whole session using the configured context
+        strategy. Idempotency is out of scope for the MVP mock; callers
+        typically run this once on demand."""
 
         if self._repo.get_session(session_id) is None:
             raise NotFoundError(f"Session {session_id} not found")
+        segments = [segment_to_domain(row) for row in self._repo.list_segments(session_id)]
         produced: list[e.DiscoveryArtifact] = []
-        for segment in self._repo.list_segments(session_id):
-            produced.extend(self._analyze(session_id, segment))
+        for unit in self._context_strategy.build_units(segments):
+            produced.extend(self._run(session_id, unit))
         return produced
 
-    def _analyze(self, session_id: str, segment) -> list[e.DiscoveryArtifact]:  # type: ignore[no-untyped-def]
-        candidates = self._llm.analyze_segment(segment.text, speaker=segment.speaker)
+    def _run(self, session_id: str, unit: AnalysisUnit) -> list[e.DiscoveryArtifact]:
+        candidates = self._llm.analyze_unit(unit)
+        segments_by_id = {segment.id: segment for segment in unit.segments}
         produced: list[e.DiscoveryArtifact] = []
         for cand in candidates:
             artifact = self._artifacts.create(
@@ -61,6 +81,10 @@ class AnalysisService:
                 actor_is_human=False,  # enforces: cannot confirm/baseline automatically
             )
             for ev in cand.evidence:
+                # A multi-segment unit's evidence should name which segment it
+                # came from; fall back to the unit's anchor for providers that
+                # only ever see one segment (matches the pre-unit behavior).
+                segment = segments_by_id.get(ev.segment_id or "", unit.anchor)
                 self._artifacts.add_evidence(
                     artifact.id,
                     transcript_segment_id=segment.id,

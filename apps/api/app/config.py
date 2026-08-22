@@ -57,6 +57,29 @@ class Settings(BaseSettings):
     replay_script: str | None = None
     replay_seconds_per_turn: float = 2.5
 
+    # Analysis context strategy: how much surrounding transcript a
+    # LanguageModelProvider sees per call. "full" (default) = the whole
+    # session transcript in one call, so cross-turn requirements (a
+    # facilitator's paraphrase of an answer given several turns earlier)
+    # are visible; "window" = consecutive segments grouped into
+    # ANALYSIS_WINDOW_SECONDS time-boxed chunks; "segment" = each segment
+    # alone, matching the original per-turn heuristics. See
+    # app/services/context_strategy.py.
+    analysis_context_mode: str = "full"
+    analysis_window_seconds: float = 300.0
+
+    # LLM provider selection. "mock" (default) is a deterministic
+    # keyword/regex heuristic engine, no API key required.
+    # "openai_compatible" speaks the OpenAI chat-completions wire format, so
+    # it works unmodified against OpenAI itself, a local Ollama server, a
+    # vLLM OpenAI-compatible server, Anthropic's OpenAI-compatible endpoint,
+    # or anything else implementing that contract — point LLM_API_BASE at
+    # whichever one you want. See app/providers/openai_compatible.py.
+    llm_api_base: str = "https://api.openai.com/v1"
+    llm_api_key: str | None = None
+    llm_model: str = "gpt-4o-mini"
+    llm_timeout_seconds: float = 60.0
+
     # HTTP
     api_host: str = "0.0.0.0"
     api_port: int = 8000

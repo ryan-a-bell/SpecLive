@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
+from ..config import get_settings
 from ..database import get_db
 from ..events import EventBus, get_event_bus
 from ..providers import get_llm_provider
@@ -19,6 +20,7 @@ from ..repositories import SqlAlchemySessionRepository
 from ..services.analysis_service import AnalysisService
 from ..services.artifact_service import ArtifactService
 from ..services.branch_service import BranchService
+from ..services.context_strategy import get_context_strategy
 from ..services.coverage_service import CoverageService
 from ..services.export_service import ExportService
 from ..services.recommendation_service import RecommendationService
@@ -47,11 +49,15 @@ def get_services(db: Session = Depends(get_db)) -> Iterator[Services]:
     repo = SqlAlchemySessionRepository(db)
     llm = get_llm_provider()
     artifacts = ArtifactService(repo, bus)
+    settings = get_settings()
+    context_strategy = get_context_strategy(
+        settings.analysis_context_mode, window_seconds=settings.analysis_window_seconds
+    )
     yield Services(
         sessions=SessionService(repo, bus),
         transcript=TranscriptService(repo, bus),
         artifacts=artifacts,
-        analysis=AnalysisService(repo, artifacts, llm),
+        analysis=AnalysisService(repo, artifacts, llm, context_strategy=context_strategy),
         tree=TreeService(repo),
         branches=BranchService(repo, bus),
         scripts=ScriptService(repo, bus),
