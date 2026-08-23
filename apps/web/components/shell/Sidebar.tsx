@@ -2,7 +2,7 @@
 
 import { useNavStore, type ShellView } from "@/lib/nav-store";
 import { useAnalysisSettings } from "@/lib/hooks";
-import { isLiveSession, type Workspace } from "@/lib/workspaces";
+import { isLiveSession, useWorkspaceArtifacts, type Workspace } from "@/lib/workspaces";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
 function statusDot(status: string) {
@@ -30,6 +30,13 @@ export function Sidebar({
   const toggleSidebar = useNavStore((s) => s.toggleSidebar);
   const toggleDrawer = useNavStore((s) => s.toggleDrawer);
   const settings = useAnalysisSettings();
+
+  // Candidates awaiting validation across the whole workspace — the badge count.
+  // rows are already register-scoped (non-rejected), so counting candidates here
+  // matches the Validation inbox's needsReview() set. Query keys are shared with
+  // the inbox, so React Query dedupes the fetch.
+  const { rows: workspaceRows } = useWorkspaceArtifacts(active?.sessions ?? []);
+  const reviewCount = workspaceRows.filter((r) => r.artifact.status === "candidate").length;
 
   const sessions = active?.sessions ?? [];
   const filtered = search.trim()
@@ -60,10 +67,28 @@ export function Sidebar({
     if (typeof window !== "undefined" && window.innerWidth <= 820) setDrawer(false);
   }
 
-  const NavItem = ({ v, ico, label, kbd }: { v: ShellView; ico: string; label: string; kbd?: string }) => (
-    <button className={`nav-item${view === v ? " active" : ""}`} onClick={() => openView(v)}>
+  const NavItem = ({
+    v,
+    ico,
+    label,
+    kbd,
+    cls,
+    badge,
+  }: {
+    v: ShellView;
+    ico: string;
+    label: string;
+    kbd?: string;
+    cls?: string;
+    badge?: number;
+  }) => (
+    <button
+      className={`nav-item${cls ? ` ${cls}` : ""}${view === v ? " active" : ""}`}
+      onClick={() => openView(v)}
+    >
       <span className="ico">{ico}</span>
       <span className="collapse-hide">{label}</span>
+      {badge != null && badge > 0 && <span className="nbadge collapse-hide">{badge}</span>}
       {kbd && <span className="kbd collapse-hide">{kbd}</span>}
     </button>
   );
@@ -108,7 +133,9 @@ export function Sidebar({
           />
         </div>
 
+        <div className="section-label">Workspace</div>
         <NavItem v="overview" ico="◧" label="Overview & requirements" kbd="0" />
+        <NavItem v="review" ico="⚑" label="Needs review" cls="review" badge={reviewCount} />
 
         <div className="section-label">
           Conversations
