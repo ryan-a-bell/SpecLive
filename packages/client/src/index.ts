@@ -40,6 +40,22 @@ export interface ClientOptions {
   fetchImpl?: typeof fetch;
 }
 
+export interface ScriptStageWrite {
+  id?: string;
+  title: string;
+  objective: string;
+  primary_prompt: string;
+  alternative_prompts: string[];
+  completion_criteria: string[];
+}
+
+export interface ScriptDefinitionWrite {
+  name: string;
+  version: string;
+  description: string;
+  stages: ScriptStageWrite[];
+}
+
 export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
   const doFetch = fetchImpl ?? fetch;
   const root = baseUrl.replace(/\/$/, "");
@@ -215,12 +231,26 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
     getDiscoveryTree: (id: string) => request(`/sessions/${id}/discovery-tree`, DiscoveryTree),
     getConversationGraph: (id: string) =>
       request(`/sessions/${id}/conversation-graph`, ConversationGraph),
+    buildConversationGraph: (id: string) =>
+      request(`/sessions/${id}/conversation-graph/build`, ConversationGraph, { method: "POST" }),
     getCoverage: (id: string) => request(`/sessions/${id}/coverage`, Coverage),
     getRecommendations: (id: string) => request(`/sessions/${id}/recommendations`, Recommendations),
 
     // script
     listScripts: () => request("/scripts", z.array(ScriptDefinition)),
     getScript: (scriptId: string) => request(`/scripts/${scriptId}`, ScriptDefinition),
+    createScript: (body: ScriptDefinitionWrite) =>
+      request("/scripts", ScriptDefinition, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    updateScript: (scriptId: string, body: ScriptDefinitionWrite) =>
+      request(`/scripts/${scriptId}`, ScriptDefinition, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      }),
+    archiveScript: (scriptId: string) =>
+      request(`/scripts/${scriptId}/archive`, ScriptDefinition, { method: "POST" }),
     getScriptState: (id: string) => request(`/sessions/${id}/script`, ScriptState),
     advanceScript: (id: string) =>
       request(`/sessions/${id}/script/advance`, ScriptState, { method: "POST" }),

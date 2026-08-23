@@ -21,7 +21,11 @@ const keys = {
 };
 
 export function useSessions() {
-  return useQuery({ queryKey: keys.sessions, queryFn: () => api.listSessions(), staleTime: 15_000 });
+  return useQuery({
+    queryKey: keys.sessions,
+    queryFn: () => api.listSessions(),
+    staleTime: 15_000,
+  });
 }
 
 export function useSession(id: string) {
@@ -87,6 +91,36 @@ export function useScripts() {
     queryKey: keys.scripts,
     queryFn: () => api.listScripts(),
     staleTime: 60_000,
+  });
+}
+
+export function useCreateScript() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Parameters<typeof api.createScript>[0]) => api.createScript(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.scripts }),
+  });
+}
+
+export function useUpdateScript() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      scriptId,
+      body,
+    }: {
+      scriptId: string;
+      body: Parameters<typeof api.updateScript>[1];
+    }) => api.updateScript(scriptId, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.scripts }),
+  });
+}
+
+export function useArchiveScript() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (scriptId: string) => api.archiveScript(scriptId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.scripts }),
   });
 }
 

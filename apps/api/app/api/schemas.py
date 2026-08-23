@@ -34,6 +34,23 @@ class SessionPatch(BaseModel):
     metadata: dict | None = None
 
 
+# --- discovery scripts ---------------------------------------------------
+class ScriptStageWrite(BaseModel):
+    id: str | None = None
+    title: str = Field(min_length=1, max_length=255)
+    objective: str = ""
+    primary_prompt: str = Field(min_length=1)
+    alternative_prompts: list[str] = Field(default_factory=list)
+    completion_criteria: list[str] = Field(default_factory=list)
+
+
+class ScriptDefinitionWrite(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    version: str = Field(default="1.0.0", min_length=1, max_length=32)
+    description: str = ""
+    stages: list[ScriptStageWrite] = Field(min_length=1)
+
+
 # --- transcript -----------------------------------------------------------
 class TranscriptSegmentCreate(BaseModel):
     speaker: Speaker

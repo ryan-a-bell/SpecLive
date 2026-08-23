@@ -11,16 +11,16 @@ test("fake microphone streams through SpecLive and persists an identified speake
   const autoDetect = page.getByRole("checkbox", { name: "Auto-detect voices" });
   await expect(autoDetect).toBeChecked();
 
-  const start = page.getByRole("button", { name: "Start live transcription" });
+  const start = page.getByRole("button", { name: "Start recording" });
   await expect(start).toBeEnabled();
   await start.click();
 
-  await expect(page.getByRole("button", { name: "Stop live transcription" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Stop recording" })).toBeEnabled();
   await expect(page.getByTestId("live-partial")).toContainText("Live microphone test", {
     timeout: 15_000,
   });
 
-  await page.getByRole("button", { name: "Stop live transcription" }).click();
+  await page.getByRole("button", { name: "Stop recording" }).click();
   const persistedSegment = page
     .locator("[data-segment-id]")
     .filter({ hasText: "Live microphone test complete" })
@@ -55,7 +55,9 @@ test("fake microphone streams through SpecLive and persists an identified speake
   await persistedSegment.getByLabel("Speaker role").selectOption("customer");
   await persistedSegment.getByLabel("Speaker name").fill("Maya");
   await persistedSegment.getByRole("button", { name: "Save" }).click();
-  await expect(persistedSegment.getByRole("button", { name: "Correct speaker Maya" })).toBeVisible();
+  await expect(
+    persistedSegment.getByRole("button", { name: "Correct speaker Maya" }),
+  ).toBeVisible();
 
   await expect
     .poll(async () => {

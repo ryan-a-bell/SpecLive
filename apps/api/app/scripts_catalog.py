@@ -2,9 +2,8 @@
 
 Loads the shareable starter scripts under ``fixtures/scripts/`` into the
 ``script_definitions`` catalogue so a facilitator can pick a script for a
-session without seeding the full demo. Idempotent — safe to run on every
-startup: an existing script is updated in place and its stages replaced, so
-edits to a fixture propagate on the next boot.
+session without seeding the full demo. Existing catalogue rows are preserved so
+facilitator edits made in the app survive a restart.
 """
 
 from __future__ import annotations
@@ -45,9 +44,10 @@ def load_catalogue_scripts() -> list[dict]:
 
 def _upsert_script(db: object, script: dict) -> None:
     existing = db.get(m.ScriptDefinitionORM, script["id"])  # type: ignore[attr-defined]
-    if existing is None:
-        existing = m.ScriptDefinitionORM(id=script["id"])
-        db.add(existing)  # type: ignore[attr-defined]
+    if existing is not None:
+        return
+    existing = m.ScriptDefinitionORM(id=script["id"])
+    db.add(existing)  # type: ignore[attr-defined]
     existing.name = script["name"]
     existing.version = script["version"]
     existing.description = script["description"]

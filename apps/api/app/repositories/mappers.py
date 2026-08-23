@@ -134,6 +134,7 @@ def script_to_domain(row: m.ScriptDefinitionORM) -> e.ScriptDefinition:
         name=row.name,
         version=row.version,
         description=row.description,
+        archived=row.archived,
         stages=[stage_to_domain(s) for s in row.stages],
     )
 
