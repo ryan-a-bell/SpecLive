@@ -29,6 +29,7 @@ from ..services.script_service import ScriptService
 from ..services.session_service import SessionService
 from ..services.transcript_service import TranscriptService
 from ..services.tree_service import TreeService
+from ..services.workspace_service import WorkspaceService
 
 
 @dataclass
@@ -44,6 +45,7 @@ class Services:
     coverage: CoverageService
     recommendations: RecommendationService
     export: ExportService
+    workspaces: WorkspaceService
 
 
 def get_services(db: Session = Depends(get_db)) -> Iterator[Services]:
@@ -56,6 +58,7 @@ def get_services(db: Session = Depends(get_db)) -> Iterator[Services]:
         settings.analysis_context_mode, window_seconds=settings.analysis_window_seconds
     )
     branches = BranchService(repo, bus)
+    export = ExportService(repo)
     yield Services(
         sessions=SessionService(repo, bus),
         transcript=TranscriptService(repo, bus),
@@ -67,5 +70,6 @@ def get_services(db: Session = Depends(get_db)) -> Iterator[Services]:
         scripts=ScriptService(repo, bus),
         coverage=CoverageService(repo, bus),
         recommendations=RecommendationService(repo, llm),
-        export=ExportService(repo),
+        export=export,
+        workspaces=WorkspaceService(repo, export),
     )

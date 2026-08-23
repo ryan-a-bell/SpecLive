@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { DiscoverySession } from "@rdc/domain";
+import type { DiscoveryArtifact, DiscoverySession } from "@rdc/domain";
 import {
+  confidenceBand,
   groupWorkspaces,
   initials,
   isLiveSession,
+  needsReview,
   slugifyCustomer,
   statusPill,
 } from "./workspaces";
@@ -16,6 +18,21 @@ function session(id: string, customer: string, title: string): DiscoverySession 
     facilitator: "Facilitator",
     status: "active",
     metadata: {},
+  };
+}
+
+function artifact(overrides: Partial<DiscoveryArtifact> = {}): DiscoveryArtifact {
+  return {
+    id: "a1",
+    session_id: "s1",
+    artifact_type: "requirement",
+    title: "REQ-1",
+    statement: "The system must do X.",
+    status: "candidate",
+    confidence: 0.5,
+    validation_state: "inferred",
+    derivation_method: "llm",
+    ...overrides,
   };
 }
 
@@ -91,5 +108,33 @@ describe("statusPill", () => {
     expect(statusPill("confirmed").cls).toBe("confirmed");
     expect(statusPill("candidate").cls).toBe("candidate");
     expect(statusPill("superseded").cls).toBe("open");
+  });
+});
+
+describe("needsReview", () => {
+  it("flags unresolved candidates as awaiting validation", () => {
+    expect(needsReview(artifact({ status: "candidate" }))).toBe(true);
+  });
+
+  it("excludes items a human has already acted on", () => {
+    expect(needsReview(artifact({ status: "confirmed" }))).toBe(false);
+    expect(needsReview(artifact({ status: "baselined" }))).toBe(false);
+    expect(needsReview(artifact({ status: "rejected" }))).toBe(false);
+    expect(needsReview(artifact({ status: "superseded" }))).toBe(false);
+  });
+
+  it("excludes a candidate whose validation state was rejected", () => {
+    expect(needsReview(artifact({ status: "candidate", validation_state: "rejected" }))).toBe(false);
+  });
+});
+
+describe("confidenceBand", () => {
+  it("bands confidence into low/med/high at 0.6 and 0.8", () => {
+    expect(confidenceBand(0.2)).toBe("low");
+    expect(confidenceBand(0.59)).toBe("low");
+    expect(confidenceBand(0.6)).toBe("med");
+    expect(confidenceBand(0.79)).toBe("med");
+    expect(confidenceBand(0.8)).toBe("high");
+    expect(confidenceBand(1)).toBe("high");
   });
 });

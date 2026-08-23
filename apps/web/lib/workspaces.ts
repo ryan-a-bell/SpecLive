@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
-import type { ArtifactType, DiscoveryArtifact } from "@rdc/domain";
+import type { ArtifactType, DiscoveryArtifact, EvidenceLink } from "@rdc/domain";
 import { api } from "./api";
 import { useSessions } from "./hooks";
 
@@ -110,6 +110,23 @@ export function isRegisterArtifact(artifact: DiscoveryArtifact): boolean {
 }
 
 /**
+ * Whether an artifact is still awaiting human validation — a model-inferred
+ * candidate that has not yet been confirmed, rejected, or otherwise resolved.
+ * These are exactly the items the Validation inbox surfaces: nothing here is
+ * baselined into the discovery package until a facilitator acts on it.
+ */
+export function needsReview(artifact: DiscoveryArtifact): boolean {
+  return artifact.status === "candidate" && isRegisterArtifact(artifact);
+}
+
+/** Band a 0–1 confidence into the low/med/high buckets the inbox colors by. */
+export function confidenceBand(confidence: number): "low" | "med" | "high" {
+  if (confidence >= 0.8) return "high";
+  if (confidence >= 0.6) return "med";
+  return "low";
+}
+
+/**
  * Fetch and flatten the derived artifacts for every session in a workspace so
  * the Overview can show one requirements register across all its conversations.
  */
@@ -139,6 +156,73 @@ export function useWorkspaceArtifacts(sessions: WorkspaceSession[]): {
   }, [sessions, results.map((r) => r.dataUpdatedAt).join(",")]);
 
   return { rows, isLoading };
+}
+
+/** A candidate awaiting validation, joined to its source conversation and the
+ * transcript evidence it was derived from. */
+export interface ReviewItem extends RegisterRow {
+  evidence: EvidenceLink[];
+}
+
+/**
+ * Everything across a workspace that still needs human validation, with each
+ * item joined to the evidence it was derived from. Backs the Validation inbox.
+ *
+ * Reuses the same query keys as the per-session artifact/evidence hooks, so
+ * React Query dedupes the fetches with any conversation view already open and a
+ * confirm/reject elsewhere refreshes the inbox automatically.
+ */
+export function useWorkspaceReview(sessions: WorkspaceSession[]): {
+  items: ReviewItem[];
+  isLoading: boolean;
+} {
+  const artifactResults = useQueries({
+    queries: sessions.map((s) => ({
+      queryKey: ["artifacts", s.id] as const,
+      queryFn: () => api.listArtifacts(s.id),
+    })),
+  });
+  const evidenceResults = useQueries({
+    queries: sessions.map((s) => ({
+      queryKey: ["session-evidence", s.id] as const,
+      queryFn: () => api.getSessionEvidence(s.id),
+    })),
+  });
+
+  const isLoading = artifactResults.some((r) => r.isLoading);
+
+  // Data-freshness stamps: re-derive only when a query actually refetches.
+  const artifactStamp = artifactResults.map((r) => r.dataUpdatedAt).join(",");
+  const evidenceStamp = evidenceResults.map((r) => r.dataUpdatedAt).join(",");
+
+  const items = useMemo(() => {
+    const out: ReviewItem[] = [];
+    sessions.forEach((session, i) => {
+      const artifacts = artifactResults[i]?.data ?? [];
+      const evidence = evidenceResults[i]?.data ?? [];
+      const byArtifact = new Map<string, EvidenceLink[]>();
+      for (const link of evidence) {
+        const list = byArtifact.get(link.artifact_id);
+        if (list) list.push(link);
+        else byArtifact.set(link.artifact_id, [link]);
+      }
+      for (const artifact of artifacts) {
+        if (!needsReview(artifact)) continue;
+        out.push({
+          artifact,
+          sessionId: session.id,
+          sessionTitle: session.title,
+          evidence: byArtifact.get(artifact.id) ?? [],
+        });
+      }
+    });
+    // Lowest-confidence first: the items that most need a human eye rise to the top.
+    out.sort((a, b) => a.artifact.confidence - b.artifact.confidence);
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessions, artifactStamp, evidenceStamp]);
+
+  return { items, isLoading };
 }
 
 // --- presentation helpers -------------------------------------------------
