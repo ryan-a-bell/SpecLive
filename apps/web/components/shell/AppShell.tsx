@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { CONVERSATION_VIEWS, useNavStore, VIEW_LABEL, type ShellView } from "@/lib/nav-store";
-import { findWorkspace, useWorkspaces } from "@/lib/workspaces";
+import { findWorkspace, isLiveSession, useWorkspaces } from "@/lib/workspaces";
 import { useCreateSession } from "@/lib/hooks";
 import { useToast } from "@/lib/toast";
 import { Sidebar } from "./Sidebar";
@@ -29,7 +29,7 @@ export function AppShell() {
     view,
     sidebarCollapsed,
     drawerOpen,
-    selectWorkspace,
+    wsMenuOpen,
     selectSession,
     setView,
     setDrawer,
@@ -57,8 +57,7 @@ export function AppShell() {
 
   const effectiveSession = sessions.find((s) => s.id === effectiveSessionId);
   const isConversationView = CONVERSATION_VIEWS.includes(view);
-  const live =
-    effectiveSession?.status === "active" || effectiveSession?.status === "in_progress";
+  const live = !!effectiveSession && isLiveSession(effectiveSession.status);
 
   // Keyboard view switching (ignores typing in inputs).
   useEffect(() => {
@@ -72,12 +71,14 @@ export function AppShell() {
     return () => window.removeEventListener("keydown", onKey);
   }, [setView]);
 
-  // Close the workspace menu on any outside click.
+  // Close the workspace menu on an outside click — only listen while it's open,
+  // so the app isn't writing state on every click for the shell's lifetime.
   useEffect(() => {
+    if (!wsMenuOpen) return;
     const onClick = () => setWsMenu(false);
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
-  }, [setWsMenu]);
+  }, [wsMenuOpen, setWsMenu]);
 
   function onNewConversation() {
     if (!activeWorkspace) return;
@@ -97,12 +98,9 @@ export function AppShell() {
     );
   }
 
-  async function quickExport() {
-    if (!effectiveSessionId) {
-      setView("overview");
-      return;
-    }
-    setView("package");
+  // Navigate to the package view (or Overview when no conversation is active).
+  function openPackage() {
+    setView(effectiveSessionId ? "package" : "overview");
   }
 
   const conversationTitle = effectiveSession?.title ?? "…";
@@ -160,7 +158,7 @@ export function AppShell() {
                 Transcribing live
               </span>
             )}
-            <button className="btn primary" onClick={quickExport}>
+            <button className="btn primary" onClick={openPackage}>
               Generate package
             </button>
           </div>

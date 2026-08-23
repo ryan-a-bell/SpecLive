@@ -34,7 +34,7 @@ export function WorkspaceSwitcher({
         <span className="caret collapse-hide">▾</span>
       </button>
       {wsMenuOpen && (
-        <div className="ws-menu collapse-hide" onClick={(e) => e.stopPropagation()}>
+        <div className="ws-menu" onClick={(e) => e.stopPropagation()}>
           <div className="mlabel">Switch workspace</div>
           {workspaces.map((w) => (
             <button

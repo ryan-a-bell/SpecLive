@@ -5,6 +5,7 @@ import type { ArtifactType } from "@rdc/domain";
 import { useNavStore } from "@/lib/nav-store";
 import {
   ARTIFACT_TYPE_LABEL,
+  isLiveSession,
   statusPill,
   useWorkspaceArtifacts,
   type Workspace,
@@ -26,11 +27,17 @@ export function OverviewView({ workspace }: { workspace: Workspace }) {
   const { rows, isLoading } = useWorkspaceArtifacts(workspace.sessions);
   const [filter, setFilter] = useState<ArtifactType | "all">("all");
 
-  const requirements = rows.filter((r) => r.artifact.artifact_type === "requirement");
-  const confirmed = rows.filter(
-    (r) => r.artifact.status === "confirmed" || r.artifact.status === "baselined",
-  ).length;
-  const questions = rows.filter((r) => r.artifact.artifact_type === "open_question").length;
+  const { requirements, confirmed, questions } = useMemo(() => {
+    let confirmed = 0;
+    let questions = 0;
+    const requirements: typeof rows = [];
+    for (const r of rows) {
+      if (r.artifact.artifact_type === "requirement") requirements.push(r);
+      if (r.artifact.artifact_type === "open_question") questions++;
+      if (r.artifact.status === "confirmed" || r.artifact.status === "baselined") confirmed++;
+    }
+    return { requirements, confirmed, questions };
+  }, [rows]);
 
   const perSession = useMemo(() => {
     const counts = new Map<string, number>();
@@ -84,7 +91,7 @@ export function OverviewView({ workspace }: { workspace: Workspace }) {
       </div>
       <div className="conv-cards">
         {workspace.sessions.map((session, i) => {
-          const live = session.status === "active" || session.status === "in_progress";
+          const live = isLiveSession(session.status);
           return (
             <button key={session.id} className="conv-card" onClick={() => selectSession(session.id)}>
               <div className="cc-top">

@@ -8,9 +8,6 @@ export type ShellView = "overview" | "live" | "structure" | "package" | "databas
 /** Views that operate on a single conversation (need an active session). */
 export const CONVERSATION_VIEWS: ShellView[] = ["live", "structure", "package"];
 
-/** Views that operate on the whole workspace (or the library). */
-export const WORKSPACE_VIEWS: ShellView[] = ["overview", "database"];
-
 export const VIEW_LABEL: Record<ShellView, string> = {
   overview: "Overview",
   live: "Live view",
