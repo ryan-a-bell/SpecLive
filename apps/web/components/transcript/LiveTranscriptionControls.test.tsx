@@ -29,7 +29,9 @@ describe("LiveTranscriptionControls", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByRole("button", { name: "Start live transcription" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Start recording" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Stop recording" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Upload a transcript file" })).toBeEnabled();
     expect(screen.getByText("Transcription unavailable")).toBeInTheDocument();
   });
 });

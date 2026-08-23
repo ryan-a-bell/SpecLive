@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { CONVERSATION_VIEWS, useNavStore, VIEW_LABEL, type ShellView } from "@/lib/nav-store";
-import { findWorkspace, isLiveSession, useWorkspaces } from "@/lib/workspaces";
+import { findWorkspace, useWorkspaces } from "@/lib/workspaces";
 import { useCreateSession } from "@/lib/hooks";
 import { useToast } from "@/lib/toast";
 import { Sidebar } from "./Sidebar";
@@ -12,6 +12,7 @@ import { PackageView } from "@/components/views/PackageView";
 import { OverviewView } from "@/components/views/OverviewView";
 import { ReviewInbox } from "@/components/views/ReviewInbox";
 import { DatabaseView } from "@/components/views/DatabaseView";
+import { ScriptsView } from "@/components/views/ScriptsView";
 import { Toaster } from "@/components/ui/Toaster";
 
 const VIEW_KEYS: Record<string, ShellView> = {
@@ -20,6 +21,7 @@ const VIEW_KEYS: Record<string, ShellView> = {
   "2": "structure",
   "3": "package",
   "4": "database",
+  "5": "scripts",
 };
 
 export function AppShell() {
@@ -58,7 +60,7 @@ export function AppShell() {
 
   const effectiveSession = sessions.find((s) => s.id === effectiveSessionId);
   const isConversationView = CONVERSATION_VIEWS.includes(view);
-  const live = !!effectiveSession && isLiveSession(effectiveSession.status);
+  const activeConversation = effectiveSession?.status === "active";
 
   // Keyboard view switching (ignores typing in inputs).
   useEffect(() => {
@@ -139,15 +141,13 @@ export function AppShell() {
                 )}
               </div>
               <div className="csub">
-                {isConversationView && effectiveSession
-                  ? `${effectiveSession.customer} · `
-                  : ""}
+                {isConversationView && effectiveSession ? `${effectiveSession.customer} · ` : ""}
                 {VIEW_LABEL[view]}
               </div>
             </div>
           </div>
           <div className="top-actions flex items-center gap-[9px]">
-            {isConversationView && live && (
+            {isConversationView && activeConversation && (
               <span className="status">
                 <span
                   className="dot"
@@ -156,7 +156,7 @@ export function AppShell() {
                     boxShadow: "0 0 0 5px rgba(255,127,143,0.14)",
                   }}
                 />
-                Transcribing live
+                Active conversation
               </span>
             )}
             <button className="btn primary" onClick={openPackage}>
@@ -189,11 +189,10 @@ export function AppShell() {
             </div>
           )}
 
-          {activeWorkspace && view === "overview" && (
-            <OverviewView workspace={activeWorkspace} />
-          )}
+          {activeWorkspace && view === "overview" && <OverviewView workspace={activeWorkspace} />}
           {activeWorkspace && view === "review" && <ReviewInbox workspace={activeWorkspace} />}
           {view === "database" && <DatabaseView workspaces={workspaces} />}
+          {view === "scripts" && <ScriptsView />}
 
           {isConversationView &&
             (effectiveSessionId ? (

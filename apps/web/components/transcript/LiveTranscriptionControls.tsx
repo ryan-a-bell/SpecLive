@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { calculateRms, PcmFrameEncoder } from "@/lib/audio";
 import { queryKeys, useSession, useTranscriptionCapability } from "@/lib/hooks";
 import { useToast } from "@/lib/toast";
+import { parseTranscriptFile } from "@/lib/transcript-import";
 
 type CapturePhase = "idle" | "requesting" | "recording" | "stopping" | "error";
 
@@ -26,7 +27,9 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
   const [manualName, setManualName] = useState("");
   const [partialSpeaker, setPartialSpeaker] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [importingTranscript, setImportingTranscript] = useState(false);
+  const recordingInputRef = useRef<HTMLInputElement | null>(null);
+  const transcriptInputRef = useRef<HTMLInputElement | null>(null);
   const phaseRef = useRef<CapturePhase>("idle");
   const socketRef = useRef<WebSocket | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -244,6 +247,44 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
     }
   }
 
+  async function uploadTranscript(file: File) {
+    if (
+      importingTranscript ||
+      phaseRef.current === "recording" ||
+      phaseRef.current === "requesting" ||
+      phaseRef.current === "stopping"
+    ) {
+      return;
+    }
+    setError(null);
+    setImportingTranscript(true);
+    try {
+      const segments = parseTranscriptFile(await file.text(), file.name);
+      // Preserve transcript order: each append receives the next sequence number
+      // from the API, so concurrent requests could race one another.
+      for (const segment of segments) {
+        await api.addSegment(sessionId, segment);
+      }
+      await api.buildConversationGraph(sessionId);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.transcript(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.artifacts(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.sessionEvidence(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tree(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.graph(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.coverage(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.recommendations(sessionId) }),
+      ]);
+      toast(`Imported ${segments.length} transcript segments from ${file.name}`);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Could not import transcript";
+      setError(message);
+      toast(message);
+    } finally {
+      setImportingTranscript(false);
+    }
+  }
+
   useEffect(
     () => () => {
       processorRef.current?.disconnect();
@@ -257,6 +298,7 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
 
   const unavailable = capability.isLoading || !capability.data?.available;
   const busy = phase === "recording" || phase === "requesting" || phase === "stopping";
+  const fileBusy = busy || uploading || importingTranscript;
   const statusLabel = capability.isLoading
     ? "Checking transcription…"
     : unavailable
@@ -271,7 +313,7 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
 
   return (
     <div className="border-b border-[var(--border)] bg-[rgba(9,19,33,0.72)] px-3 py-2">
-      <fieldset className="mb-2 flex flex-wrap items-center gap-2" disabled={busy}>
+      <fieldset className="mb-2 flex flex-wrap items-center gap-2" disabled={fileBusy}>
         <legend className="sr-only">Speaker identification</legend>
         <label className="flex cursor-pointer items-center gap-2 text-[11px] font-semibold">
           <input
@@ -334,20 +376,28 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          className={`btn ${phase === "recording" ? "recording" : "primary"}`}
-          onClick={phase === "recording" ? stop : start}
-          disabled={unavailable || phase === "requesting" || phase === "stopping"}
-          aria-label={
-            phase === "recording" ? "Stop live transcription" : "Start live transcription"
-          }
+          className="btn primary"
+          onClick={start}
+          disabled={unavailable || busy || uploading || importingTranscript}
+          aria-label="Start recording"
         >
-          {phase === "recording" ? "Stop recording" : "Start recording"}
+          {phase === "requesting" ? "Starting…" : "Start recording"}
+        </button>
+        <button
+          type="button"
+          className={`btn${phase === "recording" ? " recording" : ""}`}
+          onClick={stop}
+          disabled={phase !== "recording"}
+          aria-label="Stop recording"
+        >
+          {phase === "stopping" ? "Stopping…" : "Stop recording"}
         </button>
         <input
-          ref={fileInputRef}
+          ref={recordingInputRef}
           type="file"
           accept="audio/*,.mp3,.m4a,.wav,.ogg,.webm,.flac"
           className="hidden"
+          data-testid="recording-file-input"
           onChange={(event) => {
             const file = event.target.files?.[0];
             event.target.value = "";
@@ -357,11 +407,32 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
         <button
           type="button"
           className="btn"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={unavailable || busy || uploading}
+          onClick={() => recordingInputRef.current?.click()}
+          disabled={unavailable || busy || uploading || importingTranscript}
           aria-label="Upload an audio recording to transcribe"
         >
           {uploading ? "Transcribing…" : "Upload recording"}
+        </button>
+        <input
+          ref={transcriptInputRef}
+          type="file"
+          accept=".txt,.md,.json,.vtt,.srt,text/plain,application/json,text/vtt"
+          className="hidden"
+          data-testid="transcript-file-input"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (file) void uploadTranscript(file);
+          }}
+        />
+        <button
+          type="button"
+          className="btn"
+          onClick={() => transcriptInputRef.current?.click()}
+          disabled={busy || uploading || importingTranscript}
+          aria-label="Upload a transcript file"
+        >
+          {importingTranscript ? "Importing…" : "Upload transcript"}
         </button>
         <span className="text-[11px] text-[var(--muted)]">{statusLabel}</span>
         <div

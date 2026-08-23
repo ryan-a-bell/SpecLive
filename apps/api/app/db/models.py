@@ -14,9 +14,11 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -29,6 +31,15 @@ def _now() -> datetime:
 
 class DiscoverySessionORM(Base):
     __tablename__ = "discovery_sessions"
+    __table_args__ = (
+        Index(
+            "uq_discovery_sessions_one_active",
+            "status",
+            unique=True,
+            sqlite_where=text("status = 'active'"),
+            postgresql_where=text("status = 'active'"),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     title: Mapped[str] = mapped_column(String(255))
@@ -141,6 +152,7 @@ class ScriptDefinitionORM(Base):
     name: Mapped[str] = mapped_column(String(255))
     version: Mapped[str] = mapped_column(String(32), default="1.0.0")
     description: Mapped[str] = mapped_column(Text, default="")
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
 
     stages: Mapped[list[ScriptStageORM]] = relationship(
         back_populates="script", cascade="all, delete-orphan", order_by="ScriptStageORM.sequence"

@@ -5,9 +5,8 @@ import { CoverageMatrix } from "./CoverageMatrix";
 import { FlowTranscript } from "./FlowTranscript";
 import { GitBranchView } from "./GitBranchView";
 import { QAFlowView } from "./QAFlowView";
-import { SubwayView } from "./SubwayView";
 
-type Tab = "qa" | "git" | "subway" | "matrix";
+type Tab = "qa" | "git" | "matrix";
 
 const TABS: { id: Tab; label: string; note: string }[] = [
   {
@@ -19,11 +18,6 @@ const TABS: { id: Tab; label: string; note: string }[] = [
     id: "git",
     label: "Git branch tree",
     note: "The main line is the planned script. Customer answers branch into targeted follow-ups, then merge back as validated findings or requirements.",
-  },
-  {
-    id: "subway",
-    label: "Conversation subway",
-    note: "Each line is a topic thread. Transfer stations show where a branch reconnects to the script or shares evidence with another branch.",
   },
   {
     id: "matrix",
@@ -91,7 +85,6 @@ export function ConversationStructure({ sessionId }: { sessionId: string }) {
           </div>
         )}
         {active === "git" && <GitBranchView sessionId={sessionId} />}
-        {active === "subway" && <SubwayView sessionId={sessionId} />}
         {active === "matrix" && <CoverageMatrix sessionId={sessionId} />}
       </div>
     </section>

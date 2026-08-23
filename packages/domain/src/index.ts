@@ -239,6 +239,7 @@ export const ScriptDefinition = z.object({
   name: z.string(),
   version: z.string(),
   description: z.string(),
+  archived: z.boolean(),
   stages: z.array(ScriptStage),
 });
 export type ScriptDefinition = z.infer<typeof ScriptDefinition>;

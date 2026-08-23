@@ -2,12 +2,12 @@
 
 import { useNavStore, type ShellView } from "@/lib/nav-store";
 import { useAnalysisSettings } from "@/lib/hooks";
-import { isLiveSession, useWorkspaceArtifacts, type Workspace } from "@/lib/workspaces";
+import { useWorkspaceArtifacts, type Workspace } from "@/lib/workspaces";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
 function statusDot(status: string) {
-  if (isLiveSession(status)) return "live-dot";
-  if (status === "draft") return "draft-dot";
+  if (status === "active") return "live-dot";
+  if (status === "draft" || status === "paused") return "draft-dot";
   return "done-dot";
 }
 
@@ -159,7 +159,10 @@ export function Sidebar({
           </button>
         ))}
         {filtered.length === 0 && (
-          <div className="collapse-hide" style={{ padding: "6px 9px", fontSize: 11, color: "var(--muted)" }}>
+          <div
+            className="collapse-hide"
+            style={{ padding: "6px 9px", fontSize: 11, color: "var(--muted)" }}
+          >
             No conversations match.
           </div>
         )}
@@ -171,6 +174,7 @@ export function Sidebar({
 
         <div className="section-label">Library</div>
         <NavItem v="database" ico="⊟" label="Database" kbd="4" />
+        <NavItem v="scripts" ico="▧" label="Scripts" kbd="5" />
       </div>
 
       <div className="side-foot">

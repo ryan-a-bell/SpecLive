@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import abc
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from ..db import models as m
@@ -26,6 +26,9 @@ class SessionRepository(abc.ABC):
 
     @abc.abstractmethod
     def list_sessions(self) -> list[m.DiscoverySessionORM]: ...
+
+    @abc.abstractmethod
+    def pause_active_sessions(self, *, except_session_id: str | None = None) -> None: ...
 
     # --- transcript -------------------------------------------------------
     @abc.abstractmethod
@@ -92,7 +95,7 @@ class SessionRepository(abc.ABC):
     def get_script(self, script_id: str) -> m.ScriptDefinitionORM | None: ...
 
     @abc.abstractmethod
-    def list_scripts(self) -> list[m.ScriptDefinitionORM]: ...
+    def list_scripts(self, *, include_archived: bool = False) -> list[m.ScriptDefinitionORM]: ...
 
     @abc.abstractmethod
     def commit(self) -> None: ...
@@ -120,6 +123,15 @@ class SqlAlchemySessionRepository(SessionRepository):
                 select(m.DiscoverySessionORM).order_by(m.DiscoverySessionORM.created_at.desc())
             )
         )
+
+    def pause_active_sessions(self, *, except_session_id: str | None = None) -> None:
+        statement = update(m.DiscoverySessionORM).where(m.DiscoverySessionORM.status == "active")
+        if except_session_id is not None:
+            statement = statement.where(m.DiscoverySessionORM.id != except_session_id)
+        self._db.execute(statement.values(status="paused"))
+        # An active-session uniqueness constraint protects concurrent writers.
+        # Flush the pauses before a new active row is inserted.
+        self._db.flush()
 
     # transcript
     def add_segment(self, row: m.TranscriptSegmentORM) -> m.TranscriptSegmentORM:
@@ -229,8 +241,11 @@ class SqlAlchemySessionRepository(SessionRepository):
     def get_script(self, script_id: str) -> m.ScriptDefinitionORM | None:
         return self._db.get(m.ScriptDefinitionORM, script_id)
 
-    def list_scripts(self) -> list[m.ScriptDefinitionORM]:
-        return list(self._db.scalars(select(m.ScriptDefinitionORM)))
+    def list_scripts(self, *, include_archived: bool = False) -> list[m.ScriptDefinitionORM]:
+        statement = select(m.ScriptDefinitionORM).order_by(m.ScriptDefinitionORM.name)
+        if not include_archived:
+            statement = statement.where(m.ScriptDefinitionORM.archived.is_(False))
+        return list(self._db.scalars(statement))
 
     def commit(self) -> None:
         self._db.commit()

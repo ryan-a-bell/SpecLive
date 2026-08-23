@@ -114,6 +114,7 @@ class ScriptDefinition(DomainModel):
     name: str
     version: str = "1.0.0"
     description: str = ""
+    archived: bool = False
     stages: list[ScriptStage] = Field(default_factory=list)
 
 
