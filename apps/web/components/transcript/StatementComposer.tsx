@@ -1,6 +1,6 @@
 "use client";
 
-import { useAddSegment } from "@/lib/hooks";
+import { useAddSegment, useAnalysisSettings } from "@/lib/hooks";
 import { useWorkspaceStore } from "@/lib/store";
 import { useToast } from "@/lib/toast";
 
@@ -8,16 +8,22 @@ export function StatementComposer({ sessionId }: { sessionId: string }) {
   const composerText = useWorkspaceStore((s) => s.composerText);
   const setComposerText = useWorkspaceStore((s) => s.setComposerText);
   const addSegment = useAddSegment(sessionId);
+  const settings = useAnalysisSettings();
   const toast = useToast((s) => s.show);
 
   async function submit() {
     const text = composerText.trim();
     if (!text) return;
     // The server drafts candidate artifacts automatically once the segment is
-    // finalized (see auto_analysis on the API), so no explicit analyze call.
+    // finalized, but only when auto_analyze is enabled — so only promise
+    // drafting when it actually happens.
     await addSegment.mutateAsync({ speaker: "customer", text });
     setComposerText("");
-    toast("Statement added — drafting discovery nodes…");
+    toast(
+      settings.data?.auto_analyze
+        ? "Statement added — drafting discovery nodes…"
+        : "Statement added",
+    );
   }
 
   return (

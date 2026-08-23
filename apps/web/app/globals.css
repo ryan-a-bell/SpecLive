@@ -1164,6 +1164,13 @@ body {
 .app-shell.collapsed .new-btn { justify-content: center; padding: 11px 0; }
 .app-shell.collapsed .search { display: none; }
 .app-shell.collapsed .ws-btn { justify-content: center; padding: 9px 0; }
+/* The workspace menu must stay usable when the rail is collapsed: pop it out
+   to a readable width beside the narrow rail instead of clamping to it. */
+.app-shell.collapsed .ws-menu {
+  left: 0;
+  right: auto;
+  min-width: 240px;
+}
 .app-shell.collapsed .section-label { justify-content: center; padding: 12px 0 4px; font-size: 0; }
 .app-shell.collapsed .section-label::before { content: "•••"; font-size: 11px; color: #4a5c78; }
 .app-shell.collapsed .convo { grid-template-columns: 1fr; justify-items: center; padding: 8px 0; }

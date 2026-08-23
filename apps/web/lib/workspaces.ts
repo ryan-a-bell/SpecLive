@@ -46,19 +46,41 @@ export function initials(name: string): string {
   return `${first[0] ?? ""}${second?.[0] ?? ""}`.toUpperCase();
 }
 
-/** Group sessions into workspaces by customer, alphabetically. */
+/**
+ * Session statuses that mean a call is genuinely mid-flight (`paused` covers a
+ * live call that is momentarily halted). Keep in sync with the session-status
+ * enum: draft / active / paused / completed / archived.
+ */
+export function isLiveSession(status: string): boolean {
+  return status === "active" || status === "paused";
+}
+
+/** Group sessions into workspaces by customer, alphabetically.
+ *
+ * Sessions are grouped by their exact (trimmed) customer name rather than by
+ * slug, so distinct customers that happen to slugify the same — "Acme, Inc."
+ * vs "Acme Inc" → `acme-inc` — stay separate. Slug collisions across those
+ * distinct names are disambiguated with a numeric suffix so every workspace
+ * still has a unique id. (Guard until workspaces become a real backend entity.)
+ */
 export function groupWorkspaces(sessions: readonly WorkspaceSession[]): Workspace[] {
-  const byCustomer = new Map<string, Workspace>();
+  const byCustomer = new Map<string, WorkspaceSession[]>();
   for (const session of sessions) {
-    const id = slugifyCustomer(session.customer);
-    const existing = byCustomer.get(id);
-    if (existing) {
-      existing.sessions.push(session);
-    } else {
-      byCustomer.set(id, { id, name: session.customer, sessions: [session] });
-    }
+    const key = session.customer.trim();
+    const existing = byCustomer.get(key);
+    if (existing) existing.push(session);
+    else byCustomer.set(key, [session]);
   }
-  return Array.from(byCustomer.values()).sort((a, b) => a.name.localeCompare(b.name));
+
+  const entries = Array.from(byCustomer.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  const usedIds = new Set<string>();
+  return entries.map(([name, groupedSessions]) => {
+    const base = slugifyCustomer(name);
+    let id = base;
+    for (let n = 2; usedIds.has(id); n++) id = `${base}-${n}`;
+    usedIds.add(id);
+    return { id, name, sessions: groupedSessions };
+  });
 }
 
 export function findWorkspace(workspaces: Workspace[], id: string | null): Workspace | undefined {
@@ -76,6 +98,15 @@ export interface RegisterRow {
   artifact: DiscoveryArtifact;
   sessionId: string;
   sessionTitle: string;
+}
+
+/**
+ * Whether an artifact belongs in the requirements register / package totals.
+ * Rejected artifacts (by status or validation state) are excluded. Shared by
+ * the workspace Overview and the per-session Package view so their counts agree.
+ */
+export function isRegisterArtifact(artifact: DiscoveryArtifact): boolean {
+  return artifact.status !== "rejected" && artifact.validation_state !== "rejected";
 }
 
 /**
@@ -99,7 +130,7 @@ export function useWorkspaceArtifacts(sessions: WorkspaceSession[]): {
     sessions.forEach((session, i) => {
       const artifacts = results[i]?.data ?? [];
       for (const artifact of artifacts) {
-        if (artifact.status === "rejected" || artifact.validation_state === "rejected") continue;
+        if (!isRegisterArtifact(artifact)) continue;
         out.push({ artifact, sessionId: session.id, sessionTitle: session.title });
       }
     });

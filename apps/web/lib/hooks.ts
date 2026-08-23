@@ -158,11 +158,6 @@ export function useCorrectTranscriptSpeaker(id: string) {
   });
 }
 
-export function useAnalyze(id: string) {
-  const invalidate = useInvalidateSession(id);
-  return useMutation({ mutationFn: () => api.analyze(id), onSuccess: invalidate });
-}
-
 export function useAdvanceScript(id: string) {
   const queryClient = useQueryClient();
   return useMutation({

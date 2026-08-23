@@ -2,6 +2,7 @@
 
 import { api } from "@/lib/api";
 import { useArtifacts, useCoverage, useSession } from "@/lib/hooks";
+import { isRegisterArtifact } from "@/lib/workspaces";
 import { useToast } from "@/lib/toast";
 
 function download(filename: string, content: string, type: string) {
@@ -10,8 +11,14 @@ function download(filename: string, content: string, type: string) {
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  // The anchor must be in the DOM for a programmatic click to fire in some
+  // browsers, and the object URL must stay alive until the browser has read
+  // the blob — so revoke on a later tick rather than the same one.
+  a.style.display = "none";
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 export function PackageView({ sessionId }: { sessionId: string }) {
@@ -20,7 +27,9 @@ export function PackageView({ sessionId }: { sessionId: string }) {
   const coverage = useCoverage(sessionId);
   const toast = useToast((s) => s.show);
 
-  const all = artifacts.data ?? [];
+  // Match the Overview register, which excludes rejected artifacts, so the
+  // "Total artifacts" count here agrees with the same data shown there.
+  const all = (artifacts.data ?? []).filter(isRegisterArtifact);
   const confirmed = all.filter((a) => a.status === "confirmed" || a.status === "baselined").length;
   const awaiting = all.filter((a) => a.status === "candidate").length;
 

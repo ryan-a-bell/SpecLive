@@ -60,6 +60,18 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
     toast(message);
   }
 
+  // The name to attribute manual-mode segments to: an explicit override, else
+  // the session's facilitator/customer, else a generic fallback per role.
+  function resolveSpeakerName(): string {
+    const fallback =
+      manualSpeaker === "facilitator"
+        ? (session.data?.facilitator ?? "Facilitator")
+        : manualSpeaker === "customer"
+          ? (session.data?.customer ?? "Customer")
+          : "Participant";
+    return manualName || fallback;
+  }
+
   async function start() {
     if (!capability.data?.available || phaseRef.current === "recording") return;
     setError(null);
@@ -104,12 +116,7 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
             return;
           }
           if (frame.type === "transcription.ready") {
-            const fallbackName =
-              manualSpeaker === "facilitator"
-                ? (session.data?.facilitator ?? "Facilitator")
-                : manualSpeaker === "customer"
-                  ? (session.data?.customer ?? "Customer")
-                  : "Participant";
+            const speakerName = resolveSpeakerName();
             socket.send(
               JSON.stringify(
                 autoDetect
@@ -118,8 +125,8 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
                       type: "configure",
                       speaker_mode: "manual",
                       speaker: manualSpeaker,
-                      speaker_id: `manual:${manualSpeaker}:${manualName || fallbackName}`,
-                      speaker_name: manualName || fallbackName,
+                      speaker_id: `manual:${manualSpeaker}:${speakerName}`,
+                      speaker_name: speakerName,
                     },
               ),
             );
@@ -216,17 +223,11 @@ export function LiveTranscriptionControls({ sessionId }: { sessionId: string }) 
     setError(null);
     setUploading(true);
     try {
-      const fallbackName =
-        manualSpeaker === "facilitator"
-          ? (session.data?.facilitator ?? "Facilitator")
-          : manualSpeaker === "customer"
-            ? (session.data?.customer ?? "Customer")
-            : "Participant";
       const result = await api.uploadRecording(sessionId, file, {
         filename: file.name,
         speakerMode: autoDetect ? "auto" : "manual",
         speaker: autoDetect ? undefined : manualSpeaker,
-        speakerName: autoDetect ? undefined : manualName || fallbackName,
+        speakerName: autoDetect ? undefined : resolveSpeakerName(),
       });
       await queryClient.invalidateQueries({ queryKey: queryKeys.transcript(sessionId) });
       toast(

@@ -2,11 +2,11 @@
 
 import { useNavStore, type ShellView } from "@/lib/nav-store";
 import { useAnalysisSettings } from "@/lib/hooks";
-import type { Workspace } from "@/lib/workspaces";
+import { isLiveSession, type Workspace } from "@/lib/workspaces";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 
 function statusDot(status: string) {
-  if (status === "active" || status === "in_progress") return "live-dot";
+  if (isLiveSession(status)) return "live-dot";
   if (status === "draft") return "draft-dot";
   return "done-dot";
 }
