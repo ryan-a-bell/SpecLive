@@ -6,7 +6,7 @@ explicit and stable, decoupled from ORM/domain internals.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..domain.enums import (
     ArtifactType,
@@ -129,6 +129,9 @@ class StorageSettingsInfo(BaseModel):
 
 
 class StoredObjectInfo(BaseModel):
+    # Populated directly from the storage layer's StoredObject dataclass.
+    model_config = ConfigDict(from_attributes=True)
+
     path: str
     size_bytes: int
     sha256: str

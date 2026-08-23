@@ -336,6 +336,15 @@ export const AnalysisSettings = z.object({
 });
 export type AnalysisSettings = z.infer<typeof AnalysisSettings>;
 
+export const StorageSettings = z.object({
+  backend: z.string(),
+  persist_audio: z.boolean(),
+  schema_version: z.string(),
+  // Only present for the local backend.
+  local_root: z.string().nullable().optional(),
+});
+export type StorageSettings = z.infer<typeof StorageSettings>;
+
 export const TranscriptionCapability = z.object({
   available: z.boolean(),
   supports_partials: z.boolean(),

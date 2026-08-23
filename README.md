@@ -237,6 +237,13 @@ curl -F "file=@discovery-call.mp3" \
 `GET /api/v1/sessions/<session-id>/storage` lists what is currently stored, and
 `GET /api/v1/settings/storage` reports the active backend (no secrets).
 
+In the web app, the **Settings** page (the gear next to the facilitator in the
+bottom-left of the sidebar) surfaces this configuration: the active storage
+backend, the local root, the folder layout, and the AI-routing / speech-to-text
+/ analysis settings — read from `GET /settings/*`. Configuration is env-driven,
+so the page reflects the deployment's active settings; runtime editing and the
+grayed-out **Data & privacy** section are planned follow-ups.
+
 Per-workspace / per-conversation storage overrides are a planned follow-up
 (global-only for now); the design decision is recorded in
 [`docs/adr/0009-content-storage-backend.md`](docs/adr/0009-content-storage-backend.md).
