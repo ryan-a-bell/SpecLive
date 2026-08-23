@@ -119,6 +119,9 @@ See [`.env.example`](.env.example) for the full list. Key ones:
 | `AUTO_ANALYZE` | Auto-draft candidates when a segment finalizes | `true` |
 | `EMBEDDING_PROVIDER` | Embedding provider id | `mock` |
 | `EVENT_BUS` | `memory` or `redis` | `memory` |
+| `STORAGE_BACKEND` | Content store: `local` or `database` | `local` |
+| `STORAGE_LOCAL_ROOT` | Root dir for the local content tree | `./data` |
+| `STORAGE_PERSIST_AUDIO` | Persist the raw recording | `true` |
 | `CORS_ORIGINS` | Allowed web origins | `http://localhost:3000` |
 | `NEXT_PUBLIC_API_BASE_URL` | Web → API base URL | `http://localhost:8000` |
 | `LOG_LEVEL` | Structured log level | `INFO` |
@@ -186,6 +189,57 @@ python scripts/audio_playback_test.py --script scripts/sample_discussion.json
 Run the API with `STT_PROVIDER=local` (faster-whisper) to transcribe the
 synthesized speech for real; with the default `mock` provider it validates the
 streaming plumbing end to end. See [`scripts/README.md`](scripts/README.md).
+
+## Content storage
+
+Beyond the canonical structured data in the database, each conversation's
+**content** — the raw recording, a rendered transcript, a snapshot of the
+derived requirements, and exported discovery packages — is persisted to a
+configurable **content store**. `STORAGE_BACKEND` selects it:
+
+- **`local`** (default) — a directory tree rooted at `STORAGE_LOCAL_ROOT`
+  (default `./data`), directly browsable and easy to back up.
+- **`database`** — rows in the `stored_blobs` table, for a single backing store.
+  (Large audio in a relational DB bloats backups, so `local` is the default.)
+
+The on-disk layout (`apps/api/app/storage/layout.py`) keys each conversation on
+its immutable session id, separates write-once raw content from regenerable
+derived content, and indexes everything with checksums + provenance in a
+`manifest.json`:
+
+```
+<root>/
+├── .speclive-storage.json                     # layout schema-version marker
+└── workspaces/<workspace>/
+    ├── workspace.json
+    └── conversations/<yyyymmdd>-<slug>-<session_id>/
+        ├── manifest.json                       # index + provenance + checksums
+        ├── raw/recording.<ext> + recording.meta.json   # write-once
+        ├── transcript/segments.json + transcript.md
+        ├── requirements/artifacts.json + evidence.json
+        └── exports/discovery-package-<timestamp>.{json,md}
+```
+
+Structured data (sessions, segments, artifacts, evidence) always lives in the
+relational database regardless of this setting; the stored files are content
+sidecars and are safe to regenerate. Set `STORAGE_PERSIST_AUDIO=false` to keep
+transcripts/requirements while discarding captured audio.
+
+Uploading a recording via `POST /sessions/{id}/transcribe` persists it and its
+sidecars automatically (best-effort). To (re)write a conversation's tree
+explicitly — optionally attaching a recording — call:
+
+```bash
+curl -F "file=@discovery-call.mp3" \
+  http://localhost:8000/api/v1/sessions/<session-id>/storage/snapshot
+```
+
+`GET /api/v1/sessions/<session-id>/storage` lists what is currently stored, and
+`GET /api/v1/settings/storage` reports the active backend (no secrets).
+
+Per-workspace / per-conversation storage overrides are a planned follow-up
+(global-only for now); the design decision is recorded in
+[`docs/adr/0009-content-storage-backend.md`](docs/adr/0009-content-storage-backend.md).
 
 ## Repository map
 

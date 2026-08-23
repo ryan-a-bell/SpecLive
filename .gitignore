@@ -240,6 +240,10 @@ yarn-error.log*
 *.db
 copilot.db
 
+# Local content storage (STORAGE_BACKEND=local; recordings, transcripts, exports)
+/data/
+apps/api/data/
+
 # OS
 .DS_Store
 Thumbs.db

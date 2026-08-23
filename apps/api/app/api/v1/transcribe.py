@@ -42,6 +42,39 @@ def _session_exists(session_id: str) -> bool:
         return SqlAlchemySessionRepository(db).get_session(session_id) is not None
 
 
+def _persist_recording(
+    session_id: str, audio: bytes, *, filename: str | None, content_type: str | None
+) -> None:
+    """Best-effort: store the uploaded recording + regenerated content sidecars.
+
+    A storage failure must never fail the transcription that already succeeded,
+    so any error here is logged and swallowed. The explicit
+    ``POST /sessions/{id}/storage/snapshot`` endpoint surfaces errors instead.
+    """
+
+    from ...config import get_settings
+    from ...database import SessionLocal
+    from ...repositories import SqlAlchemySessionRepository
+    from ...services.export_service import ExportService
+    from ...services.storage_service import ConversationStorageService
+    from ...storage import get_content_store
+
+    try:
+        with SessionLocal() as db:
+            repo = SqlAlchemySessionRepository(db)
+            service = ConversationStorageService(
+                repo, ExportService(repo), get_content_store(), get_settings()
+            )
+            service.snapshot(
+                session_id,
+                audio=audio,
+                audio_filename=filename,
+                audio_content_type=content_type,
+            )
+    except Exception:  # noqa: BLE001 - storage is best-effort on this path
+        logger.exception("file_transcription.storage_snapshot_failed", session_id=session_id)
+
+
 def _build_speaker_context(
     speaker_mode: str, speaker: str, speaker_id: str | None, speaker_name: str | None
 ) -> SpeakerContext:
@@ -101,15 +134,17 @@ async def transcribe_file(
         provider = get_stt_provider()
     except Exception as exc:  # noqa: BLE001 - configuration/adapter boundary
         logger.exception("file_transcription.provider_unavailable", session_id=session_id)
-        raise HTTPException(
-            status_code=503, detail="Transcription service is unavailable"
-        ) from exc
+        raise HTTPException(status_code=503, detail="Transcription service is unavailable") from exc
 
     try:
         segments = await transcribe_pcm(session_id, provider, pcm, speaker_context)
     except Exception as exc:  # noqa: BLE001 - normalize provider failures
         logger.exception("file_transcription.failed", session_id=session_id)
         raise HTTPException(status_code=502, detail="Transcription failed") from exc
+
+    # Persist the recording and regenerated content sidecars to the configured
+    # store. Best-effort: never fail a completed transcription over storage.
+    _persist_recording(session_id, data, filename=file.filename, content_type=file.content_type)
 
     return FileTranscriptionResult(
         session_id=session_id,

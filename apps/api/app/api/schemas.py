@@ -114,6 +114,51 @@ class AnalysisSettingsInfo(BaseModel):
     llm_model: str | None = None
 
 
+class StorageSettingsInfo(BaseModel):
+    """Read-only view of the deployment's content-storage configuration.
+
+    Non-secret: reports where recordings/transcripts/requirements/exports are
+    persisted so the UI can show it. Global-only for now (see the storage
+    per-workspace-override follow-up issue)."""
+
+    backend: str
+    persist_audio: bool
+    schema_version: str
+    # Only for the local backend: the directory root the tree lives under.
+    local_root: str | None = None
+
+
+class StoredObjectInfo(BaseModel):
+    path: str
+    size_bytes: int
+    sha256: str
+    media_type: str
+    location: str
+
+
+class StorageSnapshotResult(BaseModel):
+    """Outcome of persisting a conversation's content to the store."""
+
+    session_id: str
+    workspace_id: str
+    backend: str
+    conversation_dir: str
+    audio_persisted: bool
+    manifest_location: str
+    objects: list[StoredObjectInfo] = Field(default_factory=list)
+
+
+class StoredContentInfo(BaseModel):
+    """What is currently stored for a conversation (paths only, no bytes)."""
+
+    session_id: str
+    workspace_id: str
+    backend: str
+    conversation_dir: str
+    stored: bool
+    paths: list[str] = Field(default_factory=list)
+
+
 # --- artifacts ------------------------------------------------------------
 class ArtifactCreate(BaseModel):
     artifact_type: ArtifactType
