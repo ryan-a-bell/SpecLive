@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
 
 const keys = {
+  sessions: ["sessions"] as const,
   session: (id: string) => ["session", id] as const,
   transcript: (id: string) => ["transcript", id] as const,
   artifacts: (id: string) => ["artifacts", id] as const,
@@ -19,8 +20,20 @@ const keys = {
   analysisSettings: ["analysis-settings"] as const,
 };
 
+export function useSessions() {
+  return useQuery({ queryKey: keys.sessions, queryFn: () => api.listSessions(), staleTime: 15_000 });
+}
+
 export function useSession(id: string) {
   return useQuery({ queryKey: keys.session(id), queryFn: () => api.getSession(id) });
+}
+
+export function useCreateSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Parameters<typeof api.createSession>[0]) => api.createSession(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.sessions }),
+  });
 }
 
 export function useTranscript(id: string) {
