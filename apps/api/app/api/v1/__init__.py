@@ -2,10 +2,11 @@
 
 from fastapi import APIRouter
 
-from . import artifacts, audio, meta, scripts, sessions, stream, transcribe
+from . import artifacts, audio, meta, scripts, sessions, stream, transcribe, workspaces
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(sessions.router)
+api_router.include_router(workspaces.router)
 api_router.include_router(artifacts.router)
 api_router.include_router(scripts.router)
 api_router.include_router(stream.router)

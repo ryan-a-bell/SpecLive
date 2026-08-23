@@ -1,0 +1,29 @@
+{
+  "skill_name": "speclive-architect",
+  "evals": [
+    {
+      "id": 0,
+      "name": "explicit-architect-request",
+      "prompt": "Pull the requirements from our SpecLive workspace for Acme Logistics and propose an architecture that meets them. The API is running on http://localhost:8000.",
+      "expected_output": "A context pack + an architecture.md that satisfies the confirmed objectives/constraints, flags candidate requirements as assumptions, cites requirement IDs, and includes a C4/mermaid view and ADR-style decisions.",
+      "files": [],
+      "assertions": []
+    },
+    {
+      "id": 1,
+      "name": "implicit-workspace-resolution",
+      "prompt": "We just wrapped discovery for the warehouse modernization project. Can you architect the system we should build? Everything's in SpecLive, running locally on port 8000.",
+      "expected_output": "Skill resolves the single workspace (acme-logistics) without being given an id, pulls context, and produces the context pack + architecture doc traced to requirement IDs.",
+      "files": [],
+      "assertions": []
+    },
+    {
+      "id": 2,
+      "name": "trust-discipline-emphasis",
+      "prompt": "Design an architecture for the acme-logistics workspace (SpecLive is on localhost:8000), but be clear about what's actually confirmed versus still just assumptions — I don't want to commit to things the customer hasn't signed off on.",
+      "expected_output": "Architecture that separates FIRM (customer_confirmed/baselined) items it commits to from TENTATIVE items carried as explicit assumptions, and is honest that the functional requirements are still candidates.",
+      "files": [],
+      "assertions": []
+    }
+  ]
+}
