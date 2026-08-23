@@ -188,7 +188,14 @@ export function Sidebar({
             <div className="uname">Facilitator</div>
             <div className="urole">SpecLive</div>
           </span>
-          <span className="gear collapse-hide">⚙</span>
+          <button
+            className={`gear collapse-hide${view === "settings" ? " active" : ""}`}
+            aria-label="Open settings"
+            title="Settings"
+            onClick={() => openView("settings")}
+          >
+            ⚙
+          </button>
         </div>
       </div>
     </aside>

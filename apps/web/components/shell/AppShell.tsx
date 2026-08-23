@@ -13,6 +13,7 @@ import { OverviewView } from "@/components/views/OverviewView";
 import { ReviewInbox } from "@/components/views/ReviewInbox";
 import { DatabaseView } from "@/components/views/DatabaseView";
 import { ScriptsView } from "@/components/views/ScriptsView";
+import { SettingsView } from "@/components/views/SettingsView";
 import { Toaster } from "@/components/ui/Toaster";
 
 const VIEW_KEYS: Record<string, ShellView> = {
@@ -193,6 +194,7 @@ export function AppShell() {
           {activeWorkspace && view === "review" && <ReviewInbox workspace={activeWorkspace} />}
           {view === "database" && <DatabaseView workspaces={workspaces} />}
           {view === "scripts" && <ScriptsView />}
+          {view === "settings" && <SettingsView />}
 
           {isConversationView &&
             (effectiveSessionId ? (

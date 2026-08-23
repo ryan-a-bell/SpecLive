@@ -4,7 +4,14 @@ import { create } from "zustand";
 
 /** The primary surfaces the shell can show. */
 export type ShellView =
-  "overview" | "review" | "live" | "structure" | "package" | "database" | "scripts";
+  | "overview"
+  | "review"
+  | "live"
+  | "structure"
+  | "package"
+  | "database"
+  | "scripts"
+  | "settings";
 
 /** Views that operate on a single conversation (need an active session). */
 export const CONVERSATION_VIEWS: ShellView[] = ["live", "structure", "package"];
@@ -17,6 +24,7 @@ export const VIEW_LABEL: Record<ShellView, string> = {
   package: "Discovery package",
   database: "Database",
   scripts: "Script library",
+  settings: "Settings",
 };
 
 interface NavState {
