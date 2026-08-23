@@ -176,4 +176,30 @@ export function useRejectArtifact(sessionId: string) {
   return useMutation({ mutationFn: (id: string) => api.rejectArtifact(id), onSuccess: invalidate });
 }
 
+/**
+ * Confirm/reject an artifact from a workspace-level surface (the Validation
+ * inbox), where each item belongs to a different conversation. The session id
+ * travels with the mutation so the right conversation's queries are refreshed.
+ */
+export function useReviewActions() {
+  const queryClient = useQueryClient();
+  const invalidateSession = (sessionId: string) =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: keys.artifacts(sessionId) }),
+      queryClient.invalidateQueries({ queryKey: keys.sessionEvidence(sessionId) }),
+      queryClient.invalidateQueries({ queryKey: keys.tree(sessionId) }),
+      queryClient.invalidateQueries({ queryKey: keys.coverage(sessionId) }),
+      queryClient.invalidateQueries({ queryKey: keys.recommendations(sessionId) }),
+    ]);
+  const confirm = useMutation({
+    mutationFn: (v: { artifactId: string; sessionId: string }) => api.confirmArtifact(v.artifactId),
+    onSuccess: (_data, v) => invalidateSession(v.sessionId),
+  });
+  const reject = useMutation({
+    mutationFn: (v: { artifactId: string; sessionId: string }) => api.rejectArtifact(v.artifactId),
+    onSuccess: (_data, v) => invalidateSession(v.sessionId),
+  });
+  return { confirm, reject };
+}
+
 export { keys as queryKeys };
