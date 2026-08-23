@@ -112,6 +112,21 @@ class CoverageState(str, Enum):
     CONFIRMED = "confirmed"
 
 
+class ContextScope(str, Enum):
+    """Which artifacts an aggregated context bundle includes.
+
+    ``baseline`` returns only human-confirmed items (see
+    ``HUMAN_CONFIRMED_STATES``) — the requirements it is safe to architect
+    *against*. ``all`` also includes candidate/inferred items, each of which
+    still carries its ``validation_state`` and ``confidence`` so a consumer
+    can weigh how much to trust it. This is the "depending on query type"
+    knob for workspace context aggregation.
+    """
+
+    BASELINE = "baseline"
+    ALL = "all"
+
+
 # Which validation states count as "confirmed by a human" — never reachable
 # from an automated derivation path.
 HUMAN_CONFIRMED_STATES: frozenset[ValidationState] = frozenset(
