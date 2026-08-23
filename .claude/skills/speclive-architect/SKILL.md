@@ -102,6 +102,10 @@ requirements-coverage table, and an assumptions/risks section.
 
 Non-negotiables that make the output worth trusting:
 
+- **Write the C4 diagrams out in full, inline, as Mermaid code** — not a
+  reference to a diagram, not a prose description of one. `architecture.md`
+  must render the context/container view (and any component/flow diagrams)
+  when opened directly, with no extra step.
 - **Trace every load-bearing choice to requirement IDs** inline (e.g. "a status
   cache fed by change-data-capture keeps refresh under 30s (REQ-002)").
 - **Keep firm and tentative visibly separate** — a "commits to" table for firm

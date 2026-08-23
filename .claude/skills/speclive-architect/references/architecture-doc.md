@@ -36,19 +36,28 @@ settled — they are unconfirmed inferences.
 | REQ-012 | Must work offline and sync | 62% | Drops the local store in §4; revisit before build |
 
 ## 4. Context & containers (C4 levels 1–2)
-A Mermaid diagram of the system in its environment and its major deployable
-units, then a sentence per container on its responsibility. Constraints
-(existing WMS, target hardware, deadlines) belong here.
+A **complete, rendered Mermaid diagram** — not a placeholder, not a
+description of what the diagram would show — of the system in its
+environment (level 1: actors, the system, the external systems it talks to)
+and its major deployable units (level 2: containers). Follow it with a
+sentence per container on its responsibility. Constraints (existing WMS,
+target hardware, deadlines) belong here.
 
 ```mermaid
 flowchart TB
-  ...
+  supervisor[Supervisor] --> tablet[Field Tablet App]
+  tablet --> api[Status API]
+  api --> wms[(Existing WMS)]
 ```
+(The block above is illustrative shape only — write the actual nodes and
+edges for this design, with real container names, not this example.)
 
 ## 5. Components & key flows
-The important internal components and one or two sequence/flow diagrams for the
-requirements that drive the design (e.g. the "status within 30s" path). Tie
-each flow to the requirement ID it serves.
+The important internal components, as a **complete Mermaid diagram** (a
+second flowchart, or a sequence diagram for a request/response flow), plus
+one or two sequence/flow diagrams for the requirements that drive the design
+(e.g. the "status within 30s" path). Tie each flow to the requirement ID it
+serves.
 
 ## 6. Design decisions (ADR-style)
 For each significant choice, one short block. Trace it to the requirement(s) and
@@ -75,6 +84,13 @@ the architecture, so make them visible.
 
 ## Rules that make the output trustworthy
 
+- **Write every diagram out in full, inline, as Mermaid code.** §4 and §5 each
+  need actual ` ```mermaid ` code blocks with real nodes, edges, and labels
+  for this design — never a sentence like "see the container diagram below"
+  with nothing under it, never a diagram described in prose instead of drawn,
+  and never a diagram left in a separately-published artifact only. The
+  point is that opening the `.md` file and rendering it (GitHub, Claude,
+  most editors) shows the diagram with no extra step.
 - **Cite requirement IDs inline.** Any load-bearing sentence in the design should
   name the ID(s) it serves (e.g. "a change-data-capture stream feeds a status
   cache (REQ-002)"). A design a reader can't trace back to requirements is exactly
