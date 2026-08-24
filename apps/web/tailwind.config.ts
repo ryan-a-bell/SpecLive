@@ -6,6 +6,10 @@ const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+      },
       colors: {
         bg: "#09101d",
         panel: "#121b2d",
@@ -24,7 +28,7 @@ const config: Config = {
         },
       },
       boxShadow: {
-        panel: "0 16px 42px rgba(0,0,0,.28)",
+        panel: "0 1px 2px rgba(0,0,0,.3), 0 1px 0 rgba(255,255,255,.02) inset",
       },
       borderRadius: {
         panel: "14px",

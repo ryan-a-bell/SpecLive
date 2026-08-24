@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Info, HardDrive, Clock } from "lucide-react";
 import { useAnalysisSettings, useStorageSettings, useTranscriptionCapability } from "@/lib/hooks";
 
 type Tab = "storage" | "llm" | "stt" | "analysis" | "privacy";
@@ -44,7 +45,9 @@ export function SettingsView() {
       </div>
 
       <div className="set-banner">
-        <span className="ic">ⓘ</span>
+        <span className="ic">
+          <Info size={16} strokeWidth={2} />
+        </span>
         <div>
           These reflect this deployment&apos;s <b>active configuration</b>, set through the environment
           (see <code>.env</code>). Runtime editing and per-workspace overrides are planned —{" "}
@@ -125,7 +128,9 @@ export function SettingsView() {
               </div>
 
               <div className="lives">
-                <span className="ic">◈</span>
+                <span className="ic">
+                  <HardDrive size={16} strokeWidth={2} />
+                </span>
                 <div>
                   <div className="lbl">Where your data lives</div>
                   <div className="val">{storage.isLoading ? "…" : livesValue}</div>
@@ -353,7 +358,9 @@ export function SettingsView() {
             </p>
           </div>
           <div className="future-banner">
-            <span className="ic">◷</span>
+            <span className="ic">
+              <Clock size={17} strokeWidth={2} />
+            </span>
             <div>
               <b>Planned, not yet available.</b> These controls are on the roadmap — retention and
               redaction are still governed by deployment settings for now.

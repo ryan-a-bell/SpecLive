@@ -117,7 +117,11 @@ export function OverviewView({ workspace }: { workspace: Workspace }) {
                 Open the conversation transcript, structure, and package.
               </div>
               <div className="cc-foot">
-                {live ? <span className="cc-stat live">● Live</span> : null}
+                {live ? (
+                  <span className="cc-stat live">
+                    <span className="cc-live-dot" /> Live
+                  </span>
+                ) : null}
                 <span className="cc-stat">{summary.perSession.get(session.id) ?? 0} req</span>
               </div>
             </button>

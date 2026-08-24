@@ -1,5 +1,19 @@
 "use client";
 
+import type { ReactNode } from "react";
+import {
+  LayoutGrid,
+  ListChecks,
+  Flag,
+  Activity,
+  GitBranch,
+  Package,
+  Database,
+  ScrollText,
+  Search,
+  Settings,
+  Plus,
+} from "lucide-react";
 import { useNavStore, type ShellView } from "@/lib/nav-store";
 import { useAnalysisSettings } from "@/lib/hooks";
 import { useWorkspaceArtifacts, type Workspace } from "@/lib/workspaces";
@@ -76,7 +90,7 @@ export function Sidebar({
     badge,
   }: {
     v: ShellView;
-    ico: string;
+    ico: ReactNode;
     label: string;
     kbd?: string;
     cls?: string;
@@ -120,12 +134,16 @@ export function Sidebar({
             if (typeof window !== "undefined" && window.innerWidth <= 820) setDrawer(false);
           }}
         >
-          <span className="plus">+</span>
+          <span className="plus">
+            <Plus size={16} strokeWidth={2.25} />
+          </span>
           <span className="collapse-hide">New conversation</span>
         </button>
 
         <div className="search collapse-hide">
-          <span className="mag">⌕</span>
+          <span className="mag">
+            <Search size={14} strokeWidth={2} />
+          </span>
           <input
             placeholder="Search this workspace…"
             value={search}
@@ -134,9 +152,20 @@ export function Sidebar({
         </div>
 
         <div className="section-label">Workspace</div>
-        <NavItem v="overview" ico="◧" label="Overview" kbd="0" />
-        <NavItem v="requirements" ico="≣" label="Requirements" kbd="R" />
-        <NavItem v="review" ico="⚑" label="Needs review" cls="review" badge={reviewCount} />
+        <NavItem v="overview" ico={<LayoutGrid size={16} strokeWidth={2} />} label="Overview" kbd="0" />
+        <NavItem
+          v="requirements"
+          ico={<ListChecks size={16} strokeWidth={2} />}
+          label="Requirements"
+          kbd="R"
+        />
+        <NavItem
+          v="review"
+          ico={<Flag size={16} strokeWidth={2} />}
+          label="Needs review"
+          cls="review"
+          badge={reviewCount}
+        />
 
         <div className="section-label">
           Conversations
@@ -168,13 +197,23 @@ export function Sidebar({
         )}
 
         <div className="section-label">This conversation</div>
-        <NavItem v="live" ico="▤" label="Live view" kbd="1" />
-        <NavItem v="structure" ico="⑃" label="Conversation structure" kbd="2" />
-        <NavItem v="package" ico="⤓" label="Discovery package" kbd="3" />
+        <NavItem v="live" ico={<Activity size={16} strokeWidth={2} />} label="Live view" kbd="1" />
+        <NavItem
+          v="structure"
+          ico={<GitBranch size={16} strokeWidth={2} />}
+          label="Conversation structure"
+          kbd="2"
+        />
+        <NavItem
+          v="package"
+          ico={<Package size={16} strokeWidth={2} />}
+          label="Discovery package"
+          kbd="3"
+        />
 
         <div className="section-label">Library</div>
-        <NavItem v="database" ico="⊟" label="Database" kbd="4" />
-        <NavItem v="scripts" ico="▧" label="Scripts" kbd="5" />
+        <NavItem v="database" ico={<Database size={16} strokeWidth={2} />} label="Database" kbd="4" />
+        <NavItem v="scripts" ico={<ScrollText size={16} strokeWidth={2} />} label="Scripts" kbd="5" />
       </div>
 
       <div className="side-foot">
@@ -194,7 +233,7 @@ export function Sidebar({
             title="Settings"
             onClick={() => openView("settings")}
           >
-            ⚙
+            <Settings size={16} strokeWidth={2} />
           </button>
         </div>
       </div>
