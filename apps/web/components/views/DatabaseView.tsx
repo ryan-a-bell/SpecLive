@@ -3,14 +3,9 @@
 import { useMemo, useState } from "react";
 import { DeleteConversationButton } from "@/components/ui/DeleteConversationDialog";
 import { RenameConversationButton } from "@/components/ui/RenameConversationDialog";
+import { RequirementsTable } from "@/components/requirements/RequirementsTable";
 import { useNavStore } from "@/lib/nav-store";
-import {
-  ARTIFACT_TYPE_LABEL,
-  initials,
-  statusPill,
-  useWorkspaceArtifacts,
-  type Workspace,
-} from "@/lib/workspaces";
+import { initials, useWorkspaceArtifacts, type Workspace } from "@/lib/workspaces";
 
 export function DatabaseView({ workspaces }: { workspaces: Workspace[] }) {
   const selectWorkspace = useNavStore((state) => state.selectWorkspace);
@@ -160,60 +155,12 @@ export function DatabaseView({ workspaces }: { workspaces: Workspace[] }) {
           </div>
         </>
       ) : (
-        <div className="reg-wrap">
-          <table className="register database-requirements">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Requirement / artifact</th>
-                <th>Type</th>
-                <th>Workspace</th>
-                <th>Source conversation</th>
-                <th>Status</th>
-                <th>Conf.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const pill = statusPill(row.artifact.status);
-                return (
-                  <tr key={row.artifact.id} onClick={() => openSession(row.sessionId)}>
-                    <td className="rid">{row.artifact.title}</td>
-                    <td className="ritem">{row.artifact.statement}</td>
-                    <td>
-                      <span className="rcell-type">
-                        <i className={`type-dot ${row.artifact.artifact_type}`} />
-                        {ARTIFACT_TYPE_LABEL[row.artifact.artifact_type]}
-                      </span>
-                    </td>
-                    <td className="rsource">
-                      {sessionToWorkspace.get(row.sessionId)?.name ?? "—"}
-                    </td>
-                    <td className="rsource">{row.sessionTitle}</td>
-                    <td>
-                      <span className={`reg-pill ${pill.cls}`}>{pill.label}</span>
-                    </td>
-                    <td>{Math.round(row.artifact.confidence * 100)}%</td>
-                  </tr>
-                );
-              })}
-              {!isLoading && rows.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="table-empty">
-                    No requirements or discovery artifacts yet.
-                  </td>
-                </tr>
-              ) : null}
-              {isLoading && rows.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="table-empty">
-                    Loading requirements…
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+        <RequirementsTable
+          rows={rows}
+          isLoading={isLoading}
+          onOpenSession={openSession}
+          getWorkspaceName={(sessionId) => sessionToWorkspace.get(sessionId)?.name ?? "—"}
+        />
       )}
     </section>
   );
