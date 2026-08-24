@@ -16,6 +16,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     Text,
     text,
@@ -205,6 +206,28 @@ class ConversationBranchORM(Base):
         back_populates="branch",
         cascade="all, delete-orphan",
         order_by="ConversationNodeORM.sequence",
+    )
+
+
+class StoredBlobORM(Base):
+    """Binary content persisted when STORAGE_BACKEND=database.
+
+    Keyed by the same relative path the local backend would use on disk (see
+    app/storage/layout.py), so the two backends are interchangeable. Rows hold
+    recordings, rendered transcripts, requirement snapshots and exports; the
+    canonical structured data still lives in its own relational tables.
+    """
+
+    __tablename__ = "stored_blobs"
+
+    path: Mapped[str] = mapped_column(String(1024), primary_key=True)
+    media_type: Mapped[str] = mapped_column(String(128), default="application/octet-stream")
+    size_bytes: Mapped[int] = mapped_column(Integer, default=0)
+    sha256: Mapped[str] = mapped_column(String(64), default="")
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, onupdate=_now
     )
 
 

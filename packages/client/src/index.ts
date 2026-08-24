@@ -16,6 +16,7 @@ import {
   Recommendations,
   ScriptDefinition,
   ScriptState,
+  StorageSettings,
   TranscriptSegment,
   TranscriptionCapability,
   Workspace,
@@ -296,6 +297,7 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
 
     // analysis + export
     getAnalysisSettings: () => request("/settings/analysis", AnalysisSettings),
+    getStorageSettings: () => request("/settings/storage", StorageSettings),
     analyze: (id: string) =>
       request(`/sessions/${id}/analyze`, z.array(DiscoveryArtifact), { method: "POST" }),
     exportPackage: (id: string, format: "json" | "markdown") =>

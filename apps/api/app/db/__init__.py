@@ -9,6 +9,7 @@ from .models import (
     EvidenceLinkORM,
     ScriptDefinitionORM,
     ScriptStageORM,
+    StoredBlobORM,
     TranscriptSegmentORM,
     WorkspaceProfileORM,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "EvidenceLinkORM",
     "ScriptDefinitionORM",
     "ScriptStageORM",
+    "StoredBlobORM",
     "TranscriptSegmentORM",
     "WorkspaceProfileORM",
 ]

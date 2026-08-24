@@ -80,6 +80,20 @@ class Settings(BaseSettings):
     llm_model: str = "gpt-4o-mini"
     llm_timeout_seconds: float = 60.0
 
+    # Content storage. Where captured recordings, rendered transcripts, derived
+    # requirements and exported discovery packages are persisted, in the layout
+    # described in app/storage/layout.py (workspaces/<ws>/conversations/<id>/…).
+    #   "local"    = a local directory tree rooted at STORAGE_LOCAL_ROOT (default)
+    #   "database" = rows in the stored_blobs table (single backing store)
+    # Structured data (sessions, segments, artifacts, evidence) always lives in
+    # the relational DB; this setting governs the *content sidecar* files. Local
+    # is the default because large audio blobs don't belong in Postgres.
+    storage_backend: str = "local"
+    storage_local_root: str = "./data"
+    # Whether the raw recording is persisted at all. Privacy-sensitive
+    # deployments can keep transcripts/requirements while discarding audio.
+    storage_persist_audio: bool = True
+
     # HTTP
     api_host: str = "0.0.0.0"
     api_port: int = 8000

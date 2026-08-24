@@ -11,7 +11,8 @@ export type ShellView =
   | "structure"
   | "package"
   | "database"
-  | "scripts";
+  | "scripts"
+  | "settings";
 
 /** Views that operate on a single conversation (need an active session). */
 export const CONVERSATION_VIEWS: ShellView[] = ["live", "structure", "package"];
@@ -25,6 +26,7 @@ export const VIEW_LABEL: Record<ShellView, string> = {
   package: "Discovery package",
   database: "Database",
   scripts: "Script library",
+  settings: "Settings",
 };
 
 interface NavState {

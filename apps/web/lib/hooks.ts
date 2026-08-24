@@ -19,6 +19,7 @@ const keys = {
   scripts: ["scripts"] as const,
   transcriptionCapability: ["transcription-capability"] as const,
   analysisSettings: ["analysis-settings"] as const,
+  storageSettings: ["storage-settings"] as const,
 };
 
 export function useSessions() {
@@ -202,6 +203,14 @@ export function useAnalysisSettings() {
   return useQuery({
     queryKey: keys.analysisSettings,
     queryFn: api.getAnalysisSettings,
+    staleTime: 60_000,
+  });
+}
+
+export function useStorageSettings() {
+  return useQuery({
+    queryKey: keys.storageSettings,
+    queryFn: api.getStorageSettings,
     staleTime: 60_000,
   });
 }

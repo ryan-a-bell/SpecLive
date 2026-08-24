@@ -11,7 +11,8 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from ...config import Settings, get_settings
-from ..schemas import AnalysisSettingsInfo
+from ...storage import layout
+from ..schemas import AnalysisSettingsInfo, StorageSettingsInfo
 
 router = APIRouter(tags=["meta"])
 
@@ -35,3 +36,20 @@ def analysis_settings() -> AnalysisSettingsInfo:
     """Report the active requirement-derivation configuration (no secrets)."""
 
     return _analysis_settings(get_settings())
+
+
+def _storage_settings(settings: Settings) -> StorageSettingsInfo:
+    is_local = (settings.storage_backend or "local").strip().lower() == "local"
+    return StorageSettingsInfo(
+        backend=settings.storage_backend,
+        persist_audio=settings.storage_persist_audio,
+        schema_version=layout.SCHEMA_VERSION,
+        local_root=settings.storage_local_root if is_local else None,
+    )
+
+
+@router.get("/settings/storage", response_model=StorageSettingsInfo)
+def storage_settings() -> StorageSettingsInfo:
+    """Report where conversation content is persisted (no secrets)."""
+
+    return _storage_settings(get_settings())

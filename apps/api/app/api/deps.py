@@ -27,9 +27,11 @@ from ..services.export_service import ExportService
 from ..services.recommendation_service import RecommendationService
 from ..services.script_service import ScriptService
 from ..services.session_service import SessionService
+from ..services.storage_service import ConversationStorageService
 from ..services.transcript_service import TranscriptService
 from ..services.tree_service import TreeService
 from ..services.workspace_service import WorkspaceService
+from ..storage import get_content_store
 
 
 @dataclass
@@ -46,6 +48,7 @@ class Services:
     recommendations: RecommendationService
     export: ExportService
     workspaces: WorkspaceService
+    storage: ConversationStorageService
 
 
 def get_services(db: Session = Depends(get_db)) -> Iterator[Services]:
@@ -72,4 +75,5 @@ def get_services(db: Session = Depends(get_db)) -> Iterator[Services]:
         recommendations=RecommendationService(repo, llm),
         export=export,
         workspaces=WorkspaceService(repo, export),
+        storage=ConversationStorageService(repo, export, get_content_store(), settings),
     )
