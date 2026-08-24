@@ -134,7 +134,8 @@ export function Sidebar({
         </div>
 
         <div className="section-label">Workspace</div>
-        <NavItem v="overview" ico="◧" label="Overview & requirements" kbd="0" />
+        <NavItem v="overview" ico="◧" label="Overview" kbd="0" />
+        <NavItem v="requirements" ico="≣" label="Requirements" kbd="R" />
         <NavItem v="review" ico="⚑" label="Needs review" cls="review" badge={reviewCount} />
 
         <div className="section-label">
@@ -150,7 +151,6 @@ export function Sidebar({
             <span className="ava">{i + 1}</span>
             <span>
               <span className="subttl">{session.title}</span>
-              <span className="opp">{session.customer}</span>
               <span className="meta">
                 <span className={statusDot(session.status)} />
                 {session.status}

@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useNavStore } from "@/lib/nav-store";
 import { initials, type Workspace } from "@/lib/workspaces";
-import { useToast } from "@/lib/toast";
+import { WorkspaceDialog } from "@/components/ui/WorkspaceDialog";
 
 export function WorkspaceSwitcher({
   workspaces,
@@ -15,7 +16,7 @@ export function WorkspaceSwitcher({
   const toggleWsMenu = useNavStore((s) => s.toggleWsMenu);
   const setWsMenu = useNavStore((s) => s.setWsMenu);
   const selectWorkspace = useNavStore((s) => s.selectWorkspace);
-  const toast = useToast((s) => s.show);
+  const [createOpen, setCreateOpen] = useState(false);
 
   return (
     <div className="ws-switch">
@@ -56,13 +57,14 @@ export function WorkspaceSwitcher({
             className="newws"
             onClick={() => {
               setWsMenu(false);
-              toast("New workspace — create a session with a new customer to start one");
+              setCreateOpen(true);
             }}
           >
             <span style={{ fontSize: 16 }}>+</span> New workspace
           </button>
         </div>
       )}
+      <WorkspaceDialog open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
   );
 }

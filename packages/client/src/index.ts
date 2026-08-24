@@ -18,6 +18,7 @@ import {
   ScriptState,
   TranscriptSegment,
   TranscriptionCapability,
+  Workspace,
   type ArtifactType,
   type EvidenceRelationship,
   type Speaker,
@@ -84,6 +85,19 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
     return res.text();
   }
 
+  async function requestVoid(path: string, init?: RequestInit): Promise<void> {
+    const res = await doFetch(`${root}/api/v1${path}`, init);
+    if (!res.ok) {
+      let detail = res.statusText;
+      try {
+        detail = (await res.json())?.detail ?? detail;
+      } catch {
+        /* ignore */
+      }
+      throw new ApiError(res.status, detail);
+    }
+  }
+
   return {
     // sessions
     listSessions: () => request("/sessions", z.array(DiscoverySession)),
@@ -104,6 +118,31 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
     }) =>
       request("/sessions", DiscoverySession, {
         method: "POST",
+        body: JSON.stringify(body),
+      }),
+    deleteSession: (id: string) =>
+      requestVoid(`/sessions/${id}`, {
+        method: "DELETE",
+      }),
+
+    // workspaces
+    listWorkspaces: () => request("/workspaces", z.array(Workspace)),
+    createWorkspace: (body: {
+      name: string;
+      description?: string;
+      industry?: string;
+      website?: string;
+    }) =>
+      request("/workspaces", Workspace, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    patchWorkspace: (
+      id: string,
+      body: Partial<{ description: string; industry: string; website: string }>,
+    ) =>
+      request(`/workspaces/${id}`, Workspace, {
+        method: "PATCH",
         body: JSON.stringify(body),
       }),
 

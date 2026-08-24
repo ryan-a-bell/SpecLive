@@ -82,6 +82,25 @@ export const DiscoverySession = z.object({
 });
 export type DiscoverySession = z.infer<typeof DiscoverySession>;
 
+export const WorkspaceSession = z.object({
+  id: z.string(),
+  title: z.string(),
+  customer: z.string(),
+  status: z.string(),
+});
+export type WorkspaceSession = z.infer<typeof WorkspaceSession>;
+
+export const Workspace = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().default(""),
+  industry: z.string().default(""),
+  website: z.string().default(""),
+  session_count: z.number(),
+  sessions: z.array(WorkspaceSession),
+});
+export type Workspace = z.infer<typeof Workspace>;
+
 export const TranscriptSegment = z.object({
   id: z.string(),
   session_id: z.string(),

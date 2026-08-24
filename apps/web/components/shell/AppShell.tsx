@@ -10,10 +10,13 @@ import { LiveView } from "@/components/views/LiveView";
 import { StructureView } from "@/components/views/StructureView";
 import { PackageView } from "@/components/views/PackageView";
 import { OverviewView } from "@/components/views/OverviewView";
+import { RequirementsView } from "@/components/views/RequirementsView";
 import { ReviewInbox } from "@/components/views/ReviewInbox";
 import { DatabaseView } from "@/components/views/DatabaseView";
 import { ScriptsView } from "@/components/views/ScriptsView";
 import { Toaster } from "@/components/ui/Toaster";
+import { DeleteConversationButton } from "@/components/ui/DeleteConversationDialog";
+import { RenameConversationButton } from "@/components/ui/RenameConversationDialog";
 
 const VIEW_KEYS: Record<string, ShellView> = {
   "0": "overview",
@@ -22,7 +25,19 @@ const VIEW_KEYS: Record<string, ShellView> = {
   "3": "package",
   "4": "database",
   "5": "scripts",
+  r: "requirements",
+  R: "requirements",
 };
+
+function newConversationTitle(now = new Date()) {
+  const timestamp = new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(now);
+  return `${timestamp} · Discovery call`;
+}
 
 export function AppShell() {
   const { workspaces, isLoading } = useWorkspaces();
@@ -87,7 +102,7 @@ export function AppShell() {
     if (!activeWorkspace) return;
     createSession.mutate(
       {
-        title: "New discovery call",
+        title: newConversationTitle(),
         customer: activeWorkspace.name,
         facilitator: "Facilitator",
       },
@@ -140,10 +155,7 @@ export function AppShell() {
                   </>
                 )}
               </div>
-              <div className="csub">
-                {isConversationView && effectiveSession ? `${effectiveSession.customer} · ` : ""}
-                {VIEW_LABEL[view]}
-              </div>
+              <div className="csub">{VIEW_LABEL[view]}</div>
             </div>
           </div>
           <div className="top-actions flex items-center gap-[9px]">
@@ -159,6 +171,12 @@ export function AppShell() {
                 Active conversation
               </span>
             )}
+            {isConversationView && effectiveSession ? (
+              <>
+                <RenameConversationButton session={effectiveSession} />
+                <DeleteConversationButton session={effectiveSession} />
+              </>
+            ) : null}
             <button className="btn primary" onClick={openPackage}>
               Generate package
             </button>
@@ -190,6 +208,9 @@ export function AppShell() {
           )}
 
           {activeWorkspace && view === "overview" && <OverviewView workspace={activeWorkspace} />}
+          {activeWorkspace && view === "requirements" && (
+            <RequirementsView workspace={activeWorkspace} />
+          )}
           {activeWorkspace && view === "review" && <ReviewInbox workspace={activeWorkspace} />}
           {view === "database" && <DatabaseView workspaces={workspaces} />}
           {view === "scripts" && <ScriptsView />}

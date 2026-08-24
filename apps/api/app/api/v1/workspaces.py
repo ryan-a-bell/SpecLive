@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, Response
 
 from ...domain.enums import ContextScope
 from ..deps import Services, get_services
+from ..schemas import WorkspaceCreate, WorkspacePatch
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
@@ -27,6 +28,22 @@ def list_workspaces(svc: Services = Depends(get_services)) -> list[dict[str, Any
     """List workspaces (customer groupings) and their conversations."""
 
     return svc.workspaces.list_workspaces()
+
+
+@router.post("", status_code=201)
+def create_workspace(
+    body: WorkspaceCreate, svc: Services = Depends(get_services)
+) -> dict[str, Any]:
+    return svc.workspaces.create(**body.model_dump())
+
+
+@router.patch("/{workspace_id}")
+def patch_workspace(
+    workspace_id: str,
+    body: WorkspacePatch,
+    svc: Services = Depends(get_services),
+) -> dict[str, Any]:
+    return svc.workspaces.patch(workspace_id, **body.model_dump(exclude_unset=True))
 
 
 @router.get("/{workspace_id}/context", response_model=None)

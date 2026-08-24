@@ -5,6 +5,7 @@ import { api } from "./api";
 
 const keys = {
   sessions: ["sessions"] as const,
+  workspaces: ["workspaces"] as const,
   session: (id: string) => ["session", id] as const,
   transcript: (id: string) => ["transcript", id] as const,
   artifacts: (id: string) => ["artifacts", id] as const,
@@ -36,7 +37,58 @@ export function useCreateSession() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (body: Parameters<typeof api.createSession>[0]) => api.createSession(body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.sessions }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: keys.sessions }),
+        queryClient.invalidateQueries({ queryKey: keys.workspaces }),
+      ]),
+  });
+}
+
+export function useUpdateSession(sessionId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Parameters<typeof api.patchSession>[1]) => api.patchSession(sessionId, body),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: keys.session(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: keys.sessions }),
+        queryClient.invalidateQueries({ queryKey: keys.workspaces }),
+      ]),
+  });
+}
+
+export function useDeleteSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) => api.deleteSession(sessionId),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: keys.sessions }),
+        queryClient.invalidateQueries({ queryKey: keys.workspaces }),
+      ]),
+  });
+}
+
+export function useCreateWorkspace() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Parameters<typeof api.createWorkspace>[0]) => api.createWorkspace(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.workspaces }),
+  });
+}
+
+export function useUpdateWorkspace() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      workspaceId,
+      body,
+    }: {
+      workspaceId: string;
+      body: Parameters<typeof api.patchWorkspace>[1];
+    }) => api.patchWorkspace(workspaceId, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.workspaces }),
   });
 }
 

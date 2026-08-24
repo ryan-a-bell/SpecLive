@@ -28,7 +28,20 @@ class SessionRepository(abc.ABC):
     def list_sessions(self) -> list[m.DiscoverySessionORM]: ...
 
     @abc.abstractmethod
+    def delete_session(self, session_id: str) -> None: ...
+
+    @abc.abstractmethod
     def pause_active_sessions(self, *, except_session_id: str | None = None) -> None: ...
+
+    # --- workspace profiles ----------------------------------------------
+    @abc.abstractmethod
+    def add_workspace_profile(self, row: m.WorkspaceProfileORM) -> m.WorkspaceProfileORM: ...
+
+    @abc.abstractmethod
+    def get_workspace_profile(self, workspace_id: str) -> m.WorkspaceProfileORM | None: ...
+
+    @abc.abstractmethod
+    def list_workspace_profiles(self) -> list[m.WorkspaceProfileORM]: ...
 
     # --- transcript -------------------------------------------------------
     @abc.abstractmethod
@@ -124,6 +137,12 @@ class SqlAlchemySessionRepository(SessionRepository):
             )
         )
 
+    def delete_session(self, session_id: str) -> None:
+        row = self.get_session(session_id)
+        if row is not None:
+            self._db.delete(row)  # relationships cascade to the full conversation aggregate
+            self._db.flush()
+
     def pause_active_sessions(self, *, except_session_id: str | None = None) -> None:
         statement = update(m.DiscoverySessionORM).where(m.DiscoverySessionORM.status == "active")
         if except_session_id is not None:
@@ -132,6 +151,18 @@ class SqlAlchemySessionRepository(SessionRepository):
         # An active-session uniqueness constraint protects concurrent writers.
         # Flush the pauses before a new active row is inserted.
         self._db.flush()
+
+    # workspace profiles
+    def add_workspace_profile(self, row: m.WorkspaceProfileORM) -> m.WorkspaceProfileORM:
+        return self._add(row)
+
+    def get_workspace_profile(self, workspace_id: str) -> m.WorkspaceProfileORM | None:
+        return self._db.get(m.WorkspaceProfileORM, workspace_id)
+
+    def list_workspace_profiles(self) -> list[m.WorkspaceProfileORM]:
+        return list(
+            self._db.scalars(select(m.WorkspaceProfileORM).order_by(m.WorkspaceProfileORM.name))
+        )
 
     # transcript
     def add_segment(self, row: m.TranscriptSegmentORM) -> m.TranscriptSegmentORM:

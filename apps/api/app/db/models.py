@@ -29,6 +29,18 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+class WorkspaceProfileORM(Base):
+    __tablename__ = "workspace_profiles"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    description: Mapped[str] = mapped_column(Text, default="")
+    industry: Mapped[str] = mapped_column(String(255), default="")
+    website: Mapped[str] = mapped_column(String(500), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class DiscoverySessionORM(Base):
     __tablename__ = "discovery_sessions"
     __table_args__ = (

@@ -50,6 +50,24 @@ def test_missing_session_returns_404(client) -> None:  # type: ignore[no-untyped
     assert client.get("/api/v1/sessions/does-not-exist").status_code == 404
 
 
+def test_delete_session_removes_the_conversation(client) -> None:  # type: ignore[no-untyped-def]
+    session_id = _create_session(client)
+    client.post(
+        f"/api/v1/sessions/{session_id}/transcript",
+        json={"speaker": "customer", "text": "This conversation can be removed."},
+    )
+
+    response = client.delete(f"/api/v1/sessions/{session_id}")
+
+    assert response.status_code == 204
+    assert client.get(f"/api/v1/sessions/{session_id}").status_code == 404
+    assert session_id not in {item["id"] for item in client.get("/api/v1/sessions").json()}
+
+
+def test_delete_missing_session_returns_404(client) -> None:  # type: ignore[no-untyped-def]
+    assert client.delete("/api/v1/sessions/does-not-exist").status_code == 404
+
+
 def test_patch_session_status(client) -> None:  # type: ignore[no-untyped-def]
     session_id = _create_session(client)
     resp = client.patch(f"/api/v1/sessions/{session_id}", json={"status": "completed"})

@@ -98,6 +98,33 @@ def test_unknown_workspace_is_404(client) -> None:  # type: ignore[no-untyped-de
     assert resp.status_code == 404
 
 
+def test_create_empty_workspace_and_update_client_context(client) -> None:  # type: ignore[no-untyped-def]
+    created = client.post(
+        "/api/v1/workspaces",
+        json={
+            "name": "Northwind Health",
+            "description": "Regional care network modernizing patient intake.",
+            "industry": "Healthcare",
+            "website": "https://northwind.example",
+        },
+    )
+    assert created.status_code == 201, created.text
+    body = created.json()
+    assert body["id"] == "northwind-health"
+    assert body["session_count"] == 0
+    assert body["sessions"] == []
+
+    patched = client.patch(
+        "/api/v1/workspaces/northwind-health",
+        json={"description": "Updated client context."},
+    )
+    assert patched.status_code == 200
+    assert patched.json()["description"] == "Updated client context."
+
+    listed = {item["id"]: item for item in client.get("/api/v1/workspaces").json()}
+    assert listed["northwind-health"]["industry"] == "Healthcare"
+
+
 def test_session_export_default_unchanged(client, seeded_session_id) -> None:  # type: ignore[no-untyped-def]
     """The per-session export must keep returning the full package (scope=all)."""
 
