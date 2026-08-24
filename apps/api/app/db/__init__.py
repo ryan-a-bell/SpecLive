@@ -11,6 +11,7 @@ from .models import (
     ScriptStageORM,
     StoredBlobORM,
     TranscriptSegmentORM,
+    WorkspaceProfileORM,
 )
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "ScriptStageORM",
     "StoredBlobORM",
     "TranscriptSegmentORM",
+    "WorkspaceProfileORM",
 ]

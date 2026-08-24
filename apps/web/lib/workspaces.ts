@@ -1,19 +1,19 @@
 "use client";
 
 import { useMemo } from "react";
-import { useQueries } from "@tanstack/react-query";
-import type { ArtifactType, DiscoveryArtifact, EvidenceLink } from "@rdc/domain";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import type {
+  ArtifactType,
+  DiscoveryArtifact,
+  EvidenceLink,
+  Workspace as DomainWorkspace,
+  WorkspaceSession as DomainWorkspaceSession,
+} from "@rdc/domain";
 import { api } from "./api";
-import { useSessions } from "./hooks";
 
 /** The session fields the shell actually needs (a structural subset of
  * DiscoverySession, so it stays decoupled from schema-inference details). */
-export interface WorkspaceSession {
-  id: string;
-  title: string;
-  customer: string;
-  status: string;
-}
+export type WorkspaceSession = DomainWorkspaceSession;
 
 /**
  * A workspace is a client-side grouping of discovery conversations (sessions)
@@ -21,11 +21,7 @@ export interface WorkspaceSession {
  * separate backend entity yet — so every session for one customer rolls up
  * into a single focused workspace with a cross-section of its requirements.
  */
-export interface Workspace {
-  id: string; // slug of the customer
-  name: string; // customer name
-  sessions: WorkspaceSession[];
-}
+export type Workspace = DomainWorkspace;
 
 export function slugifyCustomer(customer: string): string {
   const slug = customer
@@ -79,7 +75,15 @@ export function groupWorkspaces(sessions: readonly WorkspaceSession[]): Workspac
     let id = base;
     for (let n = 2; usedIds.has(id); n++) id = `${base}-${n}`;
     usedIds.add(id);
-    return { id, name, sessions: groupedSessions };
+    return {
+      id,
+      name,
+      description: "",
+      industry: "",
+      website: "",
+      session_count: groupedSessions.length,
+      sessions: groupedSessions,
+    };
   });
 }
 
@@ -89,9 +93,18 @@ export function findWorkspace(workspaces: Workspace[], id: string | null): Works
 
 /** Workspaces derived from the live sessions list. */
 export function useWorkspaces() {
-  const query = useSessions();
-  const workspaces = useMemo(() => groupWorkspaces(query.data ?? []), [query.data]);
-  return { ...query, workspaces };
+  const query = useQuery({
+    queryKey: ["workspaces"],
+    queryFn: async (): Promise<Workspace[]> =>
+      (await api.listWorkspaces()).map((workspace) => ({
+        ...workspace,
+        description: workspace.description ?? "",
+        industry: workspace.industry ?? "",
+        website: workspace.website ?? "",
+      })),
+    staleTime: 15_000,
+  });
+  return { ...query, workspaces: query.data ?? [] };
 }
 
 export interface RegisterRow {

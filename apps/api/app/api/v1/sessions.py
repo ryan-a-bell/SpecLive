@@ -46,6 +46,12 @@ def patch_session(
     return svc.sessions.patch(session_id, **body.model_dump(exclude_unset=True))
 
 
+@router.delete("/{session_id}", status_code=204)
+def delete_session(session_id: str, svc: Services = Depends(get_services)) -> Response:
+    svc.sessions.delete(session_id)
+    return Response(status_code=204)
+
+
 # --- transcript -----------------------------------------------------------
 @router.post("/{session_id}/transcript", response_model=e.TranscriptSegment, status_code=201)
 def add_transcript_segment(

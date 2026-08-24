@@ -5,6 +5,7 @@ import { create } from "zustand";
 /** The primary surfaces the shell can show. */
 export type ShellView =
   | "overview"
+  | "requirements"
   | "review"
   | "live"
   | "structure"
@@ -18,6 +19,7 @@ export const CONVERSATION_VIEWS: ShellView[] = ["live", "structure", "package"];
 
 export const VIEW_LABEL: Record<ShellView, string> = {
   overview: "Overview",
+  requirements: "Requirements",
   review: "Needs review",
   live: "Live view",
   structure: "Conversation structure",

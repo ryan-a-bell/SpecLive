@@ -34,6 +34,20 @@ class SessionPatch(BaseModel):
     metadata: dict | None = None
 
 
+# --- workspaces -----------------------------------------------------------
+class WorkspaceCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    description: str = ""
+    industry: str = Field(default="", max_length=255)
+    website: str = Field(default="", max_length=500)
+
+
+class WorkspacePatch(BaseModel):
+    description: str | None = None
+    industry: str | None = Field(default=None, max_length=255)
+    website: str | None = Field(default=None, max_length=500)
+
+
 # --- discovery scripts ---------------------------------------------------
 class ScriptStageWrite(BaseModel):
     id: str | None = None

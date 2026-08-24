@@ -1,10 +1,9 @@
 """Workspace-level aggregation of discovery context for external consumers.
 
-A *workspace* groups the discovery conversations (sessions) that share a
-customer. There is no separate workspace entity yet — it is derived from the
-sessions list, mirroring the web app's client-side grouping
-(``apps/web/lib/workspaces.ts``) so a workspace id means the same thing on
-both sides.
+A *workspace* stores a small client profile and groups discovery conversations
+(sessions) that share its customer name. Legacy customers without a saved
+profile are still exposed as derived workspaces, so existing data keeps the
+same ids while new empty workspaces can exist before their first conversation.
 
 This service rolls every session's discovery package up into one context
 bundle that an external tool (or an LLM in another app) can pull to architect
@@ -20,10 +19,11 @@ import re
 from datetime import UTC, datetime
 from typing import Any
 
+from ..db import models as m
 from ..domain.enums import ContextScope
 from ..repositories import SessionRepository
 from ..repositories.mappers import session_to_domain
-from .errors import NotFoundError
+from .errors import NotFoundError, ValidationError
 from .export_service import ExportService
 
 # Section keys in a per-session package that hold lists of artifact briefs.
@@ -74,21 +74,24 @@ class WorkspaceService:
         self._export = export_service
 
     # --- grouping ---------------------------------------------------------
-    def _grouped(self) -> list[tuple[str, str, list]]:
-        """Return ``(id, name, sessions)`` per workspace.
-
-        Sessions are grouped by their exact (trimmed) customer name and sorted
-        alphabetically; slug collisions across distinct names get a numeric
-        suffix. This matches ``groupWorkspaces`` on the web side.
-        """
+    def _grouped(self) -> list[tuple[str, str, list, m.WorkspaceProfileORM | None]]:
+        """Return ``(id, name, sessions, profile)`` per workspace."""
 
         sessions = [session_to_domain(r) for r in self._repo.list_sessions()]
         by_customer: dict[str, list] = {}
         for session in sessions:
             by_customer.setdefault(session.customer.strip(), []).append(session)
 
-        grouped: list[tuple[str, str, list]] = []
+        grouped: list[tuple[str, str, list, m.WorkspaceProfileORM | None]] = []
         used: set[str] = set()
+
+        # Persisted profiles come first and may have no conversations yet.
+        for profile in self._repo.list_workspace_profiles():
+            name = profile.name.strip()
+            grouped.append((profile.id, name, by_customer.pop(name, []), profile))
+            used.add(profile.id)
+
+        # Sessions created before workspace profiles existed remain visible.
         for name in sorted(by_customer):
             base = slugify_customer(name)
             workspace_id = base
@@ -97,13 +100,13 @@ class WorkspaceService:
                 workspace_id = f"{base}-{suffix}"
                 suffix += 1
             used.add(workspace_id)
-            grouped.append((workspace_id, name, by_customer[name]))
-        return grouped
+            grouped.append((workspace_id, name, by_customer[name], None))
+        return sorted(grouped, key=lambda item: item[1].lower())
 
-    def _resolve(self, workspace_id: str) -> tuple[str, list]:
-        for wid, name, sessions in self._grouped():
+    def _resolve(self, workspace_id: str) -> tuple[str, list, m.WorkspaceProfileORM | None]:
+        for wid, name, sessions, profile in self._grouped():
             if wid == workspace_id:
-                return name, sessions
+                return name, sessions, profile
         raise NotFoundError(f"Workspace {workspace_id!r} not found")
 
     @staticmethod
@@ -123,18 +126,82 @@ class WorkspaceService:
             {
                 "id": wid,
                 "name": name,
+                "description": profile.description if profile else "",
+                "industry": profile.industry if profile else "",
+                "website": profile.website if profile else "",
                 "session_count": len(sessions),
                 "sessions": [self._session_brief(s) for s in sessions],
             }
-            for wid, name, sessions in self._grouped()
+            for wid, name, sessions, profile in self._grouped()
         ]
+
+    def create(
+        self,
+        *,
+        name: str,
+        description: str = "",
+        industry: str = "",
+        website: str = "",
+    ) -> dict[str, Any]:
+        clean_name = name.strip()
+        if not clean_name:
+            raise ValidationError("Workspace name is required")
+        duplicate = any(
+            existing_name.casefold() == clean_name.casefold()
+            for _, existing_name, _, _ in self._grouped()
+        )
+        if duplicate:
+            raise ValidationError(f"A workspace for {clean_name!r} already exists")
+
+        base = slugify_customer(clean_name)
+        used = {workspace_id for workspace_id, _, _, _ in self._grouped()}
+        workspace_id = base
+        suffix = 2
+        while workspace_id in used:
+            workspace_id = f"{base}-{suffix}"
+            suffix += 1
+
+        profile = m.WorkspaceProfileORM(
+            id=workspace_id,
+            name=clean_name,
+            description=description.strip(),
+            industry=industry.strip(),
+            website=website.strip(),
+        )
+        self._repo.add_workspace_profile(profile)
+        self._repo.commit()
+        return self._workspace_brief(profile, [])
+
+    def patch(self, workspace_id: str, **changes: str | None) -> dict[str, Any]:
+        name, sessions, profile = self._resolve(workspace_id)
+        if profile is None:
+            profile = m.WorkspaceProfileORM(id=workspace_id, name=name)
+            self._repo.add_workspace_profile(profile)
+        for field in ("description", "industry", "website"):
+            value = changes.get(field)
+            if value is not None:
+                setattr(profile, field, value.strip())
+        profile.updated_at = datetime.now(UTC)
+        self._repo.commit()
+        return self._workspace_brief(profile, sessions)
+
+    def _workspace_brief(self, profile: m.WorkspaceProfileORM, sessions: list) -> dict[str, Any]:
+        return {
+            "id": profile.id,
+            "name": profile.name,
+            "description": profile.description or "",
+            "industry": profile.industry or "",
+            "website": profile.website or "",
+            "session_count": len(sessions),
+            "sessions": [self._session_brief(s) for s in sessions],
+        }
 
     def build_context(
         self, workspace_id: str, *, scope: ContextScope = ContextScope.ALL
     ) -> dict[str, Any]:
         """Aggregate every session's discovery package into one bundle."""
 
-        name, sessions = self._resolve(workspace_id)
+        name, sessions, _profile = self._resolve(workspace_id)
 
         merged: dict[str, list] = {key: [] for key in _ITEM_SECTIONS}
         traceability: list[dict] = []
