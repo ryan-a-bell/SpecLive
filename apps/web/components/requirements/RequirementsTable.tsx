@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import type { ArtifactType } from "@rdc/domain";
 import { ARTIFACT_TYPE_LABEL, statusPill, type RegisterRow } from "@/lib/workspaces";
 
@@ -32,7 +33,17 @@ function SortHeader({
     <th aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}>
       <button type="button" className="sort-button" onClick={() => onSort(sortKey)}>
         {label}
-        <span aria-hidden="true">{active ? (direction === "asc" ? "↑" : "↓") : "↕"}</span>
+        <span aria-hidden="true">
+          {active ? (
+            direction === "asc" ? (
+              <ArrowUp size={12} strokeWidth={2.25} />
+            ) : (
+              <ArrowDown size={12} strokeWidth={2.25} />
+            )
+          ) : (
+            <ArrowUpDown size={12} strokeWidth={2.25} />
+          )}
+        </span>
       </button>
     </th>
   );

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
+import { Search, ChevronRight, X, ScrollText } from "lucide-react";
 import type { ScriptDefinition, ScriptStage } from "@rdc/domain";
 import type { ScriptDefinitionWrite, ScriptStageWrite } from "@rdc/client";
 import {
@@ -346,7 +347,9 @@ export function ScriptsView() {
             <span>{scripts.length} active</span>
           </div>
           <div className="script-filter">
-            <span aria-hidden="true">⌕</span>
+            <span aria-hidden="true">
+              <Search size={13} strokeWidth={2} />
+            </span>
             <input
               type="search"
               aria-label="Filter discovery scripts"
@@ -366,7 +369,9 @@ export function ScriptsView() {
                 <span className="script-list-title">
                   <i />
                   <strong>{script.name}</strong>
-                  <span aria-hidden="true">›</span>
+                  <span aria-hidden="true">
+                    <ChevronRight size={15} strokeWidth={2} />
+                  </span>
                 </span>
                 <span className="script-list-description">{script.description}</span>
                 <span className="script-list-meta">
@@ -505,7 +510,7 @@ export function ScriptsView() {
                           disabled={draft.stages.length === 1}
                           onClick={() => removeStage(index)}
                         >
-                          ×
+                          <X size={15} strokeWidth={2.25} />
                         </button>
                       </div>
                     ))}
@@ -546,7 +551,9 @@ export function ScriptsView() {
             </>
           ) : (
             <div className="script-editor-empty">
-              <span>▧</span>
+              <span>
+                <ScrollText size={22} strokeWidth={2} />
+              </span>
               <h2>Select a discovery script</h2>
               <p>Review its stages, edit the anchor prompts, or create a reusable script.</p>
               <button className="btn primary" onClick={startNewScript}>

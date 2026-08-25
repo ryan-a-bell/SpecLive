@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { LayoutGrid, MessageSquarePlus } from "lucide-react";
 import { CONVERSATION_VIEWS, useNavStore, VIEW_LABEL, type ShellView } from "@/lib/nav-store";
 import { findWorkspace, useWorkspaces } from "@/lib/workspaces";
 import { useCreateSession } from "@/lib/hooks";
@@ -188,7 +189,9 @@ export function AppShell() {
           {isLoading && workspaces.length === 0 && (
             <div className="ws-empty">
               <div>
-                <div className="big">◧</div>
+                <div className="big">
+                  <LayoutGrid size={28} strokeWidth={1.75} />
+                </div>
                 <h2>Loading workspaces…</h2>
                 <p>Fetching your discovery conversations from the API.</p>
               </div>
@@ -198,7 +201,9 @@ export function AppShell() {
           {!isLoading && workspaces.length === 0 && (
             <div className="ws-empty">
               <div>
-                <div className="big">＋</div>
+                <div className="big">
+                  <MessageSquarePlus size={28} strokeWidth={1.75} />
+                </div>
                 <h2>No conversations yet</h2>
                 <p>
                   Seed the demo session or start a discovery call to create your first workspace.
@@ -228,7 +233,9 @@ export function AppShell() {
               activeWorkspace && (
                 <div className="ws-empty">
                   <div>
-                    <div className="big">＋</div>
+                    <div className="big">
+                      <MessageSquarePlus size={28} strokeWidth={1.75} />
+                    </div>
                     <h2>No conversation selected</h2>
                     <p>
                       This workspace has no conversations yet. Start a new discovery call to begin

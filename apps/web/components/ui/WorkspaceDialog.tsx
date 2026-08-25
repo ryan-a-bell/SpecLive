@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { useCreateWorkspace, useUpdateWorkspace } from "@/lib/hooks";
 import { useNavStore } from "@/lib/nav-store";
 import { useToast } from "@/lib/toast";
@@ -82,7 +83,7 @@ export function WorkspaceDialog({
             <h2 id="workspace-dialog-title">{editing ? "Edit client context" : "New workspace"}</h2>
           </div>
           <button className="modal-close" aria-label="Close" onClick={onClose}>
-            ×
+            <X size={18} strokeWidth={2} />
           </button>
         </div>
         <form onSubmit={submit}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
+import { X } from "lucide-react";
 import { useUpdateSession } from "@/lib/hooks";
 import { useToast } from "@/lib/toast";
 import type { WorkspaceSession } from "@/lib/workspaces";
@@ -83,7 +84,7 @@ export function RenameConversationButton({
                 <h2 id={titleId}>Rename conversation</h2>
               </div>
               <button type="button" className="modal-close" onClick={close} aria-label="Close">
-                ×
+                <X size={18} strokeWidth={2} />
               </button>
             </div>
             <label className="field-label">

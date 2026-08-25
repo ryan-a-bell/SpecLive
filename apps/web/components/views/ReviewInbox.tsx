@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Check } from "lucide-react";
 import type { ArtifactType } from "@rdc/domain";
 import { useNavStore } from "@/lib/nav-store";
 import { useReviewActions } from "@/lib/hooks";
@@ -143,7 +144,9 @@ export function ReviewInbox({ workspace }: { workspace: Workspace }) {
 
       {!isLoading && items.length === 0 && (
         <div className="rc-empty rc-empty--clear">
-          <div className="rc-empty-mark">✓</div>
+          <div className="rc-empty-mark">
+            <Check size={26} strokeWidth={2.5} />
+          </div>
           <h3>All caught up</h3>
           <p>Nothing in {workspace.name} is waiting on validation. New candidates land here as your conversations derive them.</p>
         </div>
@@ -237,7 +240,7 @@ export function ReviewInbox({ workspace }: { workspace: Workspace }) {
                         disabled={busy}
                         onClick={() => onConfirm(item)}
                       >
-                        ✓ Confirm
+                        <Check size={14} strokeWidth={2.25} /> Confirm
                       </button>
                       <div className="act-row">
                         <button className="act" onClick={() => openConversation(item)}>

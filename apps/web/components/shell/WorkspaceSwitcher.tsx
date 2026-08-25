@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown, Plus } from "lucide-react";
 import { useNavStore } from "@/lib/nav-store";
 import { initials, type Workspace } from "@/lib/workspaces";
 import { WorkspaceDialog } from "@/components/ui/WorkspaceDialog";
@@ -32,7 +33,9 @@ export function WorkspaceSwitcher({
           <span className="wlabel">Workspace</span>
           <span className="wname">{active?.name ?? "Select workspace"}</span>
         </span>
-        <span className="caret collapse-hide">▾</span>
+        <span className="caret collapse-hide">
+          <ChevronDown size={14} strokeWidth={2} />
+        </span>
       </button>
       {wsMenuOpen && (
         <div className="ws-menu" onClick={(e) => e.stopPropagation()}>
@@ -60,7 +63,7 @@ export function WorkspaceSwitcher({
               setCreateOpen(true);
             }}
           >
-            <span style={{ fontSize: 16 }}>+</span> New workspace
+            <Plus size={15} strokeWidth={2} /> New workspace
           </button>
         </div>
       )}
