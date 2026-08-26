@@ -1,0 +1,4 @@
+# Run outputs are regenerable; keep only the committed baseline snapshot.
+*.json
+*.md
+!baseline.md
