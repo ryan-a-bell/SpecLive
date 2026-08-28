@@ -1,0 +1,139 @@
+{
+  "case_id": "iot-warehouse-ml",
+  "title": "IoT warehouse predictive-maintenance ML pipeline",
+  "system_ref": "system.md",
+  "source_transcript": "transcript.json",
+  "notes": "Evidence is keyed by turn_index (0-based into transcript.turns). Each quote is a verbatim substring of that turn's text. tier weights recall; implicitness/negation are difficulty labels used to slice results.",
+  "gold_artifacts": [
+    {
+      "id": "O1",
+      "artifact_type": "objective",
+      "canonical_statement": "Reduce unplanned conveyor downtime through predictive maintenance so motors can be serviced off-shift.",
+      "key_phrases": ["predictive maintenance", "downtime", "off-shift"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 3, "quote": "Predictive maintenance is the big one" }
+    },
+    {
+      "id": "R1",
+      "artifact_type": "requirement",
+      "canonical_statement": "Predict impending conveyor-motor failure with 12-24 hours of advance warning.",
+      "key_phrases": ["twelve to twenty-four hours", "warning", "advance"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 3, "quote": "twelve to twenty-four hours of warning" }
+    },
+    {
+      "id": "R2",
+      "artifact_type": "requirement",
+      "canonical_statement": "Run model inference at the edge and keep firing alerts during connectivity loss.",
+      "key_phrases": ["edge", "inference", "connectivity", "local"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 7, "quote": "Inference has to be at the edge" }
+    },
+    {
+      "id": "R3",
+      "artifact_type": "requirement",
+      "canonical_statement": "Allow model training to run in the cloud while scoring stays local.",
+      "key_phrases": ["training", "cloud", "scoring", "local"],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 7, "quote": "Training can happen in the cloud, but scoring runs local" }
+    },
+    {
+      "id": "R4",
+      "artifact_type": "requirement",
+      "canonical_statement": "Detect model-accuracy drift over time.",
+      "key_phrases": ["drift detection", "accuracy", "degraded"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 9, "quote": "We'd need drift detection" }
+    },
+    {
+      "id": "R5",
+      "artifact_type": "requirement",
+      "canonical_statement": "Retrain automatically without a data scientist in the loop each week.",
+      "key_phrases": ["retraining loop", "ML team", "automated", "self-serve"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 9, "quote": "some retraining loop, but we don't have an ML team to babysit it" }
+    },
+    {
+      "id": "R6",
+      "artifact_type": "requirement",
+      "canonical_statement": "Bias alerting toward recall over precision (over-alert early, tighten later).",
+      "key_phrases": ["over-alert", "recall", "precision", "threshold"],
+      "tier": "should",
+      "implicitness": "paraphrased",
+      "negation": false,
+      "evidence": { "turn_index": 11, "quote": "we'd rather over-alert early" }
+    },
+    {
+      "id": "C1",
+      "artifact_type": "constraint",
+      "canonical_statement": "Features must tolerate missing windows, offline sensors, drifting clocks, and unmapped sensors.",
+      "key_phrases": ["tolerate missing windows", "bad timestamps", "offline", "clocks drift"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 5, "quote": "tolerate missing windows and bad timestamps" }
+    },
+    {
+      "id": "C2",
+      "artifact_type": "constraint",
+      "canonical_statement": "EU-site data must stay in-region (data residency).",
+      "key_phrases": ["in-region", "EU sites", "residency"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 13, "quote": "it has to stay in-region for our EU sites" }
+    },
+    {
+      "id": "C3",
+      "artifact_type": "constraint",
+      "canonical_statement": "Worker-identifying RFID picker IDs must not be sent off-site.",
+      "key_phrases": ["picker IDs", "worker's badge", "privacy", "RFID"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": true,
+      "evidence": { "turn_index": 13, "quote": "we can't send anything that ties back to an individual worker's badge" }
+    },
+    {
+      "id": "M1",
+      "artifact_type": "success_metric",
+      "canonical_statement": "Alert economics: a missed failure costs a five-figure day; a false alarm costs ~an hour of a technician's time.",
+      "key_phrases": ["missed failure", "five-figure day", "false alarm", "cost"],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 11, "quote": "A missed failure costs us a five-figure day" }
+    },
+    {
+      "id": "Q1",
+      "artifact_type": "open_question",
+      "canonical_statement": "No drift/accuracy monitoring exists today; how will degradation be detected?",
+      "key_phrases": ["no monitoring", "drift", "degraded"],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 9, "quote": "We have no monitoring today" }
+    },
+    {
+      "id": "A1",
+      "artifact_type": "assumption",
+      "canonical_statement": "The pipeline is assumed to be largely self-serve (automated retraining + alerting), pending confirmation.",
+      "key_phrases": ["self-serve", "automated", "no ML team"],
+      "tier": "nice",
+      "implicitness": "paraphrased",
+      "negation": false,
+      "evidence": { "turn_index": 9, "quote": "we don't have an ML team to babysit it" }
+    }
+  ]
+}

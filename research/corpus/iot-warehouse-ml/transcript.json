@@ -1,0 +1,86 @@
+{
+  "title": "IoT warehouse ML pipeline discovery (synthetic, 2 speakers)",
+  "customer": "Northwind Fulfillment",
+  "facilitator": "Ryan",
+  "voices": {
+    "facilitator": "en_US-ryan-high",
+    "customer": "en_US-amy-medium"
+  },
+  "turns": [
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "Thanks for the time, Priya. Before we design anything, walk me through what data your warehouse sensors actually produce today and where it lands."
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Priya",
+      "text": "We have about four thousand IoT sensors across three buildings. Temperature, humidity, vibration on the conveyors, and RFID reads at every pick face. Right now it all streams into an MQTT broker and gets dumped into a time-series database that nobody prunes."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "And what's the decision you wish that data could drive? What's the outcome you're chasing with a machine learning pipeline?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Priya",
+      "text": "Predictive maintenance is the big one. When a conveyor motor is about to fail, we want twelve to twenty-four hours of warning so we can service it off-shift instead of losing a whole line mid-day."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "So the objective is unplanned-downtime reduction, and the leading signal is the vibration data. How clean is that vibration stream? Gaps, drift, mislabeled sensors?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Priya",
+      "text": "Honestly it's messy. Sensors drop offline for hours, clocks drift between buildings, and a third of them were never mapped to a specific motor. So any feature we build has to tolerate missing windows and bad timestamps."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "That's an important constraint. Let me note it: features must be robust to missing windows and unsynced clocks. Where would a trained model need to run — in the cloud, or on the edge near the conveyors?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Priya",
+      "text": "Inference has to be at the edge. Our buildings lose connectivity a few times a week, and a maintenance alert that only fires when the WAN is up is useless. Training can happen in the cloud, but scoring runs local."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "Understood — so a hard requirement is edge inference that survives network loss, with cloud training on the side. Who retrains the model when it starts drifting, and how would you even know it drifted?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Priya",
+      "text": "That's the gap. We have no monitoring today. If accuracy quietly degraded over a season, we'd only find out from a failure we didn't catch. We'd need drift detection and some retraining loop, but we don't have an ML team to babysit it."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "So an assumption we should validate is that the pipeline has to be largely self-serve — automated retraining and alerting, not a data scientist in the loop every week. What's the tolerance for a false alarm versus a missed failure?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Priya",
+      "text": "A missed failure costs us a five-figure day. A false alarm just costs an hour of a technician's time. So we'd rather over-alert early on and tighten the threshold once we trust it."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "Good — that gives us a clear starting bias toward recall over precision. Last thing: any constraint on where the data can live? Cloud region, on-prem, compliance?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Priya",
+      "text": "Sensor telemetry can go to the cloud, that's fine. But it has to stay in-region for our EU sites, and we can't send anything that ties back to an individual worker's badge. The RFID picker IDs are the sensitive part."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "Clear. So we'll treat picker identity as a data-residency and privacy constraint from day one. That's a strong picture — predictive maintenance, edge scoring, self-serve retraining, recall-biased, EU-resident. Let me play back the requirements and we'll confirm each."
+    }
+  ]
+}

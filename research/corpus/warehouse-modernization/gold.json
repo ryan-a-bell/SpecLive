@@ -1,0 +1,198 @@
+{
+  "case_id": "warehouse-modernization",
+  "title": "Warehouse Modernization Discovery",
+  "system_ref": "system.md",
+  "source_transcript": "transcript.json",
+  "notes": "Derived from fixtures/warehouse_modernization.json authored artifacts+evidence. Evidence turn_index is 0-based into transcript.turns; quote is verbatim.",
+  "gold_artifacts": [
+    {
+      "id": "OBJ-001",
+      "artifact_type": "objective",
+      "canonical_statement": "Improve warehouse flow and prevent avoidable truck-loading delays.",
+      "key_phrases": [
+        "warehouse flow",
+        "delays",
+        "truck"
+      ],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": {
+        "turn_index": 1,
+        "quote": "find out about delays after a truck is already waiting"
+      }
+    },
+    {
+      "id": "NEED-001",
+      "artifact_type": "stakeholder_need",
+      "canonical_statement": "Warehouse supervisors need timely visibility into order status throughout picking.",
+      "key_phrases": [
+        "visibility",
+        "order status",
+        "real-time"
+      ],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": {
+        "turn_index": 1,
+        "quote": "do not have a reliable real-time view of where orders are in the picking process"
+      }
+    },
+    {
+      "id": "REQ-002",
+      "artifact_type": "requirement",
+      "canonical_statement": "The solution shall refresh order-status information within 30 seconds of a source-system state change.",
+      "key_phrases": [
+        "30 seconds",
+        "refresh",
+        "stale"
+      ],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": {
+        "turn_index": 3,
+        "quote": "within 30 seconds"
+      }
+    },
+    {
+      "id": "CON-003",
+      "artifact_type": "constraint",
+      "canonical_statement": "The solution shall operate on the rugged tablets currently issued to floor leads.",
+      "key_phrases": [
+        "rugged tablets",
+        "floor leads",
+        "device"
+      ],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": {
+        "turn_index": 4,
+        "quote": "rugged tablets the floor leads already carry"
+      }
+    },
+    {
+      "id": "CON-004",
+      "artifact_type": "constraint",
+      "canonical_statement": "The solution shall integrate with the existing WMS without requiring replacement this fiscal year.",
+      "key_phrases": [
+        "WMS",
+        "warehouse management system",
+        "replace"
+      ],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": true,
+      "evidence": {
+        "turn_index": 4,
+        "quote": "cannot replace the warehouse management system this year"
+      }
+    },
+    {
+      "id": "RISK-007",
+      "artifact_type": "risk",
+      "canonical_statement": "Available WMS interfaces may not support a 30-second end-to-end refresh target.",
+      "key_phrases": [
+        "integration",
+        "latency",
+        "refresh"
+      ],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": {
+        "turn_index": 3,
+        "quote": "within 30 seconds"
+      }
+    },
+    {
+      "id": "Q-005",
+      "artifact_type": "open_question",
+      "canonical_statement": "Which order states, exceptions, and alerts must supervisors see?",
+      "key_phrases": [
+        "order states",
+        "exceptions",
+        "alerts"
+      ],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": {
+        "turn_index": 1,
+        "quote": "picking process"
+      }
+    },
+    {
+      "id": "Q-006",
+      "artifact_type": "open_question",
+      "canonical_statement": "Which functions must remain available during degraded connectivity, and for how long?",
+      "key_phrases": [
+        "degraded connectivity",
+        "offline",
+        "remain available"
+      ],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": {
+        "turn_index": 5,
+        "quote": "connectivity is degraded"
+      }
+    },
+    {
+      "id": "CON-008",
+      "artifact_type": "constraint",
+      "canonical_statement": "The solution shall be delivered and live before the end of Q3, ahead of peak season.",
+      "key_phrases": [
+        "Q3",
+        "go-live",
+        "deadline"
+      ],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": {
+        "turn_index": 6,
+        "quote": "go-live by the end of Q3"
+      }
+    },
+    {
+      "id": "REQ-010",
+      "artifact_type": "requirement",
+      "canonical_statement": "The solution shall restrict pick reassignment to shift supervisors; floor staff have read-only status access.",
+      "key_phrases": [
+        "reassign",
+        "shift supervisors",
+        "read-only",
+        "role"
+      ],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": true,
+      "evidence": {
+        "turn_index": 7,
+        "quote": "Only shift supervisors should be able to reassign picks"
+      }
+    },
+    {
+      "id": "REQ-012",
+      "artifact_type": "requirement",
+      "canonical_statement": "The solution shall continue core status functions during connectivity loss and reconcile data on reconnection.",
+      "key_phrases": [
+        "offline",
+        "Wi-Fi",
+        "sync",
+        "reconnection"
+      ],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": {
+        "turn_index": 6,
+        "quote": "keep working when the Wi-Fi drops in the yard"
+      }
+    }
+  ]
+}
