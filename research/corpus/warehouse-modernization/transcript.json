@@ -1,0 +1,47 @@
+{
+  "title": "Warehouse Modernization Discovery",
+  "customer": "Acme Logistics",
+  "facilitator": "Ryan",
+  "turns": [
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Facilitator",
+      "text": "What is the biggest operational problem you are trying to solve in the warehouse today?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Customer",
+      "text": "Our supervisors do not have a reliable real-time view of where orders are in the picking process. We usually find out about delays after a truck is already waiting."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Facilitator",
+      "text": "How quickly would the data need to update for it to be useful?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Customer",
+      "text": "Ideally within 30 seconds. Anything over a couple of minutes is probably too stale to act on."
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Customer",
+      "text": "We also need it to work on the rugged tablets the floor leads already carry, and we cannot replace the warehouse management system this year."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Facilitator",
+      "text": "Which functions have to remain available if connectivity is degraded?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Customer",
+      "text": "It has to be live before our peak season, so we need go-live by the end of Q3, and it must keep working when the Wi-Fi drops in the yard."
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Customer",
+      "text": "Only shift supervisors should be able to reassign picks; floor staff just need to see status, not change it."
+    }
+  ]
+}

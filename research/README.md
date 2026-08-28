@@ -13,7 +13,7 @@ This is a local research tool, not part of the app or CI.
 ```
 transcript segments
   → ContextStrategy        (segment │ window │ full)   how much context each call sees
-  → LanguageModelProvider  (mock │ …)                  the actual derivation
+  → LanguageModelProvider  (mock │ openai_compatible)  the actual derivation
   → ArtifactCandidate[]    (+ evidence spans)
   → AnalysisService        persists as INFERRED artifacts + evidence links
 ```
@@ -38,10 +38,18 @@ methodology should reconstruct its requirements.
 `tier` (`must`/`should`/`nice`, weights recall), `implicitness`
 (`explicit`/`paraphrased`/`implicit`, slices results), `negation`, and
 `evidence` keyed by `turn_index` into `transcript.turns` with a **verbatim**
-quote. Authoring is hand-first — the gold *is* the measuring stick.
+quote. `validate_corpus.py` enforces that every quote is verbatim and every
+`turn_index`/type/tier is valid.
 
-Labeled cases:
-- `iot-warehouse-ml` — IoT predictive-maintenance ML pipeline (13 gold artifacts).
+Labeled cases (run `validate_corpus.py` to list):
+
+| case | speakers | gold | notes |
+|------|----------|------|-------|
+| `warehouse-modernization` | 2 (Q&A) | 11 | from the seeded demo fixture; mock heuristics were written for it |
+| `iot-warehouse-ml` | 2 (Q&A) | 13 | predictive-maintenance ML pipeline |
+| `hospital-bed-mgmt` | 1 (monologue) | 16 | single-speaker lecture — derivation from narrative, not Q&A |
+| `hpc-infrastructure` | 3 | 10 | multiple non-facilitator speakers |
+| `speclive-itself` | 2 (Q&A) | 12 | self-referential; ground truth verifiable from this repo's README |
 
 ## Metrics
 
@@ -58,40 +66,70 @@ axis separately:
 - **calibration** — is mean confidence higher for true positives than for
   spurious ones.
 
-Matching (`match.py`) is a transparent lexical matcher (token Jaccard + gold
-key-phrase hits) kept **independent** of evidence quality, so a right-idea /
-wrong-citation artifact still counts as recalled and its citation is graded
-separately. Swap in an embedding / LLM-judge matcher later without touching the
-metrics.
+## Matchers
+
+Alignment of derived↔gold is pluggable (`--matcher`), kept **independent of
+evidence-target agreement** so a right-idea / wrong-citation artifact still
+counts as recalled and its citation is graded separately.
+
+- `lexical` (default) — token Jaccard + gold key-phrase hits, folding in each
+  derived artifact's own (verbatim) evidence quote. Deterministic, no model.
+  Conservative on paraphrase.
+- `embedding` — cosine over an `EmbeddingProvider`. With a real embedding
+  provider it tolerates paraphrase; with the mock (hash) provider it runs but is
+  **not semantically meaningful** (a smoke path — expect inflated recall and low
+  type/turn accuracy until a real embedder is configured).
 
 ## Run it
 
 ```bash
 cd apps/api && pip install -e ".[dev]"      # one-time: the harness imports app.*
 cd ../../research/harness
-python run.py                               # all cases × all strategies, mock
-python run.py --case iot-warehouse-ml --strategies segment full
-python run.py --threshold 0.35
+
+python validate_corpus.py                   # check every gold quote is verbatim
+python run.py                               # all cases × strategies, mock, lexical
+python run.py --case warehouse-modernization
+python run.py --providers mock openai_compatible   # LLM auto-skips if no key
+python run.py --matcher embedding
+python run.py --perturb all                 # stress test: clean vs perturbed
 ```
 
-Writes `research/results/latest.{json,md}`. The harness binds a throwaway SQLite
-DB and never touches your dev database.
+Writes `results/latest.{json,md}` (or `results/perturbation.{json,md}` with
+`--perturb`). A throwaway SQLite DB is used; your dev database is never touched.
 
-## Baseline finding (mock provider)
+### Real-LLM provider
 
-See `results/baseline.md`. The keyword mock recovers **0/13** on
-`iot-warehouse-ml` and all three context strategies score identically — expected,
-and the point of the baseline:
+`openai_compatible` is in the sweep but **skips with a printed reason unless
+`LLM_API_KEY` is set** (with `LLM_API_BASE` / `LLM_MODEL`). Point it at OpenAI, a
+local Ollama/vLLM server, or Anthropic's OpenAI-compatible endpoint, then re-run
+the identical corpus to measure lift over the mock baseline. No code change —
+config only.
 
-- The mock reads one customer segment at a time via regex, so it cannot use a
-  facilitator's paraphrase or reason across turns; context strategy makes no
-  difference to it (`analyze_unit` falls back to per-segment).
-- It **mis-fires**: e.g. it derives a "Role-based access" *requirement* from
-  "…only fires when the WAN is up…" — a concrete precision failure.
+### Stress tests
 
-This is the measuring stick for the real-LLM path: re-run the identical corpus
-through `openai_compatible` (Anthropic's OpenAI-compatible endpoint) to measure
-the lift.
+`perturb.py` transforms (`stt_noise`, `speaker_swap`, `distractor_padding`) are
+applied to a clean transcript and re-scored. `--perturb` reports **recovery
+degradation** vs clean (only recovery, since perturbations can move/rewrite turns
+and invalidate the gold `turn_index` used by traceability).
+
+## Baseline findings (mock provider, lexical matcher)
+
+See `results/baseline.md`. Highlights:
+
+- **The corpus discriminates.** `warehouse-modernization` scores ~27% recall /
+  60% precision / 100% traceability-on-matched; the other four score **0%**. The
+  difference is that the mock's keyword rules were written against the warehouse
+  scenario — everywhere else its regexes don't fire on the actual phrasing, and
+  it even mis-fires (e.g. a "Role-based access" *requirement* derived from
+  "…only fires when the WAN is up…").
+- **Context strategy is inert for the mock.** `segment` / `window` / `full` score
+  identically — the mock reads one customer segment at a time and can't use
+  cross-turn context. This is the measuring stick for the real LLM, which
+  overrides `analyze_unit` to reason over whole units.
+- **`speaker_swap` is the sharpest brittleness** (`--perturb`): flipping
+  customer/facilitator labels drops warehouse recall ~18pp, because the mock only
+  analyzes customer turns — i.e. the methodology is fragile to diarization
+  errors. `stt_noise` / `distractor_padding` barely move the mock here.
 
 ## Layout
 
@@ -100,21 +138,23 @@ research/
   README.md
   corpus/<case-id>/{transcript.json, system.md, gold.json}
   harness/
-    _bootstrap.py   wire real services against a throwaway DB
-    ingest.py       transcript.json → session + ordered segments (turn_index → segment)
-    run.py          entry: sweep provider × strategy, score, report
-    match.py        derived ↔ gold alignment
-    score.py        the four metric families
-    report.py       markdown rendering
-    perturb.py      stress-test transforms (stt noise, speaker swap, distractors)
-  results/          run outputs (latest.* gitignored; baseline.md committed)
+    _bootstrap.py       wire real services against a throwaway DB; provider/embedder factories
+    ingest.py           transcript.json → session + ordered segments (turn_index → segment)
+    run.py              entry: sweep provider × strategy × matcher; --perturb
+    match.py            pluggable matchers (lexical, embedding)
+    score.py            the four metric families
+    report.py           markdown rendering (summary, per-run, perturbation)
+    perturb.py          stress-test transforms
+    validate_corpus.py  gold-quote / schema validator
+  results/              run outputs (latest.*/perturbation.* gitignored; baseline.md committed)
 ```
 
 ## Next steps
 
-1. Label the other three existing conversations + the warehouse fixture.
-2. Author a new known-system case where the spec is verifiable (e.g. SpecLive
-   itself).
-3. Wire `perturb.py` into `run.py` behind a `--perturb` flag; report degradation.
-4. Add the real LLM provider to the sweep and compare against this baseline.
-5. Add an embedding/LLM-judge matcher for the real-LLM run (phrasings diverge).
+1. Wire a real embedding provider so `--matcher embedding` is semantic (the app
+   only registers `mock` today).
+2. Run the real LLM (`openai_compatible`) over the corpus and compare to baseline.
+3. Add more perturbations (negation flips, implicit-only paraphrase variants) and
+   report traceability under index-preserving transforms.
+4. Grow the corpus toward harder, more paraphrased phrasing where the keyword
+   mock is guaranteed to fail and only a real model can recover.
