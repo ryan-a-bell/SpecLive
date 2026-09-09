@@ -146,7 +146,36 @@ research/
     report.py           markdown rendering (summary, per-run, perturbation)
     perturb.py          stress-test transforms
     validate_corpus.py  gold-quote / schema validator
+    frames.py           run → pandas DataFrames (inference ledger / segment coverage / dependencies)
+  notebooks/
+    inference_explorer.ipynb   interactive per-artifact view + timeline/graph visualizations
   results/              run outputs (latest.*/perturbation.* gitignored; baseline.md committed)
+```
+
+## Interactive exploration (`notebooks/inference_explorer.ipynb`)
+
+`run.py` reports methodology quality at the **aggregate/metrics** level. The
+notebook is the complementary **per-artifact** view — the backend of SpecLive's
+inference UI, as data. It drives the same real pipeline over one case and
+reshapes the result (via `harness/frames.py`) into three DataFrames:
+
+- **inference ledger** — one row per derived artifact: `artifact_type` (what it
+  was inferred to be), `confidence`, the evidence `segment_seq` / `start_time` /
+  `evidence_quote` (which words, and when), `evidence_relationship`, and
+  `depends_on` / `dependency_kind` (reinforcement vs. conflict with other
+  artifacts). Optional gold columns (`matched_gold_id`, `correct_type`) when a
+  `gold.json` exists.
+- **segment coverage** — one row per transcript turn, flagged inferred vs. not.
+- **dependencies** — cross-artifact edges, labeled `reinforcement` / `conflict`
+  / `related` (a transparent lexical v1; a model pass can replace it later).
+
+It renders an inference timeline, a type distribution, and a dependency graph
+(green = reinforcement, red = conflict). `frames.py` holds the column contract
+(`LEDGER_COLUMNS`, …) and is importable by `app`-side code, not just the notebook.
+
+```bash
+cd apps/api && pip install -e ".[dev]" && pip install pandas jupyter matplotlib networkx
+jupyter lab research/notebooks/inference_explorer.ipynb   # or: run.py-style, headless via nbconvert
 ```
 
 ## Next steps
@@ -158,3 +187,6 @@ research/
    report traceability under index-preserving transforms.
 4. Grow the corpus toward harder, more paraphrased phrasing where the keyword
    mock is guaranteed to fail and only a real model can recover.
+5. Replace `frames.detect_dependencies`' lexical heuristic with a model pass so
+   `conflict` means a genuine contradiction (negation-aware), then surface the
+   ledger/coverage/dependency frames from an `app`-side endpoint.
