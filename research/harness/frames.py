@@ -58,8 +58,11 @@ LEDGER_COLUMNS = [
 
 SEGMENT_COLUMNS = [
     "segment_seq", "start_time", "end_time", "speaker", "speaker_name", "text",
-    "inferred", "artifact_count", "artifact_ids", "artifact_types",
-    "max_confidence",
+    # what the LLM actually saw for this segment (depends on the context strategy)
+    "context",
+    # what came back, per segment (parallel lists, one entry per artifact)
+    "inferred", "requirements", "inferred_types", "confidences",
+    "artifact_count", "artifact_ids", "max_confidence",
 ]
 
 DEPENDENCY_COLUMNS = [
@@ -155,14 +158,41 @@ def build_ledger(
 
 # --- segment coverage: one row per transcript turn -------------------------
 
+def build_context_map(segments: list, context_strategy) -> dict[int, str]:
+    """For each segment index, the exact text the LLM saw for it — i.e. the
+    joined text of the :class:`AnalysisUnit` the given ``ContextStrategy`` puts
+    that segment into.
+
+    With ``segment`` the context is just that turn; with ``window`` it's the
+    window; with ``full`` it's the whole transcript. This is the "chunk /
+    context that was passed to the LLM" column.
+    """
+    seg_index = {s.id: i for i, s in enumerate(segments)}
+    ctx: dict[int, str] = {}
+    for unit in context_strategy.build_units(segments):
+        unit_text = "\n".join(
+            f"{(s.speaker_name or s.speaker.value)}: {s.text}" for s in unit.segments
+        )
+        for s in unit.segments:
+            ctx[seg_index[s.id]] = unit_text
+    return ctx
+
+
 def build_segment_coverage(
     *,
     derived: list,
     evidence_by_artifact: dict[str, list],
     segments: list,
+    context_strategy=None,
 ) -> pd.DataFrame:
-    """One row per transcript segment, flagged with whether anything was
-    inferred from it — the "what's inferred, what's not" view."""
+    """One row per transcript segment: what the LLM saw (``context``) and what
+    it inferred from that segment (parallel ``requirements`` / ``inferred_types``
+    / ``confidences`` lists) — the "what's inferred, what's not" view.
+
+    Pass ``context_strategy`` (from ``get_context_strategy``) to fill the
+    ``context`` column with the actual unit text; omit it and ``context`` is the
+    segment's own text.
+    """
     seg_index = {s.id: i for i, s in enumerate(segments)}
     hits: dict[int, list] = {i: [] for i in range(len(segments))}
     for a in derived:
@@ -172,9 +202,12 @@ def build_segment_coverage(
         for i in cited:
             hits[i].append(a)
 
+    context = (build_context_map(segments, context_strategy)
+               if context_strategy is not None else None)
+
     rows = []
     for i, seg in enumerate(segments):
-        arts = hits[i]
+        arts = sorted(hits[i], key=lambda a: float(a.confidence), reverse=True)
         rows.append(
             {
                 "segment_seq": i,
@@ -183,10 +216,13 @@ def build_segment_coverage(
                 "speaker": seg.speaker.value,
                 "speaker_name": seg.speaker_name,
                 "text": seg.text,
+                "context": context[i] if context is not None else seg.text,
                 "inferred": bool(arts),
+                "requirements": [a.statement for a in arts],
+                "inferred_types": [a.artifact_type.value for a in arts],
+                "confidences": [round(float(a.confidence), 3) for a in arts],
                 "artifact_count": len(arts),
                 "artifact_ids": [a.id for a in arts],
-                "artifact_types": sorted({a.artifact_type.value for a in arts}),
                 "max_confidence": round(max((float(a.confidence) for a in arts),
                                             default=0.0), 3),
             }
