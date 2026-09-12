@@ -26,11 +26,23 @@ def load_transcript(path: Path) -> dict:
     return json.loads(path.read_text())
 
 
-def ingest(ctx: Context, transcript: dict) -> list:
+def ingest(
+    ctx: Context,
+    transcript: dict,
+    *,
+    words_per_minute: float | None = None,
+    gap_seconds: float = 0.5,
+) -> list:
     """Create the session and its segments; return segments in turn order.
 
     The returned list is indexed by ``turn_index`` (position in
     ``transcript['turns']``), so ``segments[i].id`` is the segment for turn i.
+
+    Timing: by default each turn gets synthetic 30s spacing (kept stable so the
+    scoring harness's window strategy is meaningful). Pass ``words_per_minute``
+    to instead estimate each turn's duration from its word count and accumulate
+    (with ``gap_seconds`` between turns) — a more realistic clock that matches a
+    word-count ``time_range`` computed the same way.
     """
 
     session = ctx.sessions.create(
@@ -41,14 +53,21 @@ def ingest(ctx: Context, transcript: dict) -> list:
     ctx.session_id = session.id  # type: ignore[attr-defined]
 
     segments = []
+    clock = 0.0
     for i, turn in enumerate(transcript["turns"]):
         speaker = _SPEAKER_MAP.get(turn["speaker"], Speaker.UNKNOWN)
+        if words_per_minute:
+            start = clock
+            end = start + len((turn["text"] or "").split()) / words_per_minute * 60.0
+            clock = end + gap_seconds
+        else:
+            start, end = float(i * 30), float(i * 30 + 25)  # synthetic 30s spacing
         seg = ctx.transcript.add_segment(
             session.id,
             speaker=speaker,
             text=turn["text"],
-            start_time=float(i * 30),  # synthetic 30s spacing → windows are meaningful
-            end_time=float(i * 30 + 25),
+            start_time=start,
+            end_time=end,
             speaker_name=turn.get("speaker_name"),
         )
         segments.append(seg)

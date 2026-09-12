@@ -58,11 +58,19 @@ LEDGER_COLUMNS = [
 
 SEGMENT_COLUMNS = [
     "segment_seq", "start_time", "end_time", "speaker", "speaker_name", "text",
-    # what the LLM actually saw for this segment (depends on the context strategy)
-    "context",
+    # the chunk (one or more combined time ranges) actually passed to the LLM.
+    # chunk_id groups the turns that share a chunk; context_range is the
+    # combined time span; context_tokens is the chunk's size vs the model's
+    # context window (the reason chunks exist at all).
+    "chunk_id", "context_range", "context_tokens", "context",
     # what came back, per segment (parallel lists, one entry per artifact)
     "inferred", "requirements", "inferred_types", "confidences",
     "artifact_count", "artifact_ids", "max_confidence",
+]
+
+CHUNK_COLUMNS = [
+    "chunk_id", "turn_start", "turn_end", "n_turns",
+    "context_range", "chars", "context_tokens", "text",
 ]
 
 DEPENDENCY_COLUMNS = [
@@ -158,24 +166,56 @@ def build_ledger(
 
 # --- segment coverage: one row per transcript turn -------------------------
 
-def build_context_map(segments: list, context_strategy) -> dict[int, str]:
-    """For each segment index, the exact text the LLM saw for it — i.e. the
-    joined text of the :class:`AnalysisUnit` the given ``ContextStrategy`` puts
-    that segment into.
+def approx_tokens(text: str, chars_per_token: float = 4.0) -> int:
+    """Rough token count for a budget check (~4 chars/token for English).
 
-    With ``segment`` the context is just that turn; with ``window`` it's the
-    window; with ``full`` it's the whole transcript. This is the "chunk /
-    context that was passed to the LLM" column.
+    Deliberately model-agnostic and dependency-free — good enough to decide
+    "does this chunk fit the context window". Swap in a real tokenizer
+    (``tiktoken`` / the provider's counter) when you need exact numbers.
+    """
+    return int(len(text or "") / chars_per_token + 0.5)
+
+
+def _fmt_range(seconds: float | None) -> str:
+    if seconds is None:
+        return "?"
+    seconds = int(round(seconds))
+    h, rem = divmod(seconds, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+
+
+def build_context_chunks(segments: list, context_strategy) -> pd.DataFrame:
+    """One row per *chunk* the strategy sends to the LLM — the combined time
+    ranges, and the size that has to fit the model's context window.
+
+    A chunk is one :class:`AnalysisUnit`: with ``segment`` it's a single turn,
+    with ``window`` it's however many turns fall inside the time window, with
+    ``full`` it's the whole conversation. ``context_tokens`` is what you check
+    against the model's context window — that budget is the whole reason chunks
+    exist.
     """
     seg_index = {s.id: i for i, s in enumerate(segments)}
-    ctx: dict[int, str] = {}
-    for unit in context_strategy.build_units(segments):
-        unit_text = "\n".join(
-            f"{(s.speaker_name or s.speaker.value)}: {s.text}" for s in unit.segments
+    rows = []
+    for cid, unit in enumerate(context_strategy.build_units(segments)):
+        us = unit.segments
+        text = "\n".join(
+            f"{(s.speaker_name or s.speaker.value)}: {s.text}" for s in us
         )
-        for s in unit.segments:
-            ctx[seg_index[s.id]] = unit_text
-    return ctx
+        idxs = [seg_index[s.id] for s in us]
+        rows.append(
+            {
+                "chunk_id": cid,
+                "turn_start": min(idxs),
+                "turn_end": max(idxs),
+                "n_turns": len(us),
+                "context_range": f"{_fmt_range(us[0].start_time)}–{_fmt_range(us[-1].end_time)}",
+                "chars": len(text),
+                "context_tokens": approx_tokens(text),
+                "text": text,
+            }
+        )
+    return pd.DataFrame(rows, columns=CHUNK_COLUMNS)
 
 
 def build_segment_coverage(
@@ -185,12 +225,13 @@ def build_segment_coverage(
     segments: list,
     context_strategy=None,
 ) -> pd.DataFrame:
-    """One row per transcript segment: what the LLM saw (``context``) and what
-    it inferred from that segment (parallel ``requirements`` / ``inferred_types``
-    / ``confidences`` lists) — the "what's inferred, what's not" view.
+    """One row per transcript segment: which chunk it was sent to the LLM in
+    (``chunk_id`` / ``context_range`` / ``context_tokens`` / ``context``) and
+    what it inferred (parallel ``requirements`` / ``inferred_types`` /
+    ``confidences`` lists) — the "what's inferred, what's not" view.
 
-    Pass ``context_strategy`` (from ``get_context_strategy``) to fill the
-    ``context`` column with the actual unit text; omit it and ``context`` is the
+    Pass ``context_strategy`` (from ``get_context_strategy``) to fill the chunk
+    columns with the actual combined units; omit it and the chunk is the
     segment's own text.
     """
     seg_index = {s.id: i for i, s in enumerate(segments)}
@@ -202,12 +243,18 @@ def build_segment_coverage(
         for i in cited:
             hits[i].append(a)
 
-    context = (build_context_map(segments, context_strategy)
-               if context_strategy is not None else None)
+    # map each segment index to its chunk's columns
+    chunk_of: dict[int, dict] = {}
+    if context_strategy is not None:
+        chunks = build_context_chunks(segments, context_strategy)
+        for _, ch in chunks.iterrows():
+            for i in range(ch.turn_start, ch.turn_end + 1):
+                chunk_of[i] = ch
 
     rows = []
     for i, seg in enumerate(segments):
         arts = sorted(hits[i], key=lambda a: float(a.confidence), reverse=True)
+        ch = chunk_of.get(i)
         rows.append(
             {
                 "segment_seq": i,
@@ -216,7 +263,12 @@ def build_segment_coverage(
                 "speaker": seg.speaker.value,
                 "speaker_name": seg.speaker_name,
                 "text": seg.text,
-                "context": context[i] if context is not None else seg.text,
+                "chunk_id": ch.chunk_id if ch is not None else i,
+                "context_range": ch.context_range if ch is not None
+                else f"{_fmt_range(seg.start_time)}–{_fmt_range(seg.end_time)}",
+                "context_tokens": ch.context_tokens if ch is not None
+                else approx_tokens(seg.text),
+                "context": ch.text if ch is not None else seg.text,
                 "inferred": bool(arts),
                 "requirements": [a.statement for a in arts],
                 "inferred_types": [a.artifact_type.value for a in arts],
