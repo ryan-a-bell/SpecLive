@@ -105,9 +105,12 @@ def build_embedder() -> EmbeddingProvider:
 class Context:
     """A wired, wiped set of services sharing one DB session."""
 
-    def __init__(self, provider_name: str, strategy_name: str) -> None:
+    def __init__(
+        self, provider_name: str, strategy_name: str, window_seconds: float = 300.0
+    ) -> None:
         self.provider_name = provider_name
         self.strategy_name = strategy_name
+        self.window_seconds = window_seconds
         self.db = SessionLocal()
         self._wipe()
         self.repo = SqlAlchemySessionRepository(self.db)
@@ -120,7 +123,7 @@ class Context:
             self.repo,
             self.artifacts,
             provider,
-            context_strategy=get_context_strategy(strategy_name),
+            context_strategy=get_context_strategy(strategy_name, window_seconds=window_seconds),
         )
 
     def _wipe(self) -> None:
@@ -132,9 +135,11 @@ class Context:
         self.db.close()
 
 
-def make_context(provider_name: str, strategy_name: str) -> Context:
+def make_context(
+    provider_name: str, strategy_name: str, window_seconds: float = 300.0
+) -> Context:
     global _SCHEMA_READY
     if not _SCHEMA_READY:
         create_all()
         _SCHEMA_READY = True
-    return Context(provider_name, strategy_name)
+    return Context(provider_name, strategy_name, window_seconds=window_seconds)
