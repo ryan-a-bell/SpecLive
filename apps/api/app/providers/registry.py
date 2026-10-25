@@ -17,21 +17,34 @@ from .mock import (
     MockLanguageModelProvider,
     MockSpeechToTextProvider,
 )
+from .openai_compatible import OpenAICompatibleLanguageModelProvider
 from .openai_realtime import OpenAIRealtimeProvider
 from .replay import ReplaySpeechToTextProvider
 from .wispr_flow import WisprFlowProvider
 
-_LLM_PROVIDERS: dict[str, type[LanguageModelProvider]] = {"mock": MockLanguageModelProvider}
 _EMBEDDING_PROVIDERS: dict[str, type[EmbeddingProvider]] = {"mock": MockEmbeddingProvider}
 
 
 @lru_cache
 def get_llm_provider() -> LanguageModelProvider:
-    provider_id = get_settings().llm_provider
-    cls = _LLM_PROVIDERS.get(provider_id)
-    if cls is None:
-        raise ValueError(f"Unsupported LLM provider: {provider_id}")
-    return cls()
+    settings = get_settings()
+    factories: dict[str, Callable[[], LanguageModelProvider]] = {
+        "mock": MockLanguageModelProvider,
+        # Speaks the OpenAI chat-completions wire format — point LLM_API_BASE
+        # at OpenAI, a local Ollama/vLLM server, Anthropic's OpenAI-compatible
+        # endpoint, or anything else implementing that contract. No adapter
+        # change needed to switch backends, only config.
+        "openai_compatible": lambda: OpenAICompatibleLanguageModelProvider(
+            base_url=settings.llm_api_base,
+            api_key=settings.llm_api_key or "",
+            model=settings.llm_model,
+            timeout=settings.llm_timeout_seconds,
+        ),
+    }
+    factory = factories.get(settings.llm_provider)
+    if factory is None:
+        raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
+    return factory()
 
 
 @lru_cache

@@ -82,6 +82,25 @@ export const DiscoverySession = z.object({
 });
 export type DiscoverySession = z.infer<typeof DiscoverySession>;
 
+export const WorkspaceSession = z.object({
+  id: z.string(),
+  title: z.string(),
+  customer: z.string(),
+  status: z.string(),
+});
+export type WorkspaceSession = z.infer<typeof WorkspaceSession>;
+
+export const Workspace = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().default(""),
+  industry: z.string().default(""),
+  website: z.string().default(""),
+  session_count: z.number(),
+  sessions: z.array(WorkspaceSession),
+});
+export type Workspace = z.infer<typeof Workspace>;
+
 export const TranscriptSegment = z.object({
   id: z.string(),
   session_id: z.string(),
@@ -239,6 +258,7 @@ export const ScriptDefinition = z.object({
   name: z.string(),
   version: z.string(),
   description: z.string(),
+  archived: z.boolean(),
   stages: z.array(ScriptStage),
 });
 export type ScriptDefinition = z.infer<typeof ScriptDefinition>;
@@ -325,6 +345,25 @@ export const TranscriptionServerFrame = z.union([
 ]);
 export type TranscriptionServerFrame = z.infer<typeof TranscriptionServerFrame>;
 
+export const AnalysisSettings = z.object({
+  context_mode: z.string(),
+  window_seconds: z.number(),
+  auto_analyze: z.boolean(),
+  llm_provider: z.string(),
+  llm_api_base: z.string().nullable().optional(),
+  llm_model: z.string().nullable().optional(),
+});
+export type AnalysisSettings = z.infer<typeof AnalysisSettings>;
+
+export const StorageSettings = z.object({
+  backend: z.string(),
+  persist_audio: z.boolean(),
+  schema_version: z.string(),
+  // Only present for the local backend.
+  local_root: z.string().nullable().optional(),
+});
+export type StorageSettings = z.infer<typeof StorageSettings>;
+
 export const TranscriptionCapability = z.object({
   available: z.boolean(),
   supports_partials: z.boolean(),
@@ -337,3 +376,12 @@ export const TranscriptionCapability = z.object({
   max_frame_seconds: z.number().int().positive(),
 });
 export type TranscriptionCapability = z.infer<typeof TranscriptionCapability>;
+
+export const FileTranscriptionResult = z.object({
+  session_id: z.string(),
+  source_filename: z.string().nullable().optional(),
+  audio_seconds: z.number(),
+  segment_count: z.number().int().nonnegative(),
+  segments: z.array(z.record(z.unknown())),
+});
+export type FileTranscriptionResult = z.infer<typeof FileTranscriptionResult>;

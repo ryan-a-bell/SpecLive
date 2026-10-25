@@ -1,0 +1,940 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SpecLive — Workspaces (Switcher)</title>
+<meta name="description" content="Workspaces group multiple discovery conversations; a top switcher moves between them, with a cross-section Overview and requirements register." />
+<style>
+:root{
+  --bg:#09101d;--panel:#121b2d;--panel2:#0e1727;--panel3:#18243a;--border:#293a57;
+  --text:#eef4fb;--muted:#9eb0c7;--blue:#67a8ff;--green:#64d69b;--yellow:#ffd36f;
+  --red:#ff7f8f;--purple:#b693ff;--orange:#ffab68;--shadow:0 16px 42px rgba(0,0,0,.28);
+  --rail:280px;--rail-collapsed:68px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at top left,rgba(84,119,255,.13),transparent 28%),linear-gradient(180deg,#08101d,#0c1424);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+button,textarea,input{font:inherit}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#22344f;border-radius:9px}
+
+/* ---- shell layout ------------------------------------------------------ */
+.shell{display:grid;grid-template-columns:var(--rail) 1fr;min-height:100vh;transition:grid-template-columns .22s ease}
+.shell.collapsed{grid-template-columns:var(--rail-collapsed) 1fr}
+
+/* ---- sidebar ----------------------------------------------------------- */
+.sidebar{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:2px;
+  border-right:1px solid var(--border);background:linear-gradient(180deg,rgba(11,18,32,.96),rgba(9,15,28,.98));
+  backdrop-filter:blur(14px);overflow:hidden;z-index:30}
+.side-top{display:flex;align-items:center;gap:11px;padding:14px 14px 10px}
+.hamburger{width:38px;height:38px;flex:0 0 auto;border:1px solid var(--border);background:var(--panel3);border-radius:11px;
+  display:grid;place-items:center;cursor:pointer;color:var(--text)}
+.hamburger:hover{border-color:#49658f}
+.hamburger span{display:block;width:16px;height:2px;background:currentColor;border-radius:2px;margin:2px 0;transition:.2s}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.mark{width:34px;height:34px;flex:0 0 auto;border-radius:10px;display:grid;place-items:center;font-weight:900;
+  background:linear-gradient(135deg,var(--blue),var(--purple));box-shadow:0 10px 25px rgba(103,168,255,.3);font-size:13px}
+.brand .name{font-size:15px;font-weight:850;line-height:1}
+.brand .tag{font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap}
+
+.side-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:6px 10px 10px}
+.new-btn{width:100%;display:flex;align-items:center;gap:10px;border:none;border-radius:12px;padding:11px 12px;cursor:pointer;
+  color:#fff;font-weight:750;background:linear-gradient(135deg,#3b82e8,#6658df);box-shadow:0 8px 22px rgba(59,130,232,.28)}
+.new-btn:hover{filter:brightness(1.07)}
+.new-btn .plus{font-size:18px;line-height:1;flex:0 0 auto;width:20px;text-align:center}
+
+.search{margin:11px 2px 4px;position:relative}
+.search input{width:100%;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:10px;
+  padding:9px 10px 9px 32px;outline:none;font-size:12px}
+.search input:focus{border-color:var(--blue)}
+.search .mag{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+
+.section-label{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);font-weight:800;padding:14px 6px 6px}
+.section-label .count{margin-left:auto;font-weight:700;color:#6f83a0}
+
+/* conversation rows */
+.convo{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start;width:100%;text-align:left;
+  border:1px solid transparent;background:transparent;color:var(--text);border-radius:11px;padding:9px 9px;cursor:pointer;margin:2px 0}
+.convo:hover{background:rgba(255,255,255,.04)}
+.convo.active{background:rgba(103,168,255,.12);border-color:rgba(103,168,255,.42)}
+.convo .ava{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:10px;font-weight:850;
+  background:#22344f;color:#cfe0f6}
+.convo.active .ava{background:linear-gradient(135deg,#274a8f,#5b4bb0)}
+.convo .cust{font-size:12.5px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.convo .opp{font-size:11px;color:var(--muted);line-height:1.3;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.convo .meta{display:flex;align-items:center;gap:7px;margin-top:6px;font-size:9.5px;color:#7d90ac;flex-wrap:wrap}
+.convo .chip{border:1px solid var(--border);border-radius:99px;padding:2px 6px;background:var(--panel2)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 0 4px rgba(255,127,143,.16);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.done-dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.draft-dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+
+/* view switcher (replaces top tabs) */
+.nav-item{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;
+  border:1px solid transparent;background:transparent;color:var(--text);border-radius:10px;padding:9px 9px;cursor:pointer;margin:1px 0;font-size:12.5px;font-weight:650}
+.nav-item:hover{background:rgba(255,255,255,.04)}
+.nav-item.active{background:rgba(182,147,255,.12);border-color:rgba(182,147,255,.4)}
+.nav-item .ico{width:22px;text-align:center;color:var(--muted);font-size:14px}
+.nav-item.active .ico{color:var(--purple)}
+.nav-item .kbd{font-size:9.5px;color:#6f83a0;border:1px solid var(--border);border-radius:6px;padding:1px 5px;background:var(--panel2)}
+.nav-sub{margin:2px 0 2px 14px;padding-left:8px;border-left:1px solid #2a3c58;display:grid}
+.nav-sub .nav-item{grid-template-columns:16px 1fr;font-size:12px;font-weight:600;padding:7px 8px}
+.nav-sub .nav-item .ico{width:16px;font-size:11px}
+
+/* footer */
+.side-foot{border-top:1px solid var(--border);padding:10px;display:grid;gap:8px;background:rgba(9,15,28,.7)}
+.mode-pill{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);border:1px solid var(--border);
+  background:var(--panel2);border-radius:10px;padding:8px 10px}
+.mode-pill .d{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:0 0 auto}
+.user{display:flex;align-items:center;gap:10px;padding:4px 2px;cursor:pointer;border-radius:10px}
+.user:hover{background:rgba(255,255,255,.04)}
+.user .uava{width:30px;height:30px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:850;
+  background:#24433a;color:#c6f4df}
+.user .uname{font-size:12px;font-weight:700;line-height:1}
+.user .urole{font-size:10px;color:var(--muted);margin-top:2px}
+.user .gear{margin-left:auto;color:var(--muted);font-size:15px}
+
+/* collapsed rail behavior */
+.collapse-hide{transition:opacity .12s}
+.shell.collapsed .collapse-hide{opacity:0;width:0;height:0;overflow:hidden;pointer-events:none;margin:0;padding:0;border:0}
+.shell.collapsed .side-top{justify-content:center;padding:14px 0 10px}
+.shell.collapsed .new-btn{justify-content:center;padding:11px 0}
+.shell.collapsed .search{display:none}
+.shell.collapsed .section-label{justify-content:center;padding:12px 0 4px;font-size:0}
+.shell.collapsed .section-label::before{content:"•••";font-size:11px;color:#4a5c78}
+.shell.collapsed .convo{grid-template-columns:1fr;justify-items:center;padding:8px 0}
+.shell.collapsed .nav-item{grid-template-columns:1fr;justify-items:center;padding:9px 0}
+.shell.collapsed .nav-sub{margin-left:0;border-left:0;padding-left:0}
+.shell.collapsed .side-foot{padding:10px 0;justify-items:center}
+.shell.collapsed .user{justify-content:center}
+.shell.collapsed .mode-pill{justify-content:center;padding:8px}
+
+/* ---- main region ------------------------------------------------------- */
+.main{min-width:0;display:flex;flex-direction:column;min-height:100vh}
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  height:60px;padding:0 18px;border-bottom:1px solid var(--border);background:rgba(8,15,28,.82);backdrop-filter:blur(12px)}
+.crumb{display:flex;align-items:center;gap:9px;min-width:0}
+.crumb .m-ham{display:none}
+.crumb .ctitle{font-size:15px;font-weight:820;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumb .csub{font-size:11px;color:var(--muted);white-space:nowrap}
+.crumb .sep{color:#3d5479}
+.top-actions{display:flex;align-items:center;gap:9px}
+.status{display:flex;gap:7px;align-items:center;color:var(--muted);font-size:12px;border:1px solid var(--border);
+  background:var(--panel2);border-radius:999px;padding:7px 10px;white-space:nowrap}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 0 5px rgba(255,127,143,.14)}
+.btn{border:1px solid var(--border);background:var(--panel3);color:var(--text);border-radius:10px;padding:8px 12px;cursor:pointer;font-size:12.5px}
+.btn:hover{border-color:#49658f}
+.btn.primary{border:none;background:linear-gradient(135deg,#3b82e8,#6658df);font-weight:700}
+
+.content{padding:14px 16px 26px;flex:1}
+.summary{display:grid;grid-template-columns:1.6fr repeat(4,.8fr);gap:10px;margin-bottom:12px}
+.metric{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow)}
+.metric .label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.metric .value{font-weight:800;font-size:14px;margin-top:4px}
+
+.panel{background:rgba(18,27,45,.96);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.panel-header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 13px;border-bottom:1px solid var(--border);background:rgba(24,36,58,.72)}
+.panel-title{font-size:13px;font-weight:800}
+.panel-subtitle{font-size:11px;color:var(--muted);margin-top:3px}
+.panel-body{padding:12px}
+
+.grid3{display:grid;grid-template-columns:1.05fr 1.1fr 1.05fr;gap:12px;align-items:start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+
+/* transcript */
+.message{display:grid;grid-template-columns:32px 1fr;gap:10px;margin-bottom:13px;padding:8px;border:1px solid transparent;border-radius:11px}
+.message.selected{border-color:var(--blue);background:rgba(103,168,255,.08)}
+.avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;background:#263a5c}
+.avatar.customer{background:#24433a;color:#c6f4df}
+.speakerline{display:flex;gap:8px;align-items:center;margin-bottom:4px}
+.speaker{font-size:12px;font-weight:800}
+.time{font-size:10px;color:var(--muted)}
+.message-text{font-size:12.5px;line-height:1.5;color:#dfe8f4}
+.evidence{padding:1px 3px;border-radius:4px;cursor:pointer;border-bottom:1px solid currentColor}
+.evidence.green{background:rgba(100,214,155,.14);color:#cdf6e3}
+.evidence.blue{background:rgba(103,168,255,.14);color:#d6e7ff}
+.evidence.orange{background:rgba(255,171,104,.14);color:#ffd5b5}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.badge{font-size:10px;border-radius:999px;padding:4px 7px;border:1px solid var(--border);color:var(--muted);background:var(--panel2)}
+
+/* tree */
+.tree{font-size:12px}
+.node-row{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;padding:7px 8px;border-radius:9px;border:1px solid transparent;cursor:pointer}
+.node-row:hover{background:rgba(255,255,255,.035)}
+.node-row.selected{background:rgba(103,168,255,.1);border-color:rgba(103,168,255,.45)}
+.type-dot{width:9px;height:9px;border-radius:50%}
+.type-dot.objective{background:var(--purple)}.type-dot.need{background:var(--blue)}.type-dot.requirement{background:var(--green)}
+.type-dot.constraint{background:var(--orange)}.type-dot.question{background:var(--yellow)}.type-dot.risk{background:var(--red)}
+.node-label{font-weight:700}.node-meta{font-size:10px;color:var(--muted)}
+.children{margin-left:16px;border-left:1px solid #314560;padding-left:8px}
+
+/* script + questions */
+.script-progress{display:flex;gap:6px;margin-bottom:11px}
+.script-step{height:6px;flex:1;border-radius:99px;background:#263752}
+.script-step.done{background:var(--green)}
+.script-step.current{background:var(--yellow);box-shadow:0 0 0 3px rgba(255,211,111,.12)}
+.script-kicker{font-size:10px;color:var(--yellow);text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+.script-title{font-size:14px;font-weight:850;margin-top:4px}
+.script-copy{font-size:11px;color:var(--muted);line-height:1.45;margin-top:5px}
+.next-prompt{margin-top:10px;border:1px solid rgba(255,211,111,.35);background:rgba(255,211,111,.08);border-radius:11px;padding:10px}
+.next-prompt .qtext{font-size:12px;color:#fff}
+.question-card{border:1px solid var(--border);background:var(--panel2);border-radius:11px;padding:10px;margin-bottom:8px;cursor:pointer}
+.question-card:hover{border-color:var(--yellow)}
+.rank{font-size:10px;color:var(--yellow);font-weight:800}
+.qtext{font-size:12px;line-height:1.4;margin-top:3px}
+.why{font-size:10px;color:var(--muted);margin-top:5px}
+
+/* structure views */
+.viz-note{font-size:11px;color:var(--muted);line-height:1.45;margin:0 0 12px}
+.viz-scroll{overflow:auto}
+.git-canvas{min-width:1000px;padding:6px 6px 14px}
+.git-grid{display:grid;grid-template-columns:110px repeat(7,132px);align-items:center}
+.lane-label{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+.commit{position:relative;min-height:82px;padding:0 8px;display:flex;align-items:center}
+.commit::before{content:"";position:absolute;left:0;right:0;top:41px;height:3px;background:#3f567b}
+.commit-node{position:relative;z-index:2;width:100%;border:1px solid var(--border);background:#17243a;border-radius:10px;padding:8px 9px}
+.commit-node.current{border-color:var(--yellow);box-shadow:0 0 0 3px rgba(255,211,111,.1)}
+.commit-node.done{border-color:rgba(100,214,155,.55)}
+.commit-node .id{font-size:9px;color:var(--muted)}
+.commit-node .title{font-size:11px;font-weight:800;margin-top:2px}
+.commit-node .state{font-size:9px;color:var(--muted);margin-top:4px}
+.branch-lane{display:grid;grid-template-columns:110px repeat(7,132px);align-items:center;min-height:78px}
+.branch-cell{position:relative;height:78px;padding:0 8px;display:flex;align-items:center}
+.branch-cell.line::before{content:"";position:absolute;left:0;right:0;top:39px;height:2px;background:#425979}
+.branch-node{position:relative;z-index:2;border:1px solid var(--border);background:#111c30;border-radius:9px;padding:7px 8px;width:100%}
+.branch-node.answer{border-left:3px solid var(--blue)}.branch-node.question{border-left:3px solid var(--yellow)}.branch-node.requirement{border-left:3px solid var(--green)}
+.branch-node .title{font-size:10px;font-weight:750}.branch-node .meta{font-size:9px;color:var(--muted);margin-top:3px}
+.subway{min-width:980px;padding:14px 6px}
+.station-row{display:grid;grid-template-columns:140px repeat(7,1fr);align-items:center;min-height:66px}
+.route-name{font-size:11px;font-weight:800}
+.station{position:relative;height:66px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;color:var(--muted);padding:0 6px}
+.station.filled::before{content:"";position:absolute;left:0;right:0;top:31px;height:4px;background:#3b5275}
+.station i{position:absolute;top:23px;width:17px;height:17px;border-radius:50%;background:#0d1728;border:4px solid var(--blue);z-index:2}
+.station strong{position:relative;z-index:3;margin-top:40px;font-size:9px;color:#dfe8f4}
+.route-main .station.filled::before{background:var(--yellow)}.route-main .station i{border-color:var(--yellow)}
+.route-device .station.filled::before{background:var(--purple)}.route-device .station i{border-color:var(--purple)}
+.route-integrate .station.filled::before{background:var(--orange)}.route-integrate .station i{border-color:var(--orange)}
+.route-offline .station.filled::before{background:var(--green)}.route-offline .station i{border-color:var(--green)}
+.matrix{min-width:860px;border-collapse:separate;border-spacing:6px;width:100%}
+.matrix th{font-size:10px;color:var(--muted);text-align:left;padding:5px}
+.matrix td{border:1px solid var(--border);background:var(--panel2);border-radius:9px;padding:9px;vertical-align:top;min-width:104px}
+.matrix .rowhead{font-size:11px;font-weight:800;background:#17243a}
+.cell-title{font-size:10px;font-weight:750}.cell-meta{font-size:9px;color:var(--muted);margin-top:4px;line-height:1.35}
+.coverage-high{box-shadow:inset 0 0 0 1px rgba(100,214,155,.35)}
+.coverage-med{box-shadow:inset 0 0 0 1px rgba(255,211,111,.3)}
+.coverage-low{box-shadow:inset 0 0 0 1px rgba(255,127,143,.3)}
+
+/* empty state (new session) */
+.empty{display:grid;place-items:center;min-height:60vh;text-align:center}
+.empty .big{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;font-size:28px;margin:0 auto 16px;
+  background:linear-gradient(135deg,var(--blue),var(--purple));box-shadow:0 16px 40px rgba(103,168,255,.3)}
+.empty h2{margin:0 0 6px;font-size:19px}
+.empty p{margin:0 0 18px;color:var(--muted);font-size:13px;max-width:440px;line-height:1.5}
+.empty .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+
+/* database / library tiles */
+.db-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.seg{display:inline-flex;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:3px}
+.seg button{border:none;background:transparent;color:var(--muted);padding:7px 13px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:750}
+.seg button.active{background:rgba(103,168,255,.16);color:#fff}
+.db-chips{display:flex;gap:7px;flex-wrap:wrap;margin-left:auto}
+.db-chip{font-size:11px;color:var(--muted);border:1px solid var(--border);background:var(--panel2);border-radius:99px;padding:6px 11px;cursor:pointer}
+.db-chip.active{color:#fff;border-color:var(--blue);background:rgba(103,168,255,.12)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(244px,1fr));gap:12px}
+.tile{border:1px solid var(--border);background:var(--panel);border-radius:14px;padding:13px;box-shadow:var(--shadow);cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:9px;min-height:132px;text-align:left;color:var(--text)}
+.tile:hover{border-color:var(--blue);transform:translateY(-2px)}
+.tile .thead{display:flex;align-items:center;gap:9px}
+.tile .tava{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:11px;font-weight:850;background:#22344f;color:#cfe0f6;flex:0 0 auto}
+.tile .tname{font-size:13px;font-weight:820;line-height:1.2}
+.tile .topp{font-size:10.5px;color:var(--muted);margin-top:2px}
+.tile .snippet{font-size:11.5px;color:#c7d4e6;line-height:1.45;flex:1}
+.tile .tfoot{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:auto}
+.tstat{font-size:9.5px;color:#7d90ac;border:1px solid var(--border);border-radius:99px;padding:3px 7px;background:var(--panel2)}
+.tstat.good{color:#c8f3e0;border-color:rgba(100,214,155,.35)}
+.tstat.live{color:#ffd2d8;border-color:rgba(255,127,143,.4)}
+.tile.art .type-dot{width:10px;height:10px}
+
+/* workspace switcher (top of sidebar) */
+.ws-switch{position:relative;margin:2px 0 4px}
+.ws-btn{width:100%;display:flex;align-items:center;gap:10px;border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:12px;padding:9px 11px;cursor:pointer}
+.ws-btn:hover{border-color:#49658f}
+.ws-btn .wmark{width:30px;height:30px;flex:0 0 auto;border-radius:9px;display:grid;place-items:center;font-weight:900;font-size:12px;background:linear-gradient(135deg,#274a8f,#5b4bb0);color:#eaf1ff}
+.ws-btn .wmeta{min-width:0;text-align:left;flex:1}
+.ws-btn .wlabel{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:800}
+.ws-btn .wname{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws-btn .caret{color:var(--muted);font-size:11px;flex:0 0 auto}
+.ws-menu{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:40;background:#0f1a2c;border:1px solid var(--border);border-radius:13px;box-shadow:0 22px 50px rgba(0,0,0,.5);padding:7px;display:none}
+.ws-menu.open{display:block}
+.ws-menu .mlabel{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:800;padding:6px 8px 4px}
+.ws-opt{width:100%;display:grid;grid-template-columns:28px 1fr auto;gap:9px;align-items:center;text-align:left;border:1px solid transparent;background:transparent;color:var(--text);border-radius:10px;padding:8px 8px;cursor:pointer}
+.ws-opt:hover{background:rgba(255,255,255,.04)}
+.ws-opt.active{background:rgba(103,168,255,.12);border-color:rgba(103,168,255,.4)}
+.ws-opt .wmark{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:850;font-size:11px;background:#22344f;color:#cfe0f6}
+.ws-opt.active .wmark{background:linear-gradient(135deg,#274a8f,#5b4bb0)}
+.ws-opt .on{font-size:12.5px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws-opt .om{font-size:10px;color:var(--muted);margin-top:1px}
+.ws-opt .obadge{font-size:9px;color:#7d90ac;border:1px solid var(--border);border-radius:99px;padding:2px 7px;background:var(--panel2)}
+.ws-menu .newws{width:100%;display:flex;align-items:center;gap:9px;border:1px dashed var(--border);background:transparent;color:var(--blue);border-radius:10px;padding:9px 8px;cursor:pointer;margin-top:5px;font-weight:700;font-size:12px}
+.ws-menu .newws:hover{background:rgba(103,168,255,.08)}
+.shell.collapsed .ws-btn{justify-content:center;padding:9px 0}
+.shell.collapsed .ws-btn .wmeta,.shell.collapsed .ws-btn .caret{display:none}
+
+/* conversation sub-label (a call within a workspace) */
+.convo .subttl{font-size:12.5px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* overview: conversation cards + requirements register */
+.ov-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.ov-title{font-size:18px;font-weight:850}
+.ov-subtitle{font-size:12px;color:var(--muted);margin-top:3px}
+.conv-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(236px,1fr));gap:12px;margin-bottom:18px}
+.conv-card{border:1px solid var(--border);background:var(--panel);border-radius:13px;padding:12px;box-shadow:var(--shadow);cursor:pointer;transition:.15s;text-align:left;color:var(--text)}
+.conv-card:hover{border-color:var(--blue);transform:translateY(-2px)}
+.conv-card .cc-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.conv-card .cc-ico{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-size:11px;font-weight:850;background:#22344f;color:#cfe0f6;flex:0 0 auto}
+.conv-card .cc-name{font-size:12.5px;font-weight:800;line-height:1.2}
+.conv-card .cc-when{font-size:10px;color:var(--muted);margin-top:1px}
+.conv-card .cc-snip{font-size:11px;color:#c7d4e6;line-height:1.45;min-height:32px}
+.conv-card .cc-foot{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.conv-card .cc-stat{font-size:9.5px;color:#7d90ac;border:1px solid var(--border);border-radius:99px;padding:3px 7px;background:var(--panel2)}
+.conv-card .cc-stat.live{color:#ffd2d8;border-color:rgba(255,127,143,.4)}
+.conv-card .cc-stat.good{color:#c8f3e0;border-color:rgba(100,214,155,.35)}
+.conv-card.add{display:grid;place-items:center;border-style:dashed;color:var(--blue);font-weight:700;font-size:12.5px;min-height:120px}
+
+.reg-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
+.reg-chips{display:flex;gap:6px;flex-wrap:wrap}
+.reg-chip{font-size:11px;color:var(--muted);border:1px solid var(--border);background:var(--panel2);border-radius:99px;padding:5px 10px;cursor:pointer}
+.reg-chip.active{color:#fff;border-color:var(--blue);background:rgba(103,168,255,.12)}
+.reg-wrap{overflow:auto;border:1px solid var(--border);border-radius:13px}
+.register{width:100%;border-collapse:collapse;min-width:720px}
+.register th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:10px 12px;background:rgba(24,36,58,.72);border-bottom:1px solid var(--border);position:sticky;top:0}
+.register td{font-size:12px;padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.register tr:last-child td{border-bottom:none}
+.register tbody tr{cursor:pointer}
+.register tbody tr:hover{background:rgba(255,255,255,.035)}
+.register .rid{font-weight:800;font-size:11px;white-space:nowrap}
+.register .ritem{color:#e4edf7}
+.register .rcell-type{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.register .rsource{color:var(--muted);white-space:nowrap}
+.reg-pill{font-size:9.5px;border:1px solid var(--border);border-radius:99px;padding:3px 8px;color:#7d90ac;background:var(--panel2);white-space:nowrap}
+.reg-pill.confirmed{color:#c8f3e0;border-color:rgba(100,214,155,.35)}
+.reg-pill.candidate{color:#cfe4ff;border-color:rgba(103,168,255,.35)}
+.reg-pill.open{color:#ffe3a6;border-color:rgba(255,211,111,.35)}
+
+.view{display:none}.view.active{display:block}
+
+/* scrim for mobile drawer */
+.scrim{position:fixed;inset:0;background:rgba(4,8,16,.55);opacity:0;pointer-events:none;transition:.2s;z-index:25}
+.scrim.show{opacity:1;pointer-events:auto}
+
+@media(max-width:1100px){
+  .grid3{grid-template-columns:1fr}
+  .summary{grid-template-columns:1fr 1fr}
+}
+@media(max-width:820px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{position:fixed;top:0;left:0;width:var(--rail);transform:translateX(-100%);transition:transform .22s ease}
+  .shell.drawer-open .sidebar{transform:none;box-shadow:0 0 60px rgba(0,0,0,.5)}
+  .crumb .m-ham{display:grid}
+  .summary{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="shell" id="shell">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="side-top">
+      <button class="hamburger" id="hamburger" title="Collapse / expand" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="brand collapse-hide">
+        <div class="mark">SL</div>
+        <div>
+          <div class="name">SpecLive</div>
+          <div class="tag">Discovery Copilot</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-scroll">
+      <!-- WORKSPACE SWITCHER -->
+      <div class="ws-switch">
+        <button class="ws-btn" id="wsBtn" onclick="toggleWsMenu(event)">
+          <span class="wmark" id="wsMark">AL</span>
+          <span class="wmeta collapse-hide"><span class="wlabel">Workspace</span><span class="wname" id="wsName">Acme Logistics</span></span>
+          <span class="caret collapse-hide">▾</span>
+        </button>
+        <div class="ws-menu collapse-hide" id="wsMenu">
+          <div class="mlabel">Switch workspace</div>
+          <button class="ws-opt active" data-ws="acme" onclick="openWorkspace('acme')"><span class="wmark">AL</span><span><div class="on">Acme Logistics</div><div class="om">Warehouse Modernization</div></span><span class="obadge">3 calls</span></button>
+          <button class="ws-opt" data-ws="northwind" onclick="openWorkspace('northwind')"><span class="wmark">NW</span><span><div class="on">Northwind Trading</div><div class="om">Returns &amp; RMA Portal</div></span><span class="obadge">2 calls</span></button>
+          <button class="ws-opt" data-ws="globex" onclick="openWorkspace('globex')"><span class="wmark">GX</span><span><div class="on">Globex</div><div class="om">Field Service Mobile App</div></span><span class="obadge">2 calls</span></button>
+          <button class="newws" onclick="toast('New workspace dialog opened');closeWsMenu()"><span style="font-size:16px">+</span> New workspace</button>
+        </div>
+      </div>
+
+      <button class="new-btn" onclick="newSession()">
+        <span class="plus">+</span><span class="collapse-hide">New conversation</span>
+      </button>
+
+      <div class="search collapse-hide">
+        <span class="mag">⌕</span>
+        <input id="convSearch" placeholder="Search this workspace…" oninput="filterConvos(this.value)" />
+      </div>
+
+      <!-- WORKSPACE-LEVEL CROSS-SECTION -->
+      <button class="nav-item" data-view="overview" onclick="openView('overview',this)">
+        <span class="ico">◧</span><span class="collapse-hide">Overview &amp; requirements</span><span class="kbd collapse-hide">0</span>
+      </button>
+
+      <!-- CONVERSATIONS IN THIS WORKSPACE -->
+      <div class="section-label">Conversations<span class="count collapse-hide">3</span></div>
+      <div id="convList">
+        <button class="convo active" data-conv="c1" onclick="openConversation('c1',this)">
+          <span class="ava">1</span>
+          <span>
+            <span class="subttl">Discovery · Operations</span>
+            <span class="opp">Supervisors &amp; floor workflow</span>
+            <span class="meta"><span class="live-dot"></span>Recording · 42:10<span class="chip">4 req</span></span>
+          </span>
+        </button>
+        <button class="convo" data-conv="c2" onclick="openConversation('c2',this)">
+          <span class="ava">2</span>
+          <span>
+            <span class="subttl">Discovery · IT &amp; systems</span>
+            <span class="opp">WMS integration &amp; data</span>
+            <span class="meta"><span class="done-dot"></span>2d ago<span class="chip">5 req</span><span class="chip">confirmed</span></span>
+          </span>
+        </button>
+        <button class="convo" data-conv="c3" onclick="openConversation('c3',this)">
+          <span class="ava">3</span>
+          <span>
+            <span class="subttl">Follow-up · Devices</span>
+            <span class="opp">Rugged tablets &amp; connectivity</span>
+            <span class="meta"><span class="draft-dot"></span>Scheduled<span class="chip">draft</span></span>
+          </span>
+        </button>
+      </div>
+
+      <!-- VIEWS FOR THE ACTIVE CONVERSATION -->
+      <div class="section-label">This conversation</div>
+      <button class="nav-item active" data-view="workspace" onclick="openView('workspace',this)">
+        <span class="ico">▤</span><span class="collapse-hide">Live view</span><span class="kbd collapse-hide">1</span>
+      </button>
+      <button class="nav-item" data-view="git" onclick="openView('git',this)">
+        <span class="ico">⑃</span><span class="collapse-hide">Conversation structure</span><span class="kbd collapse-hide">2</span>
+      </button>
+      <div class="nav-sub collapse-hide" id="structureSub">
+        <button class="nav-item" data-view="git" onclick="openView('git',this)"><span class="ico">⑃</span><span>Git branch tree</span></button>
+        <button class="nav-item" data-view="subway" onclick="openView('subway',this)"><span class="ico">◉</span><span>Conversation subway</span></button>
+        <button class="nav-item" data-view="matrix" onclick="openView('matrix',this)"><span class="ico">▦</span><span>Coverage matrix</span></button>
+      </div>
+      <button class="nav-item" data-view="package" onclick="openView('package',this)">
+        <span class="ico">⤓</span><span class="collapse-hide">Discovery package</span><span class="kbd collapse-hide">3</span>
+      </button>
+
+      <div class="section-label">Library</div>
+      <button class="nav-item" data-view="database" onclick="openView('database',this)">
+        <span class="ico">⊟</span><span class="collapse-hide">Database</span><span class="kbd collapse-hide">4</span>
+      </button>
+    </div>
+
+    <div class="side-foot">
+      <div class="mode-pill collapse-hide"><span class="d"></span>Full transcript · mock LLM</div>
+      <div class="user">
+        <span class="uava">RB</span>
+        <span class="collapse-hide">
+          <div class="uname">Ryan Bell</div>
+          <div class="urole">Facilitator</div>
+        </span>
+        <span class="gear collapse-hide">⚙</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">
+        <button class="hamburger m-ham" onclick="toggleDrawer()" aria-label="Open navigation"><span></span><span></span><span></span></button>
+        <div>
+          <div class="ctitle" id="crumbTitle"><span id="crumbWs">Acme Logistics</span> <span style="color:#3d5479">›</span> <span id="crumbConv">Discovery · Operations</span></div>
+          <div class="csub" id="crumbSub">Warehouse Modernization · <span id="crumbView">Live view</span></div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="status" id="liveStatus"><span class="dot"></span>Transcribing live</span>
+        <button class="btn primary" onclick="toast('Discovery package generated with source traceability')">Generate package</button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ---------- OVERVIEW (workspace cross-section) ---------- -->
+      <section class="view" id="view-overview">
+        <div class="ov-head">
+          <div>
+            <div class="ov-title">Acme Logistics</div>
+            <div class="ov-subtitle">Warehouse Modernization · 3 conversations in this workspace</div>
+          </div>
+          <button class="btn primary" onclick="toast('Workspace requirements package generated')">Generate workspace package</button>
+        </div>
+
+        <div class="summary">
+          <div class="metric"><div class="label">Conversations</div><div class="value">3 calls</div></div>
+          <div class="metric"><div class="label">Requirements (all calls)</div><div class="value">9 candidate</div></div>
+          <div class="metric"><div class="label">Confirmed</div><div class="value">5</div></div>
+          <div class="metric"><div class="label">Open questions</div><div class="value">6</div></div>
+          <div class="metric"><div class="label">Coverage</div><div class="value">74%</div></div>
+        </div>
+
+        <div class="section-label" style="padding-left:2px">Conversations</div>
+        <div class="conv-cards">
+          <button class="conv-card" onclick="openConversationFromCard('c1')">
+            <div class="cc-top"><span class="cc-ico">1</span><div><div class="cc-name">Discovery · Operations</div><div class="cc-when">Today · recording · 42:10</div></div></div>
+            <div class="cc-snip">Supervisors lack real-time picking visibility; ≤30s refresh, works on existing tablets.</div>
+            <div class="cc-foot"><span class="cc-stat live">● Live</span><span class="cc-stat">4 req</span><span class="cc-stat">72%</span></div>
+          </button>
+          <button class="conv-card" onclick="openConversationFromCard('c2')">
+            <div class="cc-top"><span class="cc-ico">2</span><div><div class="cc-name">Discovery · IT &amp; systems</div><div class="cc-when">2 days ago · 51 min</div></div></div>
+            <div class="cc-snip">WMS must stay; event feed via API explored; integration latency flagged as a risk.</div>
+            <div class="cc-foot"><span class="cc-stat good">Confirmed</span><span class="cc-stat">5 req</span><span class="cc-stat">81%</span></div>
+          </button>
+          <button class="conv-card" onclick="openConversationFromCard('c3')">
+            <div class="cc-top"><span class="cc-ico">3</span><div><div class="cc-name">Follow-up · Devices</div><div class="cc-when">Scheduled · not started</div></div></div>
+            <div class="cc-snip">Rugged-tablet models, offline duration, and reconnection conflict handling to confirm.</div>
+            <div class="cc-foot"><span class="cc-stat">Draft</span><span class="cc-stat">2 open Q</span></div>
+          </button>
+          <button class="conv-card add" onclick="newSession()">+ Add a conversation</button>
+        </div>
+
+        <div class="section-label" style="padding-left:2px">Requirements register · every conversation</div>
+        <div class="reg-toolbar">
+          <div class="reg-chips" id="regChips">
+            <button class="reg-chip active" data-type="all" onclick="regFilter('all',this)">All</button>
+            <button class="reg-chip" data-type="objective" onclick="regFilter('objective',this)">Objective</button>
+            <button class="reg-chip" data-type="need" onclick="regFilter('need',this)">Need</button>
+            <button class="reg-chip" data-type="requirement" onclick="regFilter('requirement',this)">Requirement</button>
+            <button class="reg-chip" data-type="constraint" onclick="regFilter('constraint',this)">Constraint</button>
+            <button class="reg-chip" data-type="risk" onclick="regFilter('risk',this)">Risk</button>
+            <button class="reg-chip" data-type="question" onclick="regFilter('question',this)">Open question</button>
+          </div>
+        </div>
+        <div class="reg-wrap"><table class="register" id="register">
+          <thead><tr><th>ID</th><th>Item</th><th>Type</th><th>Source conversation</th><th>Status</th><th>Conf.</th></tr></thead>
+          <tbody>
+            <tr data-type="objective" onclick="toast('OBJ-001 provenance')"><td class="rid">OBJ-001</td><td class="ritem">Improve warehouse flow, prevent truck-loading delays</td><td><span class="rcell-type"><i class="type-dot objective"></i>Objective</span></td><td class="rsource">1 · Operations</td><td><span class="reg-pill confirmed">Confirmed</span></td><td>94%</td></tr>
+            <tr data-type="need" onclick="toast('NEED-001 provenance')"><td class="rid">NEED-001</td><td class="ritem">Timely operational visibility for supervisors</td><td><span class="rcell-type"><i class="type-dot need"></i>Need</span></td><td class="rsource">1 · Operations</td><td><span class="reg-pill confirmed">Confirmed</span></td><td>92%</td></tr>
+            <tr data-type="requirement" onclick="toast('REQ-002 provenance')"><td class="rid">REQ-002</td><td class="ritem">Refresh order status within 30 seconds of a state change</td><td><span class="rcell-type"><i class="type-dot requirement"></i>Requirement</span></td><td class="rsource">1 · Operations</td><td><span class="reg-pill confirmed">Quantified</span></td><td>95%</td></tr>
+            <tr data-type="constraint" onclick="toast('CON-003 provenance')"><td class="rid">CON-003</td><td class="ritem">Must run on existing rugged tablets</td><td><span class="rcell-type"><i class="type-dot constraint"></i>Constraint</span></td><td class="rsource">1 · Operations</td><td><span class="reg-pill candidate">Needs detail</span></td><td>90%</td></tr>
+            <tr data-type="constraint" onclick="toast('CON-004 provenance')"><td class="rid">CON-004</td><td class="ritem">Retain current WMS this fiscal year</td><td><span class="rcell-type"><i class="type-dot constraint"></i>Constraint</span></td><td class="rsource">2 · IT &amp; systems</td><td><span class="reg-pill confirmed">Confirmed</span></td><td>93%</td></tr>
+            <tr data-type="requirement" onclick="toast('REQ-018 provenance')"><td class="rid">REQ-018</td><td class="ritem">Consume WMS state changes via event feed / API</td><td><span class="rcell-type"><i class="type-dot requirement"></i>Requirement</span></td><td class="rsource">2 · IT &amp; systems</td><td><span class="reg-pill candidate">Candidate</span></td><td>82%</td></tr>
+            <tr data-type="risk" onclick="toast('RISK-007 provenance')"><td class="rid">RISK-007</td><td class="ritem">WMS interface may not sustain 30s end-to-end refresh</td><td><span class="rcell-type"><i class="type-dot risk"></i>Risk</span></td><td class="rsource">2 · IT &amp; systems</td><td><span class="reg-pill open">Inferred</span></td><td>71%</td></tr>
+            <tr data-type="requirement" onclick="toast('REQ-024 provenance')"><td class="rid">REQ-024</td><td class="ritem">Operate offline for up to 4 hours, then sync</td><td><span class="rcell-type"><i class="type-dot requirement"></i>Requirement</span></td><td class="rsource">3 · Devices</td><td><span class="reg-pill candidate">Candidate</span></td><td>78%</td></tr>
+            <tr data-type="constraint" onclick="toast('CON-031 provenance')"><td class="rid">CON-031</td><td class="ritem">Target Android 11 rugged tablet fleet</td><td><span class="rcell-type"><i class="type-dot constraint"></i>Constraint</span></td><td class="rsource">3 · Devices</td><td><span class="reg-pill confirmed">Confirmed</span></td><td>96%</td></tr>
+            <tr data-type="question" onclick="toast('Q-005 provenance')"><td class="rid">Q-005</td><td class="ritem">Which order states &amp; exceptions must supervisors see?</td><td><span class="rcell-type"><i class="type-dot question"></i>Open question</span></td><td class="rsource">1 · Operations</td><td><span class="reg-pill open">Open</span></td><td>—</td></tr>
+            <tr data-type="question" onclick="toast('Q-042 provenance')"><td class="rid">Q-042</td><td class="ritem">How are reconnection conflicts resolved after offline edits?</td><td><span class="rcell-type"><i class="type-dot question"></i>Open question</span></td><td class="rsource">3 · Devices</td><td><span class="reg-pill open">Open</span></td><td>—</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <!-- ---------- LIVE VIEW (single conversation) ---------- -->
+      <section class="view active" id="view-workspace">
+        <div class="summary">
+          <div class="metric"><div class="label">Customer / Opportunity</div><div class="value" id="mCust">Acme Logistics — Warehouse Modernization</div></div>
+          <div class="metric"><div class="label">Requirements</div><div class="value">3 candidate</div></div>
+          <div class="metric"><div class="label">Evidence links</div><div class="value">6 linked</div></div>
+          <div class="metric"><div class="label">Open questions</div><div class="value">4 prioritized</div></div>
+          <div class="metric"><div class="label">Coverage</div><div class="value">72%</div></div>
+        </div>
+
+        <div class="grid3">
+          <!-- transcript -->
+          <div class="col">
+            <div class="panel">
+              <div class="panel-header"><div><div class="panel-title">Live transcript</div><div class="panel-subtitle">Click evidence to reveal derivation</div></div></div>
+              <div class="panel-body">
+                <div class="message"><div class="avatar">RB</div><div><div class="speakerline"><span class="speaker">Ryan</span><span class="time">18:02 · SEG-101</span></div><div class="message-text">What is the biggest operational problem you are trying to solve in the warehouse today?</div></div></div>
+                <div class="message"><div class="avatar customer">CM</div><div><div class="speakerline"><span class="speaker">Customer</span><span class="time">18:08 · SEG-102</span></div><div class="message-text">Our supervisors <span class="evidence green">do not have a reliable real-time view of where orders are in picking</span>. We find out about delays after a truck is already waiting.</div><div class="badges"><span class="badge">NEED-001</span><span class="badge">supports REQ-002</span></div></div></div>
+                <div class="message"><div class="avatar customer">CM</div><div><div class="speakerline"><span class="speaker">Customer</span><span class="time">18:29 · SEG-104</span></div><div class="message-text">Ideally <span class="evidence blue">within 30 seconds</span>. Anything over a couple of minutes is too stale to act on.</div><div class="badges"><span class="badge">REQ-002 · direct evidence</span></div></div></div>
+                <div class="message"><div class="avatar customer">CM</div><div><div class="speakerline"><span class="speaker">Customer</span><span class="time">18:37 · SEG-105</span></div><div class="message-text">It has to work on the <span class="evidence orange">rugged tablets the floor leads already carry</span>, and <span class="evidence orange">we cannot replace the WMS this year</span>.</div><div class="badges"><span class="badge">CON-003</span><span class="badge">CON-004</span></div></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- tree -->
+          <div class="col">
+            <div class="panel">
+              <div class="panel-header"><div><div class="panel-title">Live discovery tree</div><div class="panel-subtitle">Nodes strengthen as evidence accumulates</div></div><span class="status">Auto-linking on</span></div>
+              <div class="panel-body tree">
+                <div class="node-row"><i class="type-dot objective"></i><span><span class="node-label">OBJ-001 Improve warehouse flow</span><br><span class="node-meta">Objective · 2 evidence links</span></span><span>94%</span></div>
+                <div class="children">
+                  <div class="node-row selected"><i class="type-dot need"></i><span><span class="node-label">NEED-001 Timely operational visibility</span><br><span class="node-meta">Need · confirmed by customer</span></span><span>92%</span></div>
+                  <div class="children">
+                    <div class="node-row"><i class="type-dot requirement"></i><span><span class="node-label">REQ-002 Status refresh ≤ 30 sec</span><br><span class="node-meta">Requirement · quantified</span></span><span>95%</span></div>
+                    <div class="node-row"><i class="type-dot question"></i><span><span class="node-label">Q-005 Which order states matter?</span><br><span class="node-meta">Open question · coverage gap</span></span><span>—</span></div>
+                  </div>
+                  <div class="node-row"><i class="type-dot constraint"></i><span><span class="node-label">CON-003 Existing rugged tablets</span><br><span class="node-meta">Constraint · device details missing</span></span><span>90%</span></div>
+                  <div class="node-row"><i class="type-dot constraint"></i><span><span class="node-label">CON-004 Retain current WMS</span><br><span class="node-meta">Schedule / integration constraint</span></span><span>93%</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- script + questions -->
+          <div class="col">
+            <div class="panel">
+              <div class="panel-header"><div><div class="panel-title">Guided discovery script</div><div class="panel-subtitle">Current step, next prompt, branches</div></div><span class="status">Step 3 of 7</span></div>
+              <div class="panel-body">
+                <div class="script-progress"><i class="script-step done"></i><i class="script-step done"></i><i class="script-step current"></i><i class="script-step"></i><i class="script-step"></i><i class="script-step"></i><i class="script-step"></i></div>
+                <div class="script-kicker">Current section · Operational workflow</div>
+                <div class="script-title">Define the decisions the customer must make</div>
+                <div class="script-copy">Translate the visibility problem into specific users, decisions, states, exceptions, and timing needs.</div>
+                <div class="next-prompt"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Say next</div><div class="qtext">Which specific order states and exceptions must supervisors see to prevent a loading delay?</div></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-header"><div><div class="panel-title">Recommended next questions</div><div class="panel-subtitle">Prioritized from discovery-tree gaps</div></div></div>
+              <div class="panel-body">
+                <div class="question-card"><div class="rank">1 · Clarify scope</div><div class="qtext">Which specific order states and exceptions must supervisors see?</div><div class="why">Completes NEED-001 and constrains the data model.</div></div>
+                <div class="question-card"><div class="rank">2 · Resolve device constraint</div><div class="qtext">What make, model, OS, and browser run on the rugged tablets?</div><div class="why">Turns CON-003 into a testable compatibility requirement.</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- GIT ---------- -->
+      <section class="view" id="view-git">
+        <div class="panel">
+          <div class="panel-header"><div><div class="panel-title">Git branch tree</div><div class="panel-subtitle">The script is the anchor; answers branch into follow-ups, then merge back</div></div></div>
+          <div class="panel-body">
+            <p class="viz-note"><b>Git branch tree:</b> the yellow main line is the planned script. Customer answers branch into targeted follow-ups, then merge back as validated findings or requirements.</p>
+            <div class="viz-scroll"><div class="git-canvas">
+              <div class="git-grid">
+                <div class="lane-label">Main script</div>
+                <div class="commit"><div class="commit-node done"><div class="id">S1</div><div class="title">Business driver</div><div class="state">Answered</div></div></div>
+                <div class="commit"><div class="commit-node done"><div class="id">S2</div><div class="title">Current state</div><div class="state">Answered</div></div></div>
+                <div class="commit"><div class="commit-node current"><div class="id">S3</div><div class="title">Workflow decisions</div><div class="state">Current anchor</div></div></div>
+                <div class="commit"><div class="commit-node"><div class="id">S4</div><div class="title">Success measures</div><div class="state">Next</div></div></div>
+                <div class="commit"><div class="commit-node"><div class="id">S5</div><div class="title">Environment</div><div class="state">Planned</div></div></div>
+                <div class="commit"><div class="commit-node"><div class="id">S6</div><div class="title">Constraints</div><div class="state">Planned</div></div></div>
+                <div class="commit"><div class="commit-node"><div class="id">S7</div><div class="title">Validate</div><div class="state">Planned</div></div></div>
+              </div>
+              <div class="branch-lane"><div class="lane-label">States branch</div><div></div><div></div><div class="branch-cell line"><div class="branch-node answer"><div class="title">Answer: delayed orders</div><div class="meta">SEG-102</div></div></div><div class="branch-cell line"><div class="branch-node question"><div class="title">Which states matter?</div><div class="meta">Follow-up Q-005</div></div></div><div class="branch-cell line"><div class="branch-node question"><div class="title">Who acts, and when?</div><div class="meta">Derivative</div></div></div><div class="branch-cell line"><div class="branch-node requirement"><div class="title">Alert requirement</div><div class="meta">Merge S6/S7</div></div></div><div></div></div>
+              <div class="branch-lane"><div class="lane-label">WMS branch</div><div></div><div></div><div></div><div class="branch-cell line"><div class="branch-node answer"><div class="title">Keep current WMS</div><div class="meta">CON-004</div></div></div><div class="branch-cell line"><div class="branch-node question"><div class="title">Available interfaces?</div><div class="meta">Technical</div></div></div><div class="branch-cell line"><div class="branch-node requirement"><div class="title">Interface + latency</div><div class="meta">REQ-002 / RISK-007</div></div></div><div></div></div>
+            </div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- SUBWAY ---------- -->
+      <section class="view" id="view-subway">
+        <div class="panel">
+          <div class="panel-header"><div><div class="panel-title">Conversation subway</div><div class="panel-subtitle">Each line is a topic thread; transfer stations show where branches reconnect</div></div></div>
+          <div class="panel-body">
+            <p class="viz-note"><b>Conversation subway:</b> each line is a topic thread. Transfer stations show where a branch reconnects to the script or shares evidence with another branch.</p>
+            <div class="viz-scroll"><div class="subway">
+              <div class="station-row route-main"><div class="route-name">Main discovery line</div><div class="station filled"><i></i><strong>Driver</strong></div><div class="station filled"><i></i><strong>Current state</strong></div><div class="station filled"><i></i><strong>Workflow</strong></div><div class="station filled"><i></i><strong>Measures</strong></div><div class="station filled"><i></i><strong>Environment</strong></div><div class="station filled"><i></i><strong>Constraints</strong></div><div class="station filled"><i></i><strong>Validate</strong></div></div>
+              <div class="station-row route-device"><div class="route-name">Device line</div><div class="station"></div><div class="station"></div><div class="station filled"><i></i><strong>Tablet</strong></div><div class="station filled"><i></i><strong>Users</strong></div><div class="station filled"><i></i><strong>OS/browser</strong></div><div class="station filled"><i></i><strong>Compat</strong></div><div class="station filled"><i></i><strong>Confirm</strong></div></div>
+              <div class="station-row route-integrate"><div class="route-name">Integration line</div><div class="station"></div><div class="station filled"><i></i><strong>WMS today</strong></div><div class="station filled"><i></i><strong>Data needed</strong></div><div class="station filled"><i></i><strong>30 sec target</strong></div><div class="station filled"><i></i><strong>API/feed</strong></div><div class="station filled"><i></i><strong>Risk</strong></div><div class="station filled"><i></i><strong>Accept</strong></div></div>
+              <div class="station-row route-offline"><div class="route-name">Degraded-mode line</div><div class="station"></div><div class="station"></div><div class="station"></div><div class="station"></div><div class="station filled"><i></i><strong>Network</strong></div><div class="station filled"><i></i><strong>Offline+sync</strong></div><div class="station filled"><i></i><strong>Validate</strong></div></div>
+            </div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- MATRIX ---------- -->
+      <section class="view" id="view-matrix">
+        <div class="panel">
+          <div class="panel-header"><div><div class="panel-title">Coverage matrix</div><div class="panel-subtitle">Which branches contribute evidence to each script stage</div></div></div>
+          <div class="panel-body">
+            <p class="viz-note"><b>Coverage matrix:</b> shows which branches contribute evidence to each script stage, where the conversation is strong, and where more questions are still needed.</p>
+            <div class="viz-scroll"><table class="matrix">
+              <thead><tr><th>Branch</th><th>Driver</th><th>Current state</th><th>Workflow</th><th>Measures</th><th>Environment</th><th>Constraints</th><th>Validation</th></tr></thead>
+              <tbody>
+                <tr><td class="rowhead">States &amp; exceptions</td><td></td><td class="coverage-med"><div class="cell-title">Pain observed</div></td><td class="coverage-high"><div class="cell-title">Primary evidence</div><div class="cell-meta">States and actors</div></td><td class="coverage-med"><div class="cell-title">Needs threshold</div></td><td></td><td class="coverage-med"><div class="cell-title">Exception rules</div></td><td class="coverage-low"><div class="cell-title">Not confirmed</div></td></tr>
+                <tr><td class="rowhead">Device compatibility</td><td></td><td></td><td class="coverage-med"><div class="cell-title">Floor leads</div></td><td></td><td class="coverage-high"><div class="cell-title">Rugged tablets</div><div class="cell-meta">Model/OS missing</div></td><td class="coverage-med"><div class="cell-title">Existing hardware</div></td><td class="coverage-low"><div class="cell-title">Compat TBD</div></td></tr>
+                <tr><td class="rowhead">WMS integration</td><td></td><td class="coverage-high"><div class="cell-title">Current source</div></td><td class="coverage-high"><div class="cell-title">Order visibility</div></td><td class="coverage-high"><div class="cell-title">30-sec target</div></td><td class="coverage-med"><div class="cell-title">Interface unknown</div></td><td class="coverage-high"><div class="cell-title">Cannot replace</div></td><td class="coverage-low"><div class="cell-title">Feasibility open</div></td></tr>
+                <tr><td class="rowhead">Degraded connectivity</td><td></td><td></td><td class="coverage-med"><div class="cell-title">Field use</div></td><td class="coverage-low"><div class="cell-title">Duration missing</div></td><td class="coverage-high"><div class="cell-title">Network context</div></td><td class="coverage-high"><div class="cell-title">Offline behavior</div></td><td class="coverage-low"><div class="cell-title">Answer needed</div></td></tr>
+              </tbody>
+            </table></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- PACKAGE ---------- -->
+      <section class="view" id="view-package">
+        <div class="panel">
+          <div class="panel-header"><div><div class="panel-title">Discovery package</div><div class="panel-subtitle">Structured export — every item traceable to transcript evidence</div></div><span class="status">JSON · Markdown</span></div>
+          <div class="panel-body">
+            <p class="viz-note">Export the session's objectives, needs, requirements, constraints, assumptions, risks, decisions, and open questions — each with source evidence, rationale, confidence, and validation state.</p>
+            <div class="grid3">
+              <div class="metric"><div class="label">Confirmed requirements</div><div class="value">3</div></div>
+              <div class="metric"><div class="label">Awaiting validation</div><div class="value">4</div></div>
+              <div class="metric"><div class="label">Traceability links</div><div class="value">6</div></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+              <button class="btn primary" onclick="toast('Markdown package downloaded')">Download Markdown</button>
+              <button class="btn" onclick="toast('JSON package downloaded')">Download JSON</button>
+              <button class="btn" onclick="toast('Preview opened')">Preview</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- DATABASE ---------- -->
+      <section class="view" id="view-database">
+        <div class="db-toolbar">
+          <div class="seg">
+            <button class="active" data-dbmode="sessions" onclick="dbMode('sessions',this)">Sessions</button>
+            <button data-dbmode="artifacts" onclick="dbMode('artifacts',this)">Artifacts</button>
+          </div>
+          <div class="db-chips" id="dbChips">
+            <button class="db-chip active" data-filter="all" onclick="dbFilter('all',this)">All</button>
+            <button class="db-chip" data-filter="confirmed" onclick="dbFilter('confirmed',this)">Confirmed</button>
+            <button class="db-chip" data-filter="inprogress" onclick="dbFilter('inprogress',this)">In progress</button>
+            <button class="db-chip" data-filter="draft" onclick="dbFilter('draft',this)">Draft</button>
+            <button class="db-chip" data-filter="exported" onclick="dbFilter('exported',this)">Exported</button>
+          </div>
+        </div>
+
+        <div class="tiles" id="dbSessions">
+          <button class="tile" data-status="inprogress" onclick="toast('Opening Acme Logistics')">
+            <div class="thead"><span class="tava">AL</span><div><div class="tname">Acme Logistics</div><div class="topp">Warehouse Modernization</div></div></div>
+            <div class="snippet">Real-time picking visibility; order status refresh ≤30s on existing rugged tablets, keep current WMS.</div>
+            <div class="tfoot"><span class="tstat live">● Live</span><span class="tstat">3 req</span><span class="tstat">72%</span><span class="tstat">today</span></div>
+          </button>
+          <button class="tile" data-status="confirmed" onclick="toast('Opening Northwind Trading')">
+            <div class="thead"><span class="tava">NW</span><div><div class="tname">Northwind Trading</div><div class="topp">Returns &amp; RMA Portal</div></div></div>
+            <div class="snippet">Self-service returns with automated RMA numbers, carrier label generation, and refund policy routing.</div>
+            <div class="tfoot"><span class="tstat good">Confirmed</span><span class="tstat">12 req</span><span class="tstat">100%</span><span class="tstat">2d</span></div>
+          </button>
+          <button class="tile" data-status="confirmed" onclick="toast('Opening Globex')">
+            <div class="thead"><span class="tava">GX</span><div><div class="tname">Globex</div><div class="topp">Field Service Mobile App</div></div></div>
+            <div class="snippet">Offline-first work orders with parts lookup, photo capture, and customer signature at job completion.</div>
+            <div class="tfoot"><span class="tstat good">Confirmed</span><span class="tstat">8 req</span><span class="tstat">88%</span><span class="tstat">5d</span></div>
+          </button>
+          <button class="tile" data-status="draft" onclick="toast('Opening Initech')">
+            <div class="thead"><span class="tava">IT</span><div><div class="tname">Initech</div><div class="topp">Billing Platform Migration</div></div></div>
+            <div class="snippet">Phased migration off legacy billing; dunning workflows, proration, and a pluggable tax engine.</div>
+            <div class="tfoot"><span class="tstat">Draft</span><span class="tstat">1 req</span><span class="tstat">28%</span><span class="tstat">1w</span></div>
+          </button>
+          <button class="tile" data-status="exported" onclick="toast('Opening Umbrella Health')">
+            <div class="thead"><span class="tava">UB</span><div><div class="tname">Umbrella Health</div><div class="topp">Patient Intake Redesign</div></div></div>
+            <div class="snippet">Digital intake with insurance verification, e-signatures, and HIPAA-compliant audit logging.</div>
+            <div class="tfoot"><span class="tstat good">Exported</span><span class="tstat">15 req</span><span class="tstat">100%</span><span class="tstat">2w</span></div>
+          </button>
+          <button class="tile" data-status="confirmed" onclick="toast('Opening Wayne Enterprises')">
+            <div class="thead"><span class="tava">WE</span><div><div class="tname">Wayne Enterprises</div><div class="topp">Access Control Upgrade</div></div></div>
+            <div class="snippet">Badge plus biometric entry, zone-based access policies, and a visitor check-in workflow.</div>
+            <div class="tfoot"><span class="tstat good">Confirmed</span><span class="tstat">9 req</span><span class="tstat">94%</span><span class="tstat">3w</span></div>
+          </button>
+          <button class="tile" data-status="draft" onclick="toast('Opening Stark Industries')">
+            <div class="thead"><span class="tava">SI</span><div><div class="tname">Stark Industries</div><div class="topp">Supplier Portal</div></div></div>
+            <div class="snippet">Supplier onboarding, purchase-order collaboration, and quality-document exchange.</div>
+            <div class="tfoot"><span class="tstat">Draft</span><span class="tstat">2 req</span><span class="tstat">19%</span><span class="tstat">3w</span></div>
+          </button>
+          <button class="tile" data-status="inprogress" onclick="toast('Opening Soylent Corp')">
+            <div class="thead"><span class="tava">SC</span><div><div class="tname">Soylent Corp</div><div class="topp">Inventory Forecasting</div></div></div>
+            <div class="snippet">Demand forecasting with seasonality, safety-stock targets, and supplier lead-time inputs.</div>
+            <div class="tfoot"><span class="tstat">In progress</span><span class="tstat">6 req</span><span class="tstat">64%</span><span class="tstat">4w</span></div>
+          </button>
+        </div>
+
+        <div class="tiles" id="dbArtifacts" style="display:none">
+          <button class="tile art" onclick="toast('REQ-002 provenance')">
+            <div class="thead"><i class="type-dot requirement"></i><span class="tname" style="font-size:12px">REQ-002</span><span class="tstat" style="margin-left:auto">95%</span></div>
+            <div class="snippet">Refresh order-status information within 30 seconds of a source-system state change.</div>
+            <div class="tfoot"><span class="tstat good">Requirement</span><span class="tstat">Acme Logistics</span><span class="tstat">quantified</span></div>
+          </button>
+          <button class="tile art" onclick="toast('NEED-001 provenance')">
+            <div class="thead"><i class="type-dot need"></i><span class="tname" style="font-size:12px">NEED-001</span><span class="tstat" style="margin-left:auto">92%</span></div>
+            <div class="snippet">Supervisors need timely visibility into order status throughout the picking process.</div>
+            <div class="tfoot"><span class="tstat">Need</span><span class="tstat">Acme Logistics</span><span class="tstat good">confirmed</span></div>
+          </button>
+          <button class="tile art" onclick="toast('CON-004 provenance')">
+            <div class="thead"><i class="type-dot constraint"></i><span class="tname" style="font-size:12px">CON-004</span><span class="tstat" style="margin-left:auto">93%</span></div>
+            <div class="snippet">Solution must integrate with the existing WMS without replacing it this fiscal year.</div>
+            <div class="tfoot"><span class="tstat">Constraint</span><span class="tstat">Acme Logistics</span><span class="tstat">schedule</span></div>
+          </button>
+          <button class="tile art" onclick="toast('RISK-007 provenance')">
+            <div class="thead"><i class="type-dot risk"></i><span class="tname" style="font-size:12px">RISK-007</span><span class="tstat" style="margin-left:auto">71%</span></div>
+            <div class="snippet">Available WMS interfaces may not sustain a 30-second end-to-end refresh target.</div>
+            <div class="tfoot"><span class="tstat">Risk</span><span class="tstat">Acme Logistics</span><span class="tstat">inferred</span></div>
+          </button>
+          <button class="tile art" onclick="toast('OBJ-001 provenance')">
+            <div class="thead"><i class="type-dot objective"></i><span class="tname" style="font-size:12px">OBJ-001</span><span class="tstat" style="margin-left:auto">94%</span></div>
+            <div class="snippet">Improve warehouse flow and prevent avoidable truck-loading delays.</div>
+            <div class="tfoot"><span class="tstat">Objective</span><span class="tstat">Acme Logistics</span><span class="tstat good">confirmed</span></div>
+          </button>
+          <button class="tile art" onclick="toast('REQ-114 provenance')">
+            <div class="thead"><i class="type-dot requirement"></i><span class="tname" style="font-size:12px">REQ-114</span><span class="tstat" style="margin-left:auto">90%</span></div>
+            <div class="snippet">Offline work orders must sync within 5 minutes of the device regaining connectivity.</div>
+            <div class="tfoot"><span class="tstat good">Requirement</span><span class="tstat">Globex</span><span class="tstat">quantified</span></div>
+          </button>
+          <button class="tile art" onclick="toast('CON-201 provenance')">
+            <div class="thead"><i class="type-dot constraint"></i><span class="tname" style="font-size:12px">CON-201</span><span class="tstat" style="margin-left:auto">96%</span></div>
+            <div class="snippet">All patient-intake edits must be captured in a HIPAA-compliant audit log.</div>
+            <div class="tfoot"><span class="tstat">Constraint</span><span class="tstat">Umbrella Health</span><span class="tstat">policy</span></div>
+          </button>
+          <button class="tile art" onclick="toast('Q-005 provenance')">
+            <div class="thead"><i class="type-dot question"></i><span class="tname" style="font-size:12px">Q-005</span><span class="tstat" style="margin-left:auto">—</span></div>
+            <div class="snippet">Which order states, exceptions, and alerts must supervisors see?</div>
+            <div class="tfoot"><span class="tstat">Open question</span><span class="tstat">Acme Logistics</span><span class="tstat">gap</span></div>
+          </button>
+        </div>
+      </section>
+
+      <!-- ---------- NEW / EMPTY ---------- -->
+      <section class="view" id="view-empty">
+        <div class="empty">
+          <div>
+            <div class="big">＋</div>
+            <h2>New conversation in Acme Logistics</h2>
+            <p>Add another discovery call to this workspace. Name the call, choose a discovery script, and start transcribing — its requirements roll up into the workspace Overview alongside every other conversation.</p>
+            <div class="row">
+              <button class="btn primary" onclick="toast('Live transcription started')">Start live transcription</button>
+              <button class="btn" onclick="toast('Upload dialog opened')">Upload a recording</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" onclick="toggleDrawer()"></div>
+<div class="toast" id="toast" style="position:fixed;right:18px;bottom:18px;background:#17243a;border:1px solid #3a5279;color:#fff;border-radius:10px;padding:11px 13px;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none;z-index:60"></div>
+
+<script>
+const shell=document.getElementById('shell');
+
+/* ---- workspaces (containers) and their conversations ---- */
+const WORKSPACES={
+  acme:{mark:'AL',name:'Acme Logistics',opp:'Warehouse Modernization'},
+  northwind:{mark:'NW',name:'Northwind Trading',opp:'Returns & RMA Portal'},
+  globex:{mark:'GX',name:'Globex',opp:'Field Service Mobile App'}
+};
+const CONVERSATIONS={
+  c1:{title:'Discovery · Operations',sub:'Supervisors & floor workflow',live:true},
+  c2:{title:'Discovery · IT & systems',sub:'WMS integration & data',live:false},
+  c3:{title:'Follow-up · Devices',sub:'Rugged tablets & connectivity',live:false}
+};
+let currentWs='acme';
+let currentConv='c1';
+let currentView='workspace';
+
+/* ---- collapse / drawer ---- */
+document.getElementById('hamburger').addEventListener('click',()=>{
+  if(window.innerWidth<=820){toggleDrawer();return;}
+  shell.classList.toggle('collapsed');
+});
+function toggleDrawer(){shell.classList.toggle('drawer-open');document.getElementById('scrim').classList.toggle('show',shell.classList.contains('drawer-open'));}
+
+/* ---- workspace switcher ---- */
+function toggleWsMenu(e){e.stopPropagation();document.getElementById('wsMenu').classList.toggle('open');}
+function closeWsMenu(){document.getElementById('wsMenu').classList.remove('open');}
+document.addEventListener('click',()=>closeWsMenu());
+function openWorkspace(key){
+  currentWs=key;const w=WORKSPACES[key];
+  document.getElementById('wsMark').textContent=w.mark;
+  document.getElementById('wsName').textContent=w.name;
+  document.querySelectorAll('.ws-opt').forEach(o=>o.classList.toggle('active',o.dataset.ws===key));
+  document.getElementById('crumbWs').textContent=w.name;
+  closeWsMenu();
+  openView('overview');           // land on the cross-section when switching workspaces
+  toast('Switched to '+w.name+' workspace');
+}
+
+/* ---- open a conversation within the workspace ---- */
+function openConversation(id,el){
+  currentConv=id;
+  document.querySelectorAll('#convList .convo').forEach(c=>c.classList.remove('active'));
+  if(el)el.classList.add('active'); else document.querySelector('#convList .convo[data-conv="'+id+'"]')?.classList.add('active');
+  const c=CONVERSATIONS[id];
+  document.getElementById('crumbConv').textContent=c.title;
+  document.getElementById('liveStatus').style.display=c.live?'':'none';
+  openView('workspace');          // "Live view" of that conversation
+  if(window.innerWidth<=820&&shell.classList.contains('drawer-open'))toggleDrawer();
+  toast('Opened '+c.title);
+}
+function openConversationFromCard(id){openConversation(id,null);}
+
+/* ---- switch view ---- */
+function viewName(v){return {overview:'Overview',workspace:'Live view',git:'Git branch tree',subway:'Conversation subway',matrix:'Coverage matrix',package:'Discovery package',database:'Database',empty:'New conversation'}[v]||v;}
+function openView(v,el){
+  currentView=v;
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.getElementById('view-'+v)?.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.nav-item[data-view="'+v+'"]').forEach(n=>n.classList.add('active'));
+  if(v==='subway'||v==='matrix'){document.querySelector('.side-scroll > .nav-item[data-view="git"]')?.classList.add('active');}
+  const cv=document.getElementById('crumbView');if(cv)cv.textContent=viewName(v);
+  // hide the per-conversation crumb + live status on workspace-level views
+  const wsLevel=(v==='overview'||v==='database');
+  document.getElementById('crumbConv').style.display=wsLevel?'none':'';
+  document.querySelector('#crumbTitle span[style*="3d5479"]').style.display=wsLevel?'none':'';
+  if(wsLevel)document.getElementById('liveStatus').style.display='none';
+  else if(CONVERSATIONS[currentConv]?.live)document.getElementById('liveStatus').style.display='';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ---- requirements register filter ---- */
+function regFilter(t,el){
+  document.querySelectorAll('#regChips .reg-chip').forEach(c=>c.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.querySelectorAll('#register tbody tr').forEach(r=>{r.style.display=(t==='all'||r.dataset.type===t)?'':'none';});
+}
+
+/* ---- new conversation ---- */
+function newSession(){
+  document.getElementById('crumbConv').textContent='New conversation';
+  document.getElementById('liveStatus').style.display='none';
+  openView('empty');
+  if(window.innerWidth<=820&&shell.classList.contains('drawer-open'))toggleDrawer();
+}
+
+/* ---- search filter ---- */
+function filterConvos(q){
+  q=q.trim().toLowerCase();
+  document.querySelectorAll('#convList .convo').forEach(c=>{
+    const t=c.textContent.toLowerCase();
+    c.style.display=(!q||t.includes(q))?'':'none';
+  });
+}
+
+/* ---- database view ---- */
+function dbMode(m,el){
+  document.querySelectorAll('.seg [data-dbmode]').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('dbSessions').style.display=(m==='sessions')?'':'none';
+  document.getElementById('dbArtifacts').style.display=(m==='artifacts')?'':'none';
+  document.getElementById('dbChips').style.visibility=(m==='sessions')?'visible':'hidden';
+}
+function dbFilter(f,el){
+  document.querySelectorAll('#dbChips .db-chip').forEach(c=>c.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.querySelectorAll('#dbSessions .tile').forEach(t=>{
+    t.style.display=(f==='all'||t.dataset.status===f)?'':'none';
+  });
+}
+
+/* ---- keyboard 1/2/3/4 ---- */
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+  if(e.key==='0')openView('overview');
+  if(e.key==='1')openView('workspace');
+  if(e.key==='2')openView('git');
+  if(e.key==='3')openView('package');
+  if(e.key==='4')openView('database');
+});
+
+/* ---- toast ---- */
+function toast(t){const el=document.getElementById('toast');el.textContent=t;el.style.opacity='1';el.style.transform='none';clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';el.style.transform='translateY(8px)';},1700);}
+</script>
+</body>
+</html>

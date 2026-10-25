@@ -1,0 +1,129 @@
+{
+  "case_id": "speclive-itself",
+  "title": "SpecLive product-requirements discovery (self-referential)",
+  "system_ref": "system.md",
+  "source_transcript": "transcript.json",
+  "notes": "Self-referential: ground truth is verifiable from this repo's README/IMPLEMENTATION_STATUS. Evidence turn_index is 0-based into transcript.turns; quotes are verbatim substrings.",
+  "gold_artifacts": [
+    {
+      "id": "O1",
+      "artifact_type": "objective",
+      "canonical_statement": "Derive candidate requirements from the live conversation in real time, each traceable to transcript evidence.",
+      "key_phrases": ["real time", "derive candidate requirements", "traceable"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 1, "quote": "derive candidate requirements in real time" }
+    },
+    {
+      "id": "R1",
+      "artifact_type": "requirement",
+      "canonical_statement": "Each artifact records source evidence, rationale, confidence, derivation method, and validation state.",
+      "key_phrases": ["source evidence", "rationale", "confidence", "validation state"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 3, "quote": "record its source evidence, an interpretation rationale, a confidence score, the derivation method, and a validation state" }
+    },
+    {
+      "id": "R2",
+      "artifact_type": "requirement",
+      "canonical_statement": "A model-inferred requirement is never marked customer-confirmed without explicit human action.",
+      "key_phrases": ["customer-confirmed", "human action", "human validation", "baselining"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": true,
+      "evidence": { "turn_index": 5, "quote": "must never be marked customer-confirmed without an explicit human action" }
+    },
+    {
+      "id": "R3",
+      "artifact_type": "requirement",
+      "canonical_statement": "A recorded file can be uploaded and run through the same pipeline as the live mic.",
+      "key_phrases": ["upload", "recorded file", "same pipeline"],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 7, "quote": "upload a recorded file and run it through the exact same pipeline" }
+    },
+    {
+      "id": "R4",
+      "artifact_type": "requirement",
+      "canonical_statement": "Ingest live microphone audio over a streaming connection as the main path.",
+      "key_phrases": ["live microphone", "streaming", "main path"],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 7, "quote": "Live microphone over a streaming connection is the main path" }
+    },
+    {
+      "id": "R5",
+      "artifact_type": "requirement",
+      "canonical_statement": "Customer answers spawn conversation branches, each keeping its own evidence and derived artifacts.",
+      "key_phrases": ["conversation branch", "own evidence", "derived artifacts"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 11, "quote": "each branch has to keep its own evidence and derived artifacts" }
+    },
+    {
+      "id": "R7",
+      "artifact_type": "requirement",
+      "canonical_statement": "Export a structured discovery package as JSON and Markdown.",
+      "key_phrases": ["export", "discovery package", "JSON and Markdown"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 13, "quote": "export a structured discovery package as JSON and Markdown" }
+    },
+    {
+      "id": "N1",
+      "artifact_type": "stakeholder_need",
+      "canonical_statement": "The facilitator follows a configurable discovery script.",
+      "key_phrases": ["configurable discovery script", "facilitator", "script"],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 11, "quote": "follows a configurable discovery script" }
+    },
+    {
+      "id": "N2",
+      "artifact_type": "stakeholder_need",
+      "canonical_statement": "The facilitator must be able to see why each requirement was proposed, or they won't trust it.",
+      "key_phrases": ["why the tool proposed", "trust", "provenance"],
+      "tier": "should",
+      "implicitness": "paraphrased",
+      "negation": false,
+      "evidence": { "turn_index": 3, "quote": "If I can't see why the tool proposed a requirement, I won't trust it" }
+    },
+    {
+      "id": "C1",
+      "artifact_type": "constraint",
+      "canonical_statement": "Speech-to-text must be provider-neutral (mock / local / hosted vendor).",
+      "key_phrases": ["provider-neutral", "speech-to-text", "vendor"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 9, "quote": "Speech-to-text has to be provider-neutral" }
+    },
+    {
+      "id": "C2",
+      "artifact_type": "constraint",
+      "canonical_statement": "Provider credentials stay server-side and never reach the browser.",
+      "key_phrases": ["credentials", "server-side", "browser"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": true,
+      "evidence": { "turn_index": 9, "quote": "the provider credentials must stay server-side, never in the browser" }
+    },
+    {
+      "id": "C3",
+      "artifact_type": "constraint",
+      "canonical_statement": "The system runs with no API keys at all by default.",
+      "key_phrases": ["no API keys", "by default", "key-free"],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 9, "quote": "it has to run with no API keys at all by default" }
+    }
+  ]
+}

@@ -5,17 +5,21 @@
  * validated, fully-typed data. The client holds no UI or business logic.
  */
 import {
+  AnalysisSettings,
   Coverage,
   ConversationGraph,
   DiscoveryArtifact,
   DiscoverySession,
   DiscoveryTree,
   EvidenceLink,
+  FileTranscriptionResult,
   Recommendations,
   ScriptDefinition,
   ScriptState,
+  StorageSettings,
   TranscriptSegment,
   TranscriptionCapability,
+  Workspace,
   type ArtifactType,
   type EvidenceRelationship,
   type Speaker,
@@ -36,6 +40,22 @@ export class ApiError extends Error {
 export interface ClientOptions {
   baseUrl: string;
   fetchImpl?: typeof fetch;
+}
+
+export interface ScriptStageWrite {
+  id?: string;
+  title: string;
+  objective: string;
+  primary_prompt: string;
+  alternative_prompts: string[];
+  completion_criteria: string[];
+}
+
+export interface ScriptDefinitionWrite {
+  name: string;
+  version: string;
+  description: string;
+  stages: ScriptStageWrite[];
 }
 
 export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
@@ -66,6 +86,19 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
     return res.text();
   }
 
+  async function requestVoid(path: string, init?: RequestInit): Promise<void> {
+    const res = await doFetch(`${root}/api/v1${path}`, init);
+    if (!res.ok) {
+      let detail = res.statusText;
+      try {
+        detail = (await res.json())?.detail ?? detail;
+      } catch {
+        /* ignore */
+      }
+      throw new ApiError(res.status, detail);
+    }
+  }
+
   return {
     // sessions
     listSessions: () => request("/sessions", z.array(DiscoverySession)),
@@ -86,6 +119,31 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
     }) =>
       request("/sessions", DiscoverySession, {
         method: "POST",
+        body: JSON.stringify(body),
+      }),
+    deleteSession: (id: string) =>
+      requestVoid(`/sessions/${id}`, {
+        method: "DELETE",
+      }),
+
+    // workspaces
+    listWorkspaces: () => request("/workspaces", z.array(Workspace)),
+    createWorkspace: (body: {
+      name: string;
+      description?: string;
+      industry?: string;
+      website?: string;
+    }) =>
+      request("/workspaces", Workspace, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    patchWorkspace: (
+      id: string,
+      body: Partial<{ description: string; industry: string; website: string }>,
+    ) =>
+      request(`/workspaces/${id}`, Workspace, {
+        method: "PATCH",
         body: JSON.stringify(body),
       }),
 
@@ -119,6 +177,37 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
           body: JSON.stringify(body),
         },
       ),
+    uploadRecording: async (
+      id: string,
+      file: Blob,
+      options?: {
+        filename?: string;
+        speakerMode?: "auto" | "manual";
+        speaker?: Speaker;
+        speakerName?: string;
+      },
+    ) => {
+      const form = new FormData();
+      form.append("file", file, options?.filename ?? "recording");
+      if (options?.speakerMode) form.append("speaker_mode", options.speakerMode);
+      if (options?.speaker) form.append("speaker", options.speaker);
+      if (options?.speakerName) form.append("speaker_name", options.speakerName);
+      // No Content-Type header: the browser sets the multipart boundary itself.
+      const res = await doFetch(`${root}/api/v1/sessions/${encodeURIComponent(id)}/transcribe`, {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) {
+        let detail = res.statusText;
+        try {
+          detail = (await res.json())?.detail ?? detail;
+        } catch {
+          /* ignore */
+        }
+        throw new ApiError(res.status, detail);
+      }
+      return FileTranscriptionResult.parse(await res.json());
+    },
     transcriptionSocketUrl: (id: string) =>
       `${socketRoot}/api/v1/sessions/${encodeURIComponent(id)}/audio`,
     parseTranscriptionFrame: (data: string) => TranscriptionServerFrame.parse(JSON.parse(data)),
@@ -182,17 +271,33 @@ export function createClient({ baseUrl, fetchImpl }: ClientOptions) {
     getDiscoveryTree: (id: string) => request(`/sessions/${id}/discovery-tree`, DiscoveryTree),
     getConversationGraph: (id: string) =>
       request(`/sessions/${id}/conversation-graph`, ConversationGraph),
+    buildConversationGraph: (id: string) =>
+      request(`/sessions/${id}/conversation-graph/build`, ConversationGraph, { method: "POST" }),
     getCoverage: (id: string) => request(`/sessions/${id}/coverage`, Coverage),
     getRecommendations: (id: string) => request(`/sessions/${id}/recommendations`, Recommendations),
 
     // script
     listScripts: () => request("/scripts", z.array(ScriptDefinition)),
     getScript: (scriptId: string) => request(`/scripts/${scriptId}`, ScriptDefinition),
+    createScript: (body: ScriptDefinitionWrite) =>
+      request("/scripts", ScriptDefinition, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    updateScript: (scriptId: string, body: ScriptDefinitionWrite) =>
+      request(`/scripts/${scriptId}`, ScriptDefinition, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      }),
+    archiveScript: (scriptId: string) =>
+      request(`/scripts/${scriptId}/archive`, ScriptDefinition, { method: "POST" }),
     getScriptState: (id: string) => request(`/sessions/${id}/script`, ScriptState),
     advanceScript: (id: string) =>
       request(`/sessions/${id}/script/advance`, ScriptState, { method: "POST" }),
 
     // analysis + export
+    getAnalysisSettings: () => request("/settings/analysis", AnalysisSettings),
+    getStorageSettings: () => request("/settings/storage", StorageSettings),
     analyze: (id: string) =>
       request(`/sessions/${id}/analyze`, z.array(DiscoveryArtifact), { method: "POST" }),
     exportPackage: (id: string, format: "json" | "markdown") =>

@@ -28,6 +28,13 @@ class Settings(BaseSettings):
     embedding_provider: str = "mock"
     exporter: str = "default"
 
+    # When true, the language model drafts candidate artifacts automatically as
+    # soon as each transcript segment is finalized — for every ingest path (live
+    # mic, file upload, manual entry) — so the facilitator sees a blueprint
+    # without an extra action. Derived items are always proposals; confirmation
+    # stays an explicit human step. Set false to require an explicit POST /analyze.
+    auto_analyze: bool = True
+
     # Speech-to-text adapters. The browser always sends mono PCM16 at 16 kHz;
     # adapters handle provider-specific resampling and framing server-side.
     stt_language: str | None = None
@@ -49,6 +56,43 @@ class Settings(BaseSettings):
     # diarization engine. See scripts/README.md.
     replay_script: str | None = None
     replay_seconds_per_turn: float = 2.5
+
+    # Analysis context strategy: how much surrounding transcript a
+    # LanguageModelProvider sees per call. "full" (default) = the whole
+    # session transcript in one call, so cross-turn requirements (a
+    # facilitator's paraphrase of an answer given several turns earlier)
+    # are visible; "window" = consecutive segments grouped into
+    # ANALYSIS_WINDOW_SECONDS time-boxed chunks; "segment" = each segment
+    # alone, matching the original per-turn heuristics. See
+    # app/services/context_strategy.py.
+    analysis_context_mode: str = "full"
+    analysis_window_seconds: float = 300.0
+
+    # LLM provider selection. "mock" (default) is a deterministic
+    # keyword/regex heuristic engine, no API key required.
+    # "openai_compatible" speaks the OpenAI chat-completions wire format, so
+    # it works unmodified against OpenAI itself, a local Ollama server, a
+    # vLLM OpenAI-compatible server, Anthropic's OpenAI-compatible endpoint,
+    # or anything else implementing that contract — point LLM_API_BASE at
+    # whichever one you want. See app/providers/openai_compatible.py.
+    llm_api_base: str = "https://api.openai.com/v1"
+    llm_api_key: str | None = None
+    llm_model: str = "gpt-4o-mini"
+    llm_timeout_seconds: float = 60.0
+
+    # Content storage. Where captured recordings, rendered transcripts, derived
+    # requirements and exported discovery packages are persisted, in the layout
+    # described in app/storage/layout.py (workspaces/<ws>/conversations/<id>/…).
+    #   "local"    = a local directory tree rooted at STORAGE_LOCAL_ROOT (default)
+    #   "database" = rows in the stored_blobs table (single backing store)
+    # Structured data (sessions, segments, artifacts, evidence) always lives in
+    # the relational DB; this setting governs the *content sidecar* files. Local
+    # is the default because large audio blobs don't belong in Postgres.
+    storage_backend: str = "local"
+    storage_local_root: str = "./data"
+    # Whether the raw recording is persisted at all. Privacy-sensitive
+    # deployments can keep transcripts/requirements while discarding audio.
+    storage_persist_audio: bool = True
 
     # HTTP
     api_host: str = "0.0.0.0"

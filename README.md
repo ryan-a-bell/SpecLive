@@ -49,6 +49,10 @@ packages/  domain (shared TS types), client (typed API client), ui, config
 - Streaming (transcript segments, candidate artifacts, evidence, tree/branch
   changes, recommendations) flows over WebSockets. Browser microphone audio goes
   only to the SpecLive API; provider selection and credentials stay server-side.
+- Recorded audio can also be **uploaded as a file** (`POST /sessions/{id}/transcribe`).
+  The server decodes it to canonical PCM once and runs it through the *same*
+  provider-neutral ingest pipeline as the live mic, so an upload yields the same
+  persisted segments, evidence, and derived artifacts.
 
 See [`docs/architecture/README.md`](docs/architecture/README.md) for context,
 container, component, event-flow, derivation-sequence, and data-model diagrams
@@ -112,8 +116,12 @@ See [`.env.example`](.env.example) for the full list. Key ones:
 | `WISPR_FLOW_ACCESS_TOKEN` | Wispr streaming-session token | _(unset)_ |
 | `FASTER_WHISPER_MODEL` | Local faster-whisper model | `small.en` |
 | `LLM_PROVIDER` | Language-model provider id | `mock` |
+| `AUTO_ANALYZE` | Auto-draft candidates when a segment finalizes | `true` |
 | `EMBEDDING_PROVIDER` | Embedding provider id | `mock` |
 | `EVENT_BUS` | `memory` or `redis` | `memory` |
+| `STORAGE_BACKEND` | Content store: `local` or `database` | `local` |
+| `STORAGE_LOCAL_ROOT` | Root dir for the local content tree | `./data` |
+| `STORAGE_PERSIST_AUDIO` | Persist the raw recording | `true` |
 | `CORS_ORIGINS` | Allowed web origins | `http://localhost:3000` |
 | `NEXT_PUBLIC_API_BASE_URL` | Web → API base URL | `http://localhost:8000` |
 | `LOG_LEVEL` | Structured log level | `INFO` |
@@ -148,10 +156,29 @@ end-to-end scenario. Frontend coverage: components, selection state,
 transcript→artifact navigation, tree interaction, script advancement, and
 branch visualization.
 
+### Uploading a recorded file
+
+Besides the live microphone WebSocket, a finished recording can be transcribed
+by uploading it:
+
+```bash
+curl -F "file=@discovery-call.mp3" \
+  http://localhost:8000/api/v1/sessions/<session-id>/transcribe
+```
+
+The server decodes the file to 16 kHz mono PCM and streams it through the
+configured `STT_PROVIDER` (mock/local/openai/wispr) exactly like live audio, so
+the response and the session end up with the same segments and derived
+artifacts. WAV uploads decode with no extra dependencies; compressed formats
+(MP3, M4A, OGG, …) require `ffmpeg` on the API host (bundled in the Docker
+image). Optional `speaker_mode=manual` with `speaker` and `speaker_name` form
+fields stamp every segment with a fixed speaker; the default `auto` mode uses
+provider-detected voices. In the web app, the transcript panel's **Upload
+recording** button does the same thing.
+
 ### Synthetic audio playback
 
-The API ingests microphone audio only over a WebSocket (16 kHz mono PCM16, no
-file upload). To exercise that path without a microphone,
+To exercise the live streaming path without a microphone,
 [`scripts/audio_playback_test.py`](scripts/README.md) synthesizes a
 multi-speaker discussion (Piper by default) and streams it into a live session:
 
@@ -162,6 +189,64 @@ python scripts/audio_playback_test.py --script scripts/sample_discussion.json
 Run the API with `STT_PROVIDER=local` (faster-whisper) to transcribe the
 synthesized speech for real; with the default `mock` provider it validates the
 streaming plumbing end to end. See [`scripts/README.md`](scripts/README.md).
+
+## Content storage
+
+Beyond the canonical structured data in the database, each conversation's
+**content** — the raw recording, a rendered transcript, a snapshot of the
+derived requirements, and exported discovery packages — is persisted to a
+configurable **content store**. `STORAGE_BACKEND` selects it:
+
+- **`local`** (default) — a directory tree rooted at `STORAGE_LOCAL_ROOT`
+  (default `./data`), directly browsable and easy to back up.
+- **`database`** — rows in the `stored_blobs` table, for a single backing store.
+  (Large audio in a relational DB bloats backups, so `local` is the default.)
+
+The on-disk layout (`apps/api/app/storage/layout.py`) keys each conversation on
+its immutable session id, separates write-once raw content from regenerable
+derived content, and indexes everything with checksums + provenance in a
+`manifest.json`:
+
+```
+<root>/
+├── .speclive-storage.json                     # layout schema-version marker
+└── workspaces/<workspace>/
+    ├── workspace.json
+    └── conversations/<yyyymmdd>-<slug>-<session_id>/
+        ├── manifest.json                       # index + provenance + checksums
+        ├── raw/recording.<ext> + recording.meta.json   # write-once
+        ├── transcript/segments.json + transcript.md
+        ├── requirements/artifacts.json + evidence.json
+        └── exports/discovery-package-<timestamp>.{json,md}
+```
+
+Structured data (sessions, segments, artifacts, evidence) always lives in the
+relational database regardless of this setting; the stored files are content
+sidecars and are safe to regenerate. Set `STORAGE_PERSIST_AUDIO=false` to keep
+transcripts/requirements while discarding captured audio.
+
+Uploading a recording via `POST /sessions/{id}/transcribe` persists it and its
+sidecars automatically (best-effort). To (re)write a conversation's tree
+explicitly — optionally attaching a recording — call:
+
+```bash
+curl -F "file=@discovery-call.mp3" \
+  http://localhost:8000/api/v1/sessions/<session-id>/storage/snapshot
+```
+
+`GET /api/v1/sessions/<session-id>/storage` lists what is currently stored, and
+`GET /api/v1/settings/storage` reports the active backend (no secrets).
+
+In the web app, the **Settings** page (the gear next to the facilitator in the
+bottom-left of the sidebar) surfaces this configuration: the active storage
+backend, the local root, the folder layout, and the AI-routing / speech-to-text
+/ analysis settings — read from `GET /settings/*`. Configuration is env-driven,
+so the page reflects the deployment's active settings; runtime editing and the
+grayed-out **Data & privacy** section are planned follow-ups.
+
+Per-workspace / per-conversation storage overrides are a planned follow-up
+(global-only for now); the design decision is recorded in
+[`docs/adr/0009-content-storage-backend.md`](docs/adr/0009-content-storage-backend.md).
 
 ## Repository map
 

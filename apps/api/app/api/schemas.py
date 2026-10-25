@@ -6,7 +6,7 @@ explicit and stable, decoupled from ORM/domain internals.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..domain.enums import (
     ArtifactType,
@@ -32,6 +32,37 @@ class SessionPatch(BaseModel):
     status: SessionStatus | None = None
     script_id: str | None = None
     metadata: dict | None = None
+
+
+# --- workspaces -----------------------------------------------------------
+class WorkspaceCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    description: str = ""
+    industry: str = Field(default="", max_length=255)
+    website: str = Field(default="", max_length=500)
+
+
+class WorkspacePatch(BaseModel):
+    description: str | None = None
+    industry: str | None = Field(default=None, max_length=255)
+    website: str | None = Field(default=None, max_length=500)
+
+
+# --- discovery scripts ---------------------------------------------------
+class ScriptStageWrite(BaseModel):
+    id: str | None = None
+    title: str = Field(min_length=1, max_length=255)
+    objective: str = ""
+    primary_prompt: str = Field(min_length=1)
+    alternative_prompts: list[str] = Field(default_factory=list)
+    completion_criteria: list[str] = Field(default_factory=list)
+
+
+class ScriptDefinitionWrite(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    version: str = Field(default="1.0.0", min_length=1, max_length=32)
+    description: str = ""
+    stages: list[ScriptStageWrite] = Field(min_length=1)
 
 
 # --- transcript -----------------------------------------------------------
@@ -66,6 +97,83 @@ class TranscriptionCapability(BaseModel):
     supports_speaker_detection: bool
     audio: TranscriptionAudioFormat = Field(default_factory=TranscriptionAudioFormat)
     max_frame_seconds: int = 5
+
+
+class FileTranscriptionResult(BaseModel):
+    """Outcome of transcribing an uploaded recording (non-streaming)."""
+
+    session_id: str
+    source_filename: str | None = None
+    audio_seconds: float
+    segment_count: int
+    segments: list[dict] = Field(default_factory=list)
+
+
+class AnalysisSettingsInfo(BaseModel):
+    """Read-only view of the deployment's requirement-derivation configuration.
+
+    Deliberately excludes any secret (notably ``LLM_API_KEY``): this reports
+    *what mode/provider is active* so the UI can show it, never credentials.
+    Config is env-var-driven and immutable at runtime, so there is no PATCH
+    counterpart — see GitHub issue on whether these should become editable.
+    """
+
+    context_mode: str
+    window_seconds: float
+    auto_analyze: bool
+    llm_provider: str
+    # Only populated for the openai_compatible provider; the base URL and model
+    # are non-secret configuration, the API key is never included.
+    llm_api_base: str | None = None
+    llm_model: str | None = None
+
+
+class StorageSettingsInfo(BaseModel):
+    """Read-only view of the deployment's content-storage configuration.
+
+    Non-secret: reports where recordings/transcripts/requirements/exports are
+    persisted so the UI can show it. Global-only for now (see the storage
+    per-workspace-override follow-up issue)."""
+
+    backend: str
+    persist_audio: bool
+    schema_version: str
+    # Only for the local backend: the directory root the tree lives under.
+    local_root: str | None = None
+
+
+class StoredObjectInfo(BaseModel):
+    # Populated directly from the storage layer's StoredObject dataclass.
+    model_config = ConfigDict(from_attributes=True)
+
+    path: str
+    size_bytes: int
+    sha256: str
+    media_type: str
+    location: str
+
+
+class StorageSnapshotResult(BaseModel):
+    """Outcome of persisting a conversation's content to the store."""
+
+    session_id: str
+    workspace_id: str
+    backend: str
+    conversation_dir: str
+    audio_persisted: bool
+    manifest_location: str
+    objects: list[StoredObjectInfo] = Field(default_factory=list)
+
+
+class StoredContentInfo(BaseModel):
+    """What is currently stored for a conversation (paths only, no bytes)."""
+
+    session_id: str
+    workspace_id: str
+    backend: str
+    conversation_dir: str
+    stored: bool
+    paths: list[str] = Field(default_factory=list)
 
 
 # --- artifacts ------------------------------------------------------------

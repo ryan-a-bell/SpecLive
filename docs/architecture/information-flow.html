@@ -1,0 +1,441 @@
+<title>SpecLive Information Flow</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --bg: #eef1f6;
+    --surface: #ffffff;
+    --surface-2: #e4eaf2;
+    --border: #c6d1de;
+    --ink: #172230;
+    --muted: #566475;
+    --accent: #2563eb;
+    --accent-soft: rgba(37, 99, 235, 0.12);
+    --gate: #b4530a;
+    --gate-soft: rgba(180, 83, 10, 0.12);
+    --good: #157a3d;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    --display: "Archivo", var(--sans);
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d131b;
+      --surface: #151f2b;
+      --surface-2: #1b2836;
+      --border: #2c3c4d;
+      --ink: #e6edf5;
+      --muted: #93a4b6;
+      --accent: #5fa0ff;
+      --accent-soft: rgba(95, 160, 255, 0.16);
+      --gate: #e8a24c;
+      --gate-soft: rgba(232, 162, 76, 0.16);
+      --good: #4ade80;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d131b;
+    --surface: #151f2b;
+    --surface-2: #1b2836;
+    --border: #2c3c4d;
+    --ink: #e6edf5;
+    --muted: #93a4b6;
+    --accent: #5fa0ff;
+    --accent-soft: rgba(95, 160, 255, 0.16);
+    --gate: #e8a24c;
+    --gate-soft: rgba(232, 162, 76, 0.16);
+    --good: #4ade80;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: clamp(28px, 5vw, 60px) clamp(18px, 4vw, 44px) 72px;
+  }
+
+  header { margin-bottom: 36px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 12px;
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(30px, 5vw, 46px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 14px;
+  }
+  .lede {
+    font-size: clamp(15px, 2vw, 18px);
+    color: var(--muted);
+    max-width: 62ch;
+    margin: 0;
+  }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  .tag {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 11px;
+    background: var(--surface);
+  }
+
+  figure {
+    margin: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: clamp(12px, 2.5vw, 26px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 30px -18px rgba(0, 0, 0, 0.25);
+  }
+  .scroll { overflow-x: auto; }
+  svg.flow {
+    display: block;
+    width: 100%;
+    min-width: 720px;
+    height: auto;
+    color: var(--ink);
+    font-family: var(--mono);
+  }
+
+  rect.box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+  rect.client { fill: var(--surface-2); stroke: var(--border); stroke-width: 1.5; }
+  rect.gate { fill: var(--surface); stroke: var(--gate); stroke-width: 2; }
+  .cyl { fill: var(--surface-2); stroke: var(--border); stroke-width: 1.5; }
+  text { fill: var(--ink); }
+  text.t { font-weight: 600; font-size: 14px; }
+  text.s { fill: var(--muted); font-size: 11px; }
+  text.lbl { fill: var(--muted); font-size: 11px; font-weight: 500; }
+  text.gatetxt { fill: var(--gate); }
+  path.flow, line.flow, polyline.flow { stroke: currentColor; stroke-width: 1.6; fill: none; }
+  path.event, polyline.event { stroke: var(--accent); stroke-width: 1.8; stroke-dasharray: 6 5; fill: none; }
+  rect.pill { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.2; }
+  text.pilltxt { fill: var(--accent); font-size: 10px; font-weight: 600; letter-spacing: 0.04em; }
+  rect.eb { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+
+  figcaption {
+    font-size: 13.5px;
+    color: var(--muted);
+    margin-top: 16px;
+    max-width: 78ch;
+  }
+  figcaption b { color: var(--ink); font-weight: 600; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 18px 26px;
+    margin: 22px 2px 0;
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 9px; }
+  .swatch { width: 26px; height: 0; border-top-width: 2px; border-top-style: solid; }
+  .swatch.solid { border-color: var(--ink); }
+  .swatch.dash { border-top-style: dashed; border-color: var(--accent); }
+  .chip { width: 13px; height: 13px; border-radius: 3px; border: 2px solid var(--gate); background: transparent; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px;
+    margin-top: 44px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .card .n {
+    font-family: var(--mono); font-size: 12px; font-weight: 600;
+    color: var(--accent); letter-spacing: 0.04em;
+  }
+  .card h3 {
+    font-family: var(--display); font-size: 17px; font-weight: 600;
+    margin: 8px 0 6px; letter-spacing: -0.01em;
+  }
+  .card p { margin: 0; font-size: 14px; color: var(--muted); }
+  .card code {
+    font-family: var(--mono); font-size: 12.5px;
+    color: var(--ink); background: var(--surface-2);
+    padding: 1px 5px; border-radius: 4px;
+  }
+
+  h2 {
+    font-family: var(--display); font-weight: 700;
+    font-size: 22px; letter-spacing: -0.01em;
+    margin: 52px 0 6px;
+  }
+  .sub { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .tscroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th {
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+    background: var(--surface-2);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td code { font-family: var(--mono); font-size: 12.5px; color: var(--accent); }
+  td.stage { font-weight: 600; white-space: nowrap; }
+
+  footer {
+    margin-top: 46px; padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">SpecLive · Requirements Discovery Copilot</p>
+    <h1>How information flows through the system</h1>
+    <p class="lede">
+      However a conversation gets in — a live mic, an uploaded recording, or typed
+      text — it becomes transcript segments; the language model then drafts candidate
+      requirements with traceable evidence, and the facilitator confirms or adapts
+      them before anything is baselined.
+    </p>
+    <div class="tags">
+      <span class="tag">Next.js web</span>
+      <span class="tag">FastAPI</span>
+      <span class="tag">Provider-neutral STT / LLM</span>
+      <span class="tag">Event bus → WebSocket</span>
+      <span class="tag">PostgreSQL · SQLite</span>
+    </div>
+  </header>
+
+  <figure>
+    <div class="scroll">
+      <svg class="flow" viewBox="0 0 1120 650" role="img"
+           aria-label="Information flow: the browser sends audio, an analyze command, and validation actions to the FastAPI backend. Audio from mic, file upload, or manual entry converges into transcription, which produces transcript segments persisted to the database. The language model drafts candidate artifacts and evidence from the segments; a human then confirms, edits, or rejects them and exports. Every database write publishes a domain event onto the event bus, which is streamed back to the browser over a WebSocket for live updates, while the browser also reads projections over REST.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+          </marker>
+        </defs>
+
+        <!-- CLIENT -->
+        <rect class="client" x="40" y="34" width="1000" height="72" rx="12"></rect>
+        <text class="t" x="60" y="66">Browser · Next.js web app</text>
+        <text class="s" x="60" y="86">TanStack Query · Zustand · six live visualizations</text>
+        <text class="s" x="620" y="66">Sends: audio · analyze command · confirm / reject / merge</text>
+        <text class="s" x="620" y="86">Renders: transcript, tree, coverage, branches, questions</text>
+
+        <!-- API boundary label -->
+        <text class="lbl" x="40" y="150" style="font-size:11px;letter-spacing:0.14em">FASTAPI  ·  /api/v1</text>
+        <line class="flow" x1="40" y1="158" x2="1040" y2="158" style="stroke:var(--border);stroke-width:1"></line>
+
+        <!-- Browser -> spine (commands / data down) -->
+        <line class="flow" x1="115" y1="106" x2="115" y2="250" marker-end="url(#ah)"></line>
+        <text class="lbl" x="123" y="182">mic · file · text</text>
+        <line class="flow" x1="625" y1="106" x2="625" y2="250" marker-end="url(#ah)"></line>
+        <text class="lbl" x="633" y="182">re-analyze (opt.)</text>
+        <line class="flow" x1="965" y1="106" x2="965" y2="250" marker-end="url(#ah)"></line>
+        <text class="lbl" x="835" y="182">confirm · reject · export</text>
+
+        <!-- SPINE boxes -->
+        <rect class="box" x="40" y="250" width="150" height="80" rx="10"></rect>
+        <text class="t" x="60" y="285">Audio in</text>
+        <text class="s" x="60" y="305">WS /audio · /transcribe</text>
+        <text class="s" x="60" y="321">mic · file · manual</text>
+
+        <rect class="box" x="210" y="250" width="150" height="80" rx="10"></rect>
+        <text class="t" x="230" y="285">Transcribe</text>
+        <text class="s" x="230" y="305">STT provider + ingest</text>
+        <text class="s" x="230" y="321">decode · resolve speaker</text>
+
+        <rect class="box" x="380" y="250" width="150" height="80" rx="10"></rect>
+        <text class="t" x="400" y="285">Segments</text>
+        <text class="s" x="400" y="305">TranscriptService</text>
+        <text class="s" x="400" y="321">add_segment()</text>
+
+        <rect class="box" x="550" y="250" width="150" height="80" rx="10"></rect>
+        <text class="t" x="570" y="285">Analyze</text>
+        <text class="s" x="570" y="305">AnalysisService + LLM</text>
+        <rect class="pill" x="570" y="311" width="92" height="15" rx="7"></rect>
+        <text class="pilltxt" x="578" y="322">LLM DRAFTS</text>
+
+        <rect class="box" x="720" y="250" width="150" height="80" rx="10"></rect>
+        <text class="t" x="740" y="285">Artifacts</text>
+        <text class="s" x="740" y="305">+ evidence links</text>
+        <text class="s" x="740" y="321">ArtifactService</text>
+
+        <rect class="gate" x="890" y="250" width="150" height="80" rx="10"></rect>
+        <text class="t gatetxt" x="910" y="285">Validate</text>
+        <text class="s" x="910" y="305">human confirm → export</text>
+        <text class="s" x="910" y="321">JSON · Markdown</text>
+
+        <!-- spine horizontal flow -->
+        <line class="flow" x1="190" y1="290" x2="210" y2="290" marker-end="url(#ah)"></line>
+        <text class="lbl" x="176" y="243" text-anchor="middle">speech</text>
+        <line class="flow" x1="360" y1="290" x2="380" y2="290" marker-end="url(#ah)"></line>
+        <text class="lbl" x="370" y="243" text-anchor="middle">text</text>
+        <line class="flow" x1="530" y1="290" x2="550" y2="290" marker-end="url(#ah)"></line>
+        <text class="lbl" x="540" y="243" text-anchor="middle">on finalize</text>
+        <line class="flow" x1="700" y1="290" x2="720" y2="290" marker-end="url(#ah)"></line>
+        <text class="lbl" x="710" y="243" text-anchor="middle">candidates</text>
+        <line class="flow" x1="870" y1="290" x2="890" y2="290" marker-end="url(#ah)"></line>
+        <text class="lbl" x="880" y="243" text-anchor="middle">reviewed</text>
+
+        <!-- writes to DB -->
+        <line class="flow" x1="455" y1="330" x2="455" y2="452" marker-end="url(#ah)"></line>
+        <text class="lbl" x="463" y="396">persist</text>
+        <line class="flow" x1="795" y1="330" x2="795" y2="452" marker-end="url(#ah)"></line>
+        <text class="lbl" x="803" y="396">persist</text>
+
+        <!-- DB cylinder -->
+        <g class="cyl">
+          <path d="M360,470 a165,15 0 0,1 330,0 l0,60 a165,15 0 0,1 -330,0 z"></path>
+          <ellipse cx="525" cy="470" rx="165" ry="15"></ellipse>
+        </g>
+        <text class="t" x="525" y="512" text-anchor="middle">Persistence</text>
+        <text class="s" x="525" y="530" text-anchor="middle">PostgreSQL · SQLite fallback (SQLAlchemy)</text>
+
+        <!-- DB -> EventBus -->
+        <line class="flow" x1="525" y1="545" x2="525" y2="580" marker-end="url(#ah)"></line>
+        <text class="lbl" x="533" y="568">publish domain event</text>
+
+        <!-- EventBus -->
+        <rect class="eb" x="360" y="583" width="330" height="42" rx="10"></rect>
+        <text class="t" x="525" y="602" text-anchor="middle" style="fill:var(--accent)">EventBus</text>
+        <text class="s" x="525" y="617" text-anchor="middle">in-memory now · Redis-ready · WS /stream</text>
+
+        <!-- EventBus -> Browser (live push, accent dashed, left margin) -->
+        <polyline class="event" points="360,604 24,604 24,70 40,70" marker-end="url(#ah)"></polyline>
+        <text class="lbl" x="34" y="360" transform="rotate(-90 34 360)" text-anchor="middle" style="fill:var(--accent)">live updates → WebSocket push</text>
+
+        <!-- Browser reads projections (right margin, solid) -->
+        <polyline class="flow" points="690,478 1096,478 1096,70 1040,70" marker-end="url(#ah)"></polyline>
+        <text class="lbl" x="1086" y="300" transform="rotate(-90 1086 300)" text-anchor="middle">reads · REST projections</text>
+      </svg>
+    </div>
+
+    <div class="legend">
+      <span><span class="swatch solid"></span> request / data flow</span>
+      <span><span class="swatch dash"></span> async event push (live)</span>
+      <span><span class="chip"></span> human-in-the-loop gate</span>
+    </div>
+
+    <figcaption>
+      The requirements are drafted by the <b>model</b>, not the facilitator.
+      <b>AnalysisService</b> sends the transcript to the <b>LanguageModelProvider</b>,
+      which proposes candidate artifacts plus the evidence span each came from; they land
+      as <em>detected / inferred</em>. A human then confirms, edits, or rejects at the
+      amber <b>Validate</b> gate — the only path to a baselined requirement, since a
+      lifecycle guardrail blocks any automated confirmation. Drafting fires
+      <b>automatically</b> the moment a segment is finalized — for every ingest path —
+      so the blueprint appears without any extra action (<code>POST /analyze</code>
+      remains for a full re-analysis). Every write publishes a domain event that streams
+      back to the browser, so the six visualizations update live.
+    </figcaption>
+  </figure>
+
+  <div class="grid">
+    <div class="card">
+      <p class="n">01 · INGEST</p>
+      <h3>One pipeline, three doors</h3>
+      <p>Live mic (<code>WS /audio</code>), uploaded file (<code>POST /transcribe</code>),
+      and manual text all converge on the same provider-neutral ingest path, so an
+      upload behaves exactly like a live conversation.</p>
+    </div>
+    <div class="card">
+      <p class="n">02 · TRANSCRIBE</p>
+      <h3>Provider-neutral speech</h3>
+      <p>A <code>SpeechToTextProvider</code> (mock, faster-whisper, OpenAI, or Wispr)
+      emits normalized events; ingest resolves the speaker and persists finals through
+      <code>TranscriptService</code>.</p>
+    </div>
+    <div class="card">
+      <p class="n">03 · DERIVE</p>
+      <h3>The model drafts the requirements</h3>
+      <p><code>AnalysisService</code> asks the <code>LanguageModelProvider</code> for
+      candidate artifacts and evidence spans — each traceable to the exact transcript
+      offset. These are proposals authored by the model, not the facilitator.</p>
+    </div>
+    <div class="card">
+      <p class="n">04 · VALIDATE</p>
+      <h3>Humans adapt &amp; baseline</h3>
+      <p>The model never confirms its own work — a lifecycle guardrail blocks automated
+      confirmation. The facilitator confirms, edits, or rejects each candidate, then
+      exports the JSON + Markdown package.</p>
+    </div>
+  </div>
+
+  <h2>Where each stage lives</h2>
+  <p class="sub">The layered backend keeps every concern behind an interface, so a stage swaps without touching its neighbours.</p>
+  <div class="tscroll">
+    <table>
+      <thead>
+        <tr><th>Stage</th><th>Entry point</th><th>Service / port</th><th>Persisted as</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="stage">Ingest</td>
+          <td><code>api/v1/audio.py</code> · <code>transcribe.py</code></td>
+          <td>SpeechToTextProvider · transcription_ingest</td>
+          <td>transcript segments</td>
+        </tr>
+        <tr>
+          <td class="stage">Transcribe</td>
+          <td><code>providers/registry.py</code></td>
+          <td>mock · faster-whisper · openai · wispr</td>
+          <td>segments (+ domain event)</td>
+        </tr>
+        <tr>
+          <td class="stage">Analyze</td>
+          <td>auto on segment finalize · <code>POST /analyze</code> to re-run</td>
+          <td>AnalysisService + LanguageModelProvider</td>
+          <td>artifacts (detected / inferred)</td>
+        </tr>
+        <tr>
+          <td class="stage">Evidence</td>
+          <td><code>artifacts/{id}/evidence</code></td>
+          <td>ArtifactService</td>
+          <td>evidence links (typed, offset-exact)</td>
+        </tr>
+        <tr>
+          <td class="stage">Validate</td>
+          <td><code>/confirm · /reject · /merge</code></td>
+          <td>ArtifactService + lifecycle guardrail</td>
+          <td>validation-state transitions</td>
+        </tr>
+        <tr>
+          <td class="stage">Stream</td>
+          <td><code>WS /sessions/{id}/stream</code></td>
+          <td>EventBus (in-memory · Redis-ready)</td>
+          <td>— (push only)</td>
+        </tr>
+        <tr>
+          <td class="stage">Export</td>
+          <td><code>/export?format=</code></td>
+          <td>ExportService + ArtifactExporter</td>
+          <td>JSON · Markdown package</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>Diagram reflects branch claude/repo-architecture-review-vwhmov · derivation on demand, human validation before baselining.</footer>
+</div>

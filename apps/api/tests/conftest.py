@@ -18,6 +18,9 @@ os.environ["DATABASE_URL"] = f"sqlite+pysqlite:///{_TMPDIR}/test.db"
 os.environ["EVENT_BUS"] = "memory"
 os.environ["LOG_LEVEL"] = "WARNING"
 os.environ["STT_PROVIDER"] = "mock"
+# Keep content-storage side effects (e.g. the transcribe upload auto-snapshot)
+# inside the temp dir instead of writing ./data into the working tree.
+os.environ.setdefault("STORAGE_LOCAL_ROOT", f"{_TMPDIR}/data")
 
 from fastapi.testclient import TestClient  # noqa: E402
 

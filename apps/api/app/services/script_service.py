@@ -7,6 +7,9 @@ increment.
 
 from __future__ import annotations
 
+from uuid import uuid4
+
+from ..db import models as m
 from ..domain import entities as e
 from ..domain.events import DomainEvent, EventType
 from ..events import EventBus
@@ -22,13 +25,132 @@ class ScriptService:
         self._repo = repo
         self._bus = bus
 
-    def list_scripts(self) -> list[e.ScriptDefinition]:
-        return [script_to_domain(s) for s in self._repo.list_scripts()]
+    def list_scripts(self, *, include_archived: bool = False) -> list[e.ScriptDefinition]:
+        return [
+            script_to_domain(s) for s in self._repo.list_scripts(include_archived=include_archived)
+        ]
 
     def get_script(self, script_id: str) -> e.ScriptDefinition:
         row = self._repo.get_script(script_id)
         if row is None:
             raise NotFoundError(f"Script {script_id} not found")
+        return script_to_domain(row)
+
+    @staticmethod
+    def _clean_stages(stages: list[dict]) -> list[dict]:
+        if not stages:
+            raise ValidationError("A discovery script must contain at least one stage")
+        cleaned: list[dict] = []
+        for stage in stages:
+            title = str(stage.get("title", "")).strip()
+            prompt = str(stage.get("primary_prompt", "")).strip()
+            if not title or not prompt:
+                raise ValidationError("Every script stage needs a title and primary prompt")
+            cleaned.append(
+                {
+                    **stage,
+                    "title": title,
+                    "objective": str(stage.get("objective", "")).strip(),
+                    "primary_prompt": prompt,
+                    "alternative_prompts": [
+                        str(value).strip()
+                        for value in stage.get("alternative_prompts", [])
+                        if str(value).strip()
+                    ],
+                    "completion_criteria": [
+                        str(value).strip()
+                        for value in stage.get("completion_criteria", [])
+                        if str(value).strip()
+                    ],
+                }
+            )
+        return cleaned
+
+    @staticmethod
+    def _stage_rows(
+        script_id: str,
+        stages: list[dict],
+        *,
+        existing_ids: set[str] | None = None,
+    ) -> list[m.ScriptStageORM]:
+        allowed_ids = existing_ids or set()
+        rows: list[m.ScriptStageORM] = []
+        for sequence, stage in enumerate(stages):
+            requested_id = stage.get("id")
+            stage_id = requested_id if requested_id in allowed_ids else str(uuid4())
+            rows.append(
+                m.ScriptStageORM(
+                    id=stage_id,
+                    script_id=script_id,
+                    sequence=sequence,
+                    title=stage["title"],
+                    objective=stage["objective"],
+                    primary_prompt=stage["primary_prompt"],
+                    alternative_prompts=stage["alternative_prompts"],
+                    completion_criteria=stage["completion_criteria"],
+                )
+            )
+        return rows
+
+    def create(
+        self,
+        *,
+        name: str,
+        version: str,
+        description: str,
+        stages: list[dict],
+    ) -> e.ScriptDefinition:
+        clean_name = name.strip()
+        if not clean_name:
+            raise ValidationError("A discovery script needs a name")
+        script_id = str(uuid4())
+        cleaned = self._clean_stages(stages)
+        row = m.ScriptDefinitionORM(
+            id=script_id,
+            name=clean_name,
+            version=version.strip() or "1.0.0",
+            description=description.strip(),
+            archived=False,
+        )
+        row.stages = self._stage_rows(script_id, cleaned)
+        self._repo.add_script(row)
+        self._repo.commit()
+        return script_to_domain(row)
+
+    def update(
+        self,
+        script_id: str,
+        *,
+        name: str,
+        version: str,
+        description: str,
+        stages: list[dict],
+    ) -> e.ScriptDefinition:
+        row = self._repo.get_script(script_id)
+        if row is None:
+            raise NotFoundError(f"Script {script_id} not found")
+        if row.archived:
+            raise ValidationError("Archived scripts cannot be edited")
+        clean_name = name.strip()
+        if not clean_name:
+            raise ValidationError("A discovery script needs a name")
+        cleaned = self._clean_stages(stages)
+        existing_ids = {stage.id for stage in row.stages}
+        row.name = clean_name
+        row.version = version.strip() or "1.0.0"
+        row.description = description.strip()
+        row.stages = self._stage_rows(script_id, cleaned, existing_ids=existing_ids)
+        self._repo.commit()
+        return script_to_domain(row)
+
+    def archive(self, script_id: str) -> e.ScriptDefinition:
+        row = self._repo.get_script(script_id)
+        if row is None:
+            raise NotFoundError(f"Script {script_id} not found")
+        if any(session.script_id == script_id for session in self._repo.list_sessions()):
+            raise ValidationError("A script attached to a conversation cannot be archived")
+        row.archived = True
+        self._repo.commit()
         return script_to_domain(row)
 
     def current_stage_index(self, session_id: str) -> int:

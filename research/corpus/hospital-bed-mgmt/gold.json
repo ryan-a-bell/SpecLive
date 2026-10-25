@@ -1,0 +1,169 @@
+{
+  "case_id": "hospital-bed-mgmt",
+  "title": "Hospital bed-management modernization (single-speaker monologue)",
+  "system_ref": "system.md",
+  "source_transcript": "transcript.json",
+  "notes": "Single-speaker lecture (all customer turns). Evidence turn_index is 0-based into transcript.turns; quotes are verbatim substrings.",
+  "gold_artifacts": [
+    {
+      "id": "O1",
+      "artifact_type": "objective",
+      "canonical_statement": "Halve ER boarding time; board target is under two hours.",
+      "key_phrases": ["boarding time", "under two", "board"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 3, "quote": "the target the board has set is under two" }
+    },
+    {
+      "id": "N1",
+      "artifact_type": "stakeholder_need",
+      "canonical_statement": "The bed coordinator needs a real-time, rule-aware view of bed availability.",
+      "key_phrases": ["real-time", "rule-aware", "bed availability", "coordinator"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 7, "quote": "a real-time, rule-aware view of bed availability" }
+    },
+    {
+      "id": "N2",
+      "artifact_type": "stakeholder_need",
+      "canonical_statement": "Environmental services needs a notification the moment a room is vacated.",
+      "key_phrases": ["environmental services", "notification", "vacated"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 7, "quote": "environmental services needs a notification the moment a room is vacated" }
+    },
+    {
+      "id": "R1",
+      "artifact_type": "requirement",
+      "canonical_statement": "Automatically notify housekeeping when a bed is ready for cleaning (today it is a manual call/page).",
+      "key_phrases": ["housekeeping", "notified automatically", "notification"],
+      "tier": "must",
+      "implicitness": "paraphrased",
+      "negation": true,
+      "evidence": { "turn_index": 1, "quote": "housekeeping doesn't get notified automatically" }
+    },
+    {
+      "id": "R2",
+      "artifact_type": "requirement",
+      "canonical_statement": "Encode bed-assignment exception rules (isolation, pediatric, post-surgical) in the system.",
+      "key_phrases": ["exception", "rules", "isolation", "pediatric"],
+      "tier": "must",
+      "implicitness": "paraphrased",
+      "negation": false,
+      "evidence": { "turn_index": 2, "quote": "those rules live in the coordinator's head, not in any system" }
+    },
+    {
+      "id": "R3",
+      "artifact_type": "requirement",
+      "canonical_statement": "Integrate with Epic via HL7 as a consumer of bed-status and ADT events.",
+      "key_phrases": ["Epic", "integrate", "HL7", "ADT"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 4, "quote": "integrate with our existing Epic EHR instance" }
+    },
+    {
+      "id": "R4",
+      "artifact_type": "requirement",
+      "canonical_statement": "Enforce HIPAA-scoped, role-based visibility in the system (not by policy alone).",
+      "key_phrases": ["HIPAA", "scoped", "enforced", "access"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 5, "quote": "that access boundary has to be enforced by the system, not just by policy" }
+    },
+    {
+      "id": "C1",
+      "artifact_type": "constraint",
+      "canonical_statement": "Do not replace Epic; Epic remains the system of record.",
+      "key_phrases": ["not replacing Epic", "Epic", "system of record"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": true,
+      "evidence": { "turn_index": 4, "quote": "we are not replacing Epic" }
+    },
+    {
+      "id": "C2",
+      "artifact_type": "constraint",
+      "canonical_statement": "Handle device/connectivity limits: Android handhelds without data plan; Wi-Fi does not reach the sub-basement.",
+      "key_phrases": ["Android handhelds", "Wi-Fi", "sub-basement", "no data plan"],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": true,
+      "evidence": { "turn_index": 4, "quote": "does not reach the sub-basement mechanical areas" }
+    },
+    {
+      "id": "C3",
+      "artifact_type": "constraint",
+      "canonical_statement": "Deliver within ~five months; live before the fiscal year closes at end of June.",
+      "key_phrases": ["end of June", "fiscal year", "five months", "deadline"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 5, "quote": "live before the fiscal year closes at the end of June" }
+    },
+    {
+      "id": "C4",
+      "artifact_type": "constraint",
+      "canonical_statement": "User adoption / clinical-staff trust is itself a requirement.",
+      "key_phrases": ["user adoption", "trust", "requirement"],
+      "tier": "should",
+      "implicitness": "paraphrased",
+      "negation": false,
+      "evidence": { "turn_index": 5, "quote": "user adoption is as much a requirement as any technical spec" }
+    },
+    {
+      "id": "M1",
+      "artifact_type": "success_metric",
+      "canonical_statement": "ER boarding time reduced from ~5 hours toward under 2.",
+      "key_phrases": ["boarding time", "five hours", "hours"],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 3, "quote": "just under five hours today" }
+    },
+    {
+      "id": "M2",
+      "artifact_type": "success_metric",
+      "canonical_statement": "Bed turnover time reduced from 90 minutes to under 40.",
+      "key_phrases": ["turnover", "ninety minutes", "forty"],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 3, "quote": "come down from an average of ninety minutes to under forty" }
+    },
+    {
+      "id": "M3",
+      "artifact_type": "success_metric",
+      "canonical_statement": "Ambulance diversion hours drop by at least half within two quarters of go-live.",
+      "key_phrases": ["diversion", "half", "two quarters"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 3, "quote": "drop by at least half within two quarters of go-live" }
+    },
+    {
+      "id": "Q1",
+      "artifact_type": "open_question",
+      "canonical_statement": "Does EVS need a mobile app or is an SMS/paging trigger enough?",
+      "key_phrases": ["environmental services", "mobile app", "SMS", "paging"],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 6, "quote": "whether environmental services needs a mobile app or whether a simple SMS or paging trigger is enough" }
+    },
+    {
+      "id": "Q2",
+      "artifact_type": "open_question",
+      "canonical_statement": "How to model a clean bed held (reserved) for a specific incoming transfer vs available?",
+      "key_phrases": ["reservation", "held", "incoming transfer", "available"],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 6, "quote": "a bed that's clean and ready but held for a specific incoming transfer" }
+    }
+  ]
+}

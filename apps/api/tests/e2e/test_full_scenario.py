@@ -48,9 +48,10 @@ def test_full_discovery_scenario(client) -> None:  # type: ignore[no-untyped-def
             == 201
         )
 
-    # 3./4. Generate candidate artifacts + evidence via mock analysis.
-    produced = client.post(f"/api/v1/sessions/{session_id}/analyze").json()
-    assert produced, "analysis should derive candidate artifacts"
+    # 3./4. Candidate artifacts + evidence are derived automatically as each
+    # segment is finalized — no explicit analyze call needed.
+    produced = client.get(f"/api/v1/sessions/{session_id}/artifacts").json()
+    assert produced, "auto-analysis should derive candidate artifacts"
     for artifact in produced:
         assert artifact["validation_state"] in {"detected", "inferred"}
 

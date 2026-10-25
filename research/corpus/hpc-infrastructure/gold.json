@@ -1,0 +1,109 @@
+{
+  "case_id": "hpc-infrastructure",
+  "title": "HPC infrastructure discovery (three speakers)",
+  "system_ref": "system.md",
+  "source_transcript": "transcript.json",
+  "notes": "Three-speaker call (facilitator + Marcus + Elena). Evidence turn_index is 0-based into transcript.turns; quotes are verbatim substrings of a non-facilitator turn.",
+  "gold_artifacts": [
+    {
+      "id": "O1",
+      "artifact_type": "objective",
+      "canonical_statement": "Increase compute throughput and cut queue wait at a predictable, defensible cost.",
+      "key_phrases": ["queue", "throughput", "cost", "cloud GPUs"],
+      "tier": "must",
+      "implicitness": "paraphrased",
+      "negation": false,
+      "evidence": { "turn_index": 1, "quote": "Researchers wait days in the queue" }
+    },
+    {
+      "id": "R1",
+      "artifact_type": "requirement",
+      "canonical_statement": "Provide fair-share scheduling with preemption so one job cannot starve others.",
+      "key_phrases": ["fair-share", "scheduler", "preemption", "starves"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 3, "quote": "can't fair-share across teams, so one big job starves everyone" }
+    },
+    {
+      "id": "R2",
+      "artifact_type": "requirement",
+      "canonical_statement": "Provide a parallel filesystem that scales past the current NFS I/O ceiling (~40 nodes).",
+      "key_phrases": ["parallel filesystem", "NFS", "forty nodes", "I O bound"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 3, "quote": "can't feed more than about forty nodes before it falls over" }
+    },
+    {
+      "id": "R3",
+      "artifact_type": "requirement",
+      "canonical_statement": "The design must accommodate a path to a low-latency fabric (InfiniBand) for tightly-coupled jobs.",
+      "key_phrases": ["low-latency fabric", "InfiniBand", "interconnect", "tightly-coupled"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 10, "quote": "have a path to a low-latency fabric" }
+    },
+    {
+      "id": "R4",
+      "artifact_type": "requirement",
+      "canonical_statement": "Enforce auditable multi-tenant isolation on both compute and storage.",
+      "key_phrases": ["tenant separation", "multi-tenant", "isolation", "compute and storage"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 12, "quote": "We need enforced tenant separation on both compute and storage" }
+    },
+    {
+      "id": "C1",
+      "artifact_type": "constraint",
+      "canonical_statement": "On-prem is viable only if three-year total cost beats cloud (predictable spend).",
+      "key_phrases": ["three-year", "total cost", "beats cloud", "predictable spend"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 5, "quote": "only if the three-year total cost beats cloud" }
+    },
+    {
+      "id": "C2",
+      "artifact_type": "constraint",
+      "canonical_statement": "Any on-prem build is gated by data-center power and cooling capacity.",
+      "key_phrases": ["power and cooling", "kilowatts", "per rack", "facilities"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 6, "quote": "Our room is provisioned for maybe twelve per rack" }
+    },
+    {
+      "id": "C3",
+      "artifact_type": "constraint",
+      "canonical_statement": "Patient-derived genomic data must be auditable from day one (top-ranked constraint).",
+      "key_phrases": ["auditable", "compliance", "patient data", "audit"],
+      "tier": "must",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 13, "quote": "Whatever we choose has to be auditable from day one" }
+    },
+    {
+      "id": "D1",
+      "artifact_type": "decision",
+      "canonical_statement": "The tightly-coupled protein-folding initiative is a committed, board-approved direction.",
+      "key_phrases": ["committed", "board approved", "protein-folding"],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 10, "quote": "The board approved a protein-folding initiative last quarter" }
+    },
+    {
+      "id": "RISK1",
+      "artifact_type": "risk",
+      "canonical_statement": "An on-prem build is a facilities project (liquid cooling) on a months-not-weeks timeline.",
+      "key_phrases": ["facilities project", "liquid cooling", "months not weeks", "timeline"],
+      "tier": "should",
+      "implicitness": "explicit",
+      "negation": false,
+      "evidence": { "turn_index": 6, "quote": "it's a facilities project with liquid cooling, and that timeline is months not weeks" }
+    }
+  ]
+}

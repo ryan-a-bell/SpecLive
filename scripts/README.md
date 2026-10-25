@@ -56,11 +56,15 @@ Ready-to-stream synthetic discovery calls live in
 
 | File | Speakers | Topic |
 |------|----------|-------|
+| [`hospital_bed_management_lecture.json`](conversations/hospital_bed_management_lecture.json) | 1 (Dr. Naomi Fields, monologue/lecture) | Hospital bed management modernization — boarding time, bed turnover, Epic/HL7 integration, HIPAA-scoped visibility, open questions |
 | [`iot_warehouse_ml_pipeline.json`](conversations/iot_warehouse_ml_pipeline.json) | 2 (Ryan ↔ Priya) | Setting up an ML pipeline for an IoT warehouse — predictive maintenance, edge inference, drift/retraining, data residency |
 | [`hpc_infrastructure.json`](conversations/hpc_infrastructure.json) | 3 (Ryan / Marcus / Elena) | HPC infrastructure — scheduling, parallel storage, power & cooling, interconnect, multi-tenant isolation |
 
-Each is written as a real facilitator-led discovery dialogue, so it also gives
-the derivation layer objectives, requirements, constraints, and risks to chew on.
+The two- and three-speaker scripts are real facilitator-led discovery
+dialogues; the one-speaker script is a single continuous narrative (no
+interviewer turns at all), so it exercises requirement derivation from
+monologue text instead of a question/answer exchange. Each gives the
+derivation layer objectives, requirements, constraints, and risks to chew on.
 
 ### Watching speaker detection play out (auto mode)
 

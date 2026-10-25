@@ -17,6 +17,8 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from sqlalchemy import update
+
 from .database import SessionLocal, create_all
 from .db import models as m
 from .logging import configure_logging, get_logger
@@ -105,6 +107,14 @@ def seed(*, if_empty: bool = False) -> str:
         s = data["session"]
         meta = dict(s.get("metadata", {}))
         meta["coverage"] = data.get("coverage", {})
+        if s["status"] == "active":
+            db.execute(
+                update(m.DiscoverySessionORM)
+                .where(m.DiscoverySessionORM.status == "active")
+                .where(m.DiscoverySessionORM.id != s["id"])
+                .values(status="paused")
+            )
+            db.flush()
         db.add(
             m.DiscoverySessionORM(
                 id=s["id"],

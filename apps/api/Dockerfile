@@ -8,6 +8,12 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+# ffmpeg decodes uploaded recordings (MP3/M4A/etc.) to canonical PCM for the
+# file-transcription endpoint. WAV uploads are handled without it.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies first for better layer caching.
 COPY apps/api/pyproject.toml README.md ./
 RUN pip install --upgrade pip && pip install -e ".[local]"

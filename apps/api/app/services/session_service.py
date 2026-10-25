@@ -28,6 +28,7 @@ class SessionService:
         script_id: str | None = None,
         metadata: dict | None = None,
     ) -> e.DiscoverySession:
+        self._repo.pause_active_sessions()
         row = m.DiscoverySessionORM(
             id=str(uuid4()),
             title=title,
@@ -51,6 +52,12 @@ class SessionService:
     def list(self) -> list[e.DiscoverySession]:
         return [session_to_domain(r) for r in self._repo.list_sessions()]
 
+    def delete(self, session_id: str) -> None:
+        if self._repo.get_session(session_id) is None:
+            raise NotFoundError(f"Session {session_id} not found")
+        self._repo.delete_session(session_id)
+        self._repo.commit()
+
     def patch(self, session_id: str, **changes: object) -> e.DiscoverySession:
         row = self._repo.get_session(session_id)
         if row is None:
@@ -62,7 +69,14 @@ class SessionService:
             attr = field_map.get(key, key)
             if key == "status":
                 value = SessionStatus(value).value
-                if value == SessionStatus.COMPLETED.value:
+                if value == SessionStatus.ACTIVE.value:
+                    self._repo.pause_active_sessions(except_session_id=session_id)
+                    row.started_at = row.started_at or datetime.now(UTC)
+                    row.ended_at = None
+                elif value in {
+                    SessionStatus.COMPLETED.value,
+                    SessionStatus.ARCHIVED.value,
+                }:
                     row.ended_at = datetime.now(UTC)
             if key == "script_id" and value != row.script_id:
                 # Switching scripts restarts advancement at the first stage.

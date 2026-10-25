@@ -19,7 +19,7 @@ export function DiscoveryTree({ sessionId }: { sessionId: string }) {
       ))}
       {tree.data && tree.data.roots.length === 0 && (
         <p className="text-xs text-[var(--muted)]">
-          No artifacts yet. Add a statement and analyze to populate the tree.
+          No artifacts yet. Add a statement — the model drafts discovery nodes automatically.
         </p>
       )}
     </Panel>

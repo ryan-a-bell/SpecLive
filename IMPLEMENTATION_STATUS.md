@@ -21,6 +21,7 @@ succeeds; migrations + seed + export run.
 | Guided script panel | ✅ | `ScriptService`, `GuidedScriptPanel` |
 | Git-style branch visualization | ✅ | `GitBranchView` |
 | Conversation subway visualization | ✅ | `SubwayView` |
+| Transcript → conversation-graph builder | ✅ | `ConversationGraphService`, `/conversation-graph/build` (input-parity for imported transcripts) |
 | Coverage matrix | ✅ | `CoverageService`, `CoverageMatrix` |
 | Human confirmation workflow | ✅ | lifecycle rules + `/confirm`/`/reject`/`/merge` |
 | JSON and Markdown export | ✅ | `exporters/`, `ExportService` |

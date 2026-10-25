@@ -1,0 +1,82 @@
+{
+  "title": "SpecLive product-requirements discovery (self-referential, 2 speakers)",
+  "customer": "SpecLive product team",
+  "facilitator": "Ryan",
+  "turns": [
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "You're building a copilot for live customer discovery calls. In one sentence, what does it have to do?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Dana",
+      "text": "As a discovery call happens, it has to listen to the conversation and derive candidate requirements in real time — objectives, needs, constraints, risks — and keep every single one traceable back to the exact words in the transcript that produced it."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "Traceable how, concretely? What has to be recorded for each derived item?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Dana",
+      "text": "Every candidate artifact has to record its source evidence, an interpretation rationale, a confidence score, the derivation method, and a validation state. If I can't see why the tool proposed a requirement, I won't trust it."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "What's the rule about confirming a requirement the model only inferred?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Dana",
+      "text": "A model-inferred requirement must never be marked customer-confirmed without an explicit human action. Human validation before baselining is non-negotiable — that's the whole point of the tool."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "How does the transcript get in? Live microphone only?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Dana",
+      "text": "Live microphone over a streaming connection is the main path, but we also need to upload a recorded file and run it through the exact same pipeline, so an upload yields the same segments and derived artifacts as the live call."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "Any constraint on the speech-to-text side?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Dana",
+      "text": "Speech-to-text has to be provider-neutral — a mock, a local model, or a hosted vendor — and the provider credentials must stay server-side, never in the browser. And it has to run with no API keys at all by default, so anyone can try it."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "You mentioned a script earlier. Where does that fit?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Dana",
+      "text": "The facilitator follows a configurable discovery script, but a customer answer can spawn a conversation branch, and each branch has to keep its own evidence and derived artifacts. The scripted flow stays the anchor."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "And at the end of a session?"
+    },
+    {
+      "speaker": "customer",
+      "speaker_name": "Dana",
+      "text": "At the end we export a structured discovery package as JSON and Markdown. That package is the deliverable — the requirements with their evidence, ready to hand to whoever architects the solution."
+    },
+    {
+      "speaker": "facilitator",
+      "speaker_name": "Ryan",
+      "text": "Great — real-time evidence-traced derivation, human confirmation before baseline, provider-neutral speech-to-text, scripted flow plus branches, and a JSON and Markdown export. Let me play those back."
+    }
+  ]
+}

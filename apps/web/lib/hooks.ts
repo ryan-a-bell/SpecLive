@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api";
 
 const keys = {
+  sessions: ["sessions"] as const,
+  workspaces: ["workspaces"] as const,
   session: (id: string) => ["session", id] as const,
   transcript: (id: string) => ["transcript", id] as const,
   artifacts: (id: string) => ["artifacts", id] as const,
@@ -16,10 +18,79 @@ const keys = {
   script: (id: string) => ["script", id] as const,
   scripts: ["scripts"] as const,
   transcriptionCapability: ["transcription-capability"] as const,
+  analysisSettings: ["analysis-settings"] as const,
+  storageSettings: ["storage-settings"] as const,
 };
+
+export function useSessions() {
+  return useQuery({
+    queryKey: keys.sessions,
+    queryFn: () => api.listSessions(),
+    staleTime: 15_000,
+  });
+}
 
 export function useSession(id: string) {
   return useQuery({ queryKey: keys.session(id), queryFn: () => api.getSession(id) });
+}
+
+export function useCreateSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Parameters<typeof api.createSession>[0]) => api.createSession(body),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: keys.sessions }),
+        queryClient.invalidateQueries({ queryKey: keys.workspaces }),
+      ]),
+  });
+}
+
+export function useUpdateSession(sessionId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Parameters<typeof api.patchSession>[1]) => api.patchSession(sessionId, body),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: keys.session(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: keys.sessions }),
+        queryClient.invalidateQueries({ queryKey: keys.workspaces }),
+      ]),
+  });
+}
+
+export function useDeleteSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) => api.deleteSession(sessionId),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: keys.sessions }),
+        queryClient.invalidateQueries({ queryKey: keys.workspaces }),
+      ]),
+  });
+}
+
+export function useCreateWorkspace() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Parameters<typeof api.createWorkspace>[0]) => api.createWorkspace(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.workspaces }),
+  });
+}
+
+export function useUpdateWorkspace() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      workspaceId,
+      body,
+    }: {
+      workspaceId: string;
+      body: Parameters<typeof api.patchWorkspace>[1];
+    }) => api.patchWorkspace(workspaceId, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.workspaces }),
+  });
 }
 
 export function useTranscript(id: string) {
@@ -76,6 +147,36 @@ export function useScripts() {
   });
 }
 
+export function useCreateScript() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Parameters<typeof api.createScript>[0]) => api.createScript(body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.scripts }),
+  });
+}
+
+export function useUpdateScript() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      scriptId,
+      body,
+    }: {
+      scriptId: string;
+      body: Parameters<typeof api.updateScript>[1];
+    }) => api.updateScript(scriptId, body),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.scripts }),
+  });
+}
+
+export function useArchiveScript() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (scriptId: string) => api.archiveScript(scriptId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.scripts }),
+  });
+}
+
 export function useSetSessionScript(sessionId: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -95,6 +196,22 @@ export function useTranscriptionCapability() {
     queryKey: keys.transcriptionCapability,
     queryFn: api.getTranscriptionCapability,
     staleTime: 30_000,
+  });
+}
+
+export function useAnalysisSettings() {
+  return useQuery({
+    queryKey: keys.analysisSettings,
+    queryFn: api.getAnalysisSettings,
+    staleTime: 60_000,
+  });
+}
+
+export function useStorageSettings() {
+  return useQuery({
+    queryKey: keys.storageSettings,
+    queryFn: api.getStorageSettings,
+    staleTime: 60_000,
   });
 }
 
@@ -136,11 +253,6 @@ export function useCorrectTranscriptSpeaker(id: string) {
   });
 }
 
-export function useAnalyze(id: string) {
-  const invalidate = useInvalidateSession(id);
-  return useMutation({ mutationFn: () => api.analyze(id), onSuccess: invalidate });
-}
-
 export function useAdvanceScript(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -157,6 +269,32 @@ export function useConfirmArtifact(sessionId: string) {
 export function useRejectArtifact(sessionId: string) {
   const invalidate = useInvalidateSession(sessionId);
   return useMutation({ mutationFn: (id: string) => api.rejectArtifact(id), onSuccess: invalidate });
+}
+
+/**
+ * Confirm/reject an artifact from a workspace-level surface (the Validation
+ * inbox), where each item belongs to a different conversation. The session id
+ * travels with the mutation so the right conversation's queries are refreshed.
+ */
+export function useReviewActions() {
+  const queryClient = useQueryClient();
+  const invalidateSession = (sessionId: string) =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: keys.artifacts(sessionId) }),
+      queryClient.invalidateQueries({ queryKey: keys.sessionEvidence(sessionId) }),
+      queryClient.invalidateQueries({ queryKey: keys.tree(sessionId) }),
+      queryClient.invalidateQueries({ queryKey: keys.coverage(sessionId) }),
+      queryClient.invalidateQueries({ queryKey: keys.recommendations(sessionId) }),
+    ]);
+  const confirm = useMutation({
+    mutationFn: (v: { artifactId: string; sessionId: string }) => api.confirmArtifact(v.artifactId),
+    onSuccess: (_data, v) => invalidateSession(v.sessionId),
+  });
+  const reject = useMutation({
+    mutationFn: (v: { artifactId: string; sessionId: string }) => api.rejectArtifact(v.artifactId),
+    onSuccess: (_data, v) => invalidateSession(v.sessionId),
+  });
+  return { confirm, reject };
 }
 
 export { keys as queryKeys };

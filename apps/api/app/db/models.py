@@ -14,9 +14,12 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
+    LargeBinary,
     String,
     Text,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -27,8 +30,29 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+class WorkspaceProfileORM(Base):
+    __tablename__ = "workspace_profiles"
+
+    id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    description: Mapped[str] = mapped_column(Text, default="")
+    industry: Mapped[str] = mapped_column(String(255), default="")
+    website: Mapped[str] = mapped_column(String(500), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class DiscoverySessionORM(Base):
     __tablename__ = "discovery_sessions"
+    __table_args__ = (
+        Index(
+            "uq_discovery_sessions_one_active",
+            "status",
+            unique=True,
+            sqlite_where=text("status = 'active'"),
+            postgresql_where=text("status = 'active'"),
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     title: Mapped[str] = mapped_column(String(255))
@@ -141,6 +165,7 @@ class ScriptDefinitionORM(Base):
     name: Mapped[str] = mapped_column(String(255))
     version: Mapped[str] = mapped_column(String(32), default="1.0.0")
     description: Mapped[str] = mapped_column(Text, default="")
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
 
     stages: Mapped[list[ScriptStageORM]] = relationship(
         back_populates="script", cascade="all, delete-orphan", order_by="ScriptStageORM.sequence"
@@ -181,6 +206,28 @@ class ConversationBranchORM(Base):
         back_populates="branch",
         cascade="all, delete-orphan",
         order_by="ConversationNodeORM.sequence",
+    )
+
+
+class StoredBlobORM(Base):
+    """Binary content persisted when STORAGE_BACKEND=database.
+
+    Keyed by the same relative path the local backend would use on disk (see
+    app/storage/layout.py), so the two backends are interchangeable. Rows hold
+    recordings, rendered transcripts, requirement snapshots and exports; the
+    canonical structured data still lives in its own relational tables.
+    """
+
+    __tablename__ = "stored_blobs"
+
+    path: Mapped[str] = mapped_column(String(1024), primary_key=True)
+    media_type: Mapped[str] = mapped_column(String(128), default="application/octet-stream")
+    size_bytes: Mapped[int] = mapped_column(Integer, default=0)
+    sha256: Mapped[str] = mapped_column(String(64), default="")
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, onupdate=_now
     )
 
 

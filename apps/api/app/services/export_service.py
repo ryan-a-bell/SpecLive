@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-from ..domain.enums import ArtifactType, ValidationState
+from ..domain.enums import ArtifactType, ContextScope, ValidationState
 from ..exporters import get_exporter
 from ..repositories import SessionRepository
 from ..repositories.mappers import (
@@ -24,16 +24,25 @@ class ExportService:
     def __init__(self, repo: SessionRepository) -> None:
         self._repo = repo
 
-    def build_package(self, session_id: str) -> dict[str, Any]:
+    def build_package(
+        self, session_id: str, *, scope: ContextScope = ContextScope.ALL
+    ) -> dict[str, Any]:
         session_row = self._repo.get_session(session_id)
         if session_row is None:
             raise NotFoundError(f"Session {session_id} not found")
         session = session_to_domain(session_row)
 
+        def _included(a) -> bool:  # type: ignore[no-untyped-def]
+            if a.validation_state in _HIDDEN:
+                return False
+            if scope is ContextScope.BASELINE:
+                return a.validation_state in _CONFIRMED
+            return True
+
         artifacts = [
             a
             for a in (artifact_to_domain(r) for r in self._repo.list_artifacts(session_id))
-            if a.validation_state not in _HIDDEN
+            if _included(a)
         ]
         evidence = [evidence_to_domain(r) for r in self._repo.list_evidence(session_id)]
         ev_by_artifact: dict[str, list] = {}
