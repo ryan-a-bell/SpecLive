@@ -1,0 +1,455 @@
+{
+  "schema": "speclive.specification_baseline.v0.1",
+  "metadata": {
+    "baseline_id": "BL-SPECLIVE-001",
+    "version": "1.0.0",
+    "session_id": "DEMO-F08-EDGE",
+    "reviewer": "Demo Reviewer",
+    "authority_role": "Lead Systems Engineer",
+    "release_statement": "Demonstration of human-reviewed technical baseline for review workshop.",
+    "sealed_at": "2026-10-25T15:11:01.663Z",
+    "prototype": true,
+    "synthetic_demo": true,
+    "revision": 1
+  },
+  "requirements": [
+    {
+      "requirement_id": "R-001",
+      "disposition": "approved",
+      "kind": "explicit",
+      "scope": "MISSION_ALERTS",
+      "statement": "Core mission alerts shall remain available when external network connectivity is unavailable.",
+      "original_proposal": "Core mission alerts shall remain available when external network connectivity is unavailable.",
+      "verification_method": "Integration demonstration",
+      "evidence_ids": [
+        "DEMO-F08-EDGE:E-0002"
+      ],
+      "reviewer": "Demo Reviewer",
+      "reviewer_role": "Lead Systems Engineer",
+      "approved_at": "2026-10-25T15:11:00.679Z",
+      "rationale": "Confirmed operational need by accountable engineer."
+    },
+    {
+      "requirement_id": "R-002",
+      "disposition": "approved",
+      "kind": "explicit",
+      "scope": "MISSION_ALERTS",
+      "statement": "Mission alerts shall be computed onboard during disconnection without requiring a cloud round trip.",
+      "original_proposal": "Mission alerts shall be computed onboard during disconnection without requiring a cloud round trip.",
+      "verification_method": "Integration demonstration",
+      "evidence_ids": [
+        "DEMO-F08-EDGE:E-0005"
+      ],
+      "reviewer": "Demo Reviewer",
+      "reviewer_role": "Lead Systems Engineer",
+      "approved_at": "2026-10-25T15:11:00.796Z",
+      "rationale": "Confirmed operational need by accountable engineer."
+    },
+    {
+      "requirement_id": "R-003",
+      "disposition": "approved",
+      "kind": "explicit",
+      "scope": "DATA_SYNCHRONIZATION",
+      "statement": "Locally buffered records shall be synchronized with the cloud when connectivity is restored.",
+      "original_proposal": "Locally buffered records shall be synchronized with the cloud when connectivity is restored.",
+      "verification_method": "Integration demonstration",
+      "evidence_ids": [
+        "DEMO-F08-EDGE:E-0008"
+      ],
+      "reviewer": "Demo Reviewer",
+      "reviewer_role": "Lead Systems Engineer",
+      "approved_at": "2026-10-25T15:11:00.913Z",
+      "rationale": "Confirmed operational need by accountable engineer."
+    },
+    {
+      "requirement_id": "R-004",
+      "disposition": "approved",
+      "kind": "explicit",
+      "scope": "CYBERSECURITY",
+      "statement": "Offline authentication shall continue to enforce operator roles.",
+      "original_proposal": "Offline authentication shall continue to enforce operator roles.",
+      "verification_method": "Integration demonstration",
+      "evidence_ids": [
+        "DEMO-F08-EDGE:E-0009"
+      ],
+      "reviewer": "Demo Reviewer",
+      "reviewer_role": "Lead Systems Engineer",
+      "approved_at": "2026-10-25T15:11:01.030Z",
+      "rationale": "Confirmed operational need by accountable engineer."
+    },
+    {
+      "requirement_id": "R-005",
+      "disposition": "approved",
+      "kind": "explicit",
+      "scope": "CYBERSECURITY",
+      "statement": "Sensitive data stored locally shall be encrypted at rest.",
+      "original_proposal": "Sensitive data stored locally shall be encrypted at rest.",
+      "verification_method": "Integration demonstration",
+      "evidence_ids": [
+        "DEMO-F08-EDGE:E-0010"
+      ],
+      "reviewer": "Demo Reviewer",
+      "reviewer_role": "Lead Systems Engineer",
+      "approved_at": "2026-10-25T15:11:01.146Z",
+      "rationale": "Confirmed operational need by accountable engineer."
+    }
+  ],
+  "dispositions": [
+    {
+      "id": "R-001",
+      "status": "approved",
+      "statement": "Core mission alerts shall remain available when external network connectivity is unavailable.",
+      "original_statement": "Core mission alerts shall remain available when external network connectivity is unavailable.",
+      "evidence_ids": [
+        "DEMO-F08-EDGE:E-0002"
+      ],
+      "reviewer": "Demo Reviewer",
+      "note": "Confirmed operational need by accountable engineer."
+    },
+    {
+      "id": "R-002",
+      "status": "approved",
+      "statement": "Mission alerts shall be computed onboard during disconnection without requiring a cloud round trip.",
+      "original_statement": "Mission alerts shall be computed onboard during disconnection without requiring a cloud round trip.",
+      "evidence_ids": [
+        "DEMO-F08-EDGE:E-0005"
+      ],
+      "reviewer": "Demo Reviewer",
+      "note": "Confirmed operational need by accountable engineer."
+    },
+    {
+      "id": "R-003",
+      "status": "approved",
+      "statement": "Locally buffered records shall be synchronized with the cloud when connectivity is restored.",
+      "original_statement": "Locally buffered records shall be synchronized with the cloud when connectivity is restored.",
+      "evidence_ids": [
+        "DEMO-F08-EDGE:E-0008"
+      ],
+      "reviewer": "Demo Reviewer",
+      "note": "Confirmed operational need by accountable engineer."
+    },
+    {
+      "id": "R-004",
+      "status": "approved",
+      "statement": "Offline authentication shall continue to enforce operator roles.",
+      "original_statement": "Offline authentication shall continue to enforce operator roles.",
+      "evidence_ids": [
+        "DEMO-F08-EDGE:E-0009"
+      ],
+      "reviewer": "Demo Reviewer",
+      "note": "Confirmed operational need by accountable engineer."
+    },
+    {
+      "id": "R-005",
+      "status": "approved",
+      "statement": "Sensitive data stored locally shall be encrypted at rest.",
+      "original_statement": "Sensitive data stored locally shall be encrypted at rest.",
+      "evidence_ids": [
+        "DEMO-F08-EDGE:E-0010"
+      ],
+      "reviewer": "Demo Reviewer",
+      "note": "Confirmed operational need by accountable engineer."
+    },
+    {
+      "id": "R-006",
+      "status": "reject",
+      "statement": "Hypothesis: the onboard subsystem may need locally available alert reference data during disconnection.",
+      "original_statement": "Hypothesis: the onboard subsystem may need locally available alert reference data during disconnection.",
+      "evidence_ids": [
+        "DEMO-F08-EDGE:E-0002",
+        "DEMO-F08-EDGE:E-0005"
+      ],
+      "reviewer": "Demo Reviewer",
+      "note": "Architectural interpretation unproven or optional."
+    },
+    {
+      "id": "R-007",
+      "status": "reject",
+      "statement": "Option proposed: cache up to two days of data on the edge device (not an approved requirement).",
+      "original_statement": "Option proposed: cache up to two days of data on the edge device (not an approved requirement).",
+      "evidence_ids": [
+        "DEMO-F08-EDGE:E-0004"
+      ],
+      "reviewer": "Demo Reviewer",
+      "note": "Architectural interpretation unproven or optional."
+    }
+  ],
+  "issues": [
+    {
+      "id": "ISS-01",
+      "type": "potential_conflict",
+      "title": "Cloud-only processing rule versus onboard alert computation",
+      "status": "resolved",
+      "rationale": "Reviewed scope and allowed onboard processing for critical alert functions.",
+      "waiver": "",
+      "evidence_ids": [
+        "DEMO-F08-EDGE:E-0003",
+        "DEMO-F08-EDGE:E-0005"
+      ],
+      "decided_by": "Demo Reviewer",
+      "decided_at": "2026-10-25T15:11:01.495Z"
+    },
+    {
+      "id": "ISS-02",
+      "type": "scope_ambiguity",
+      "title": "Clarification of cloud policy exception",
+      "status": "resolved",
+      "rationale": "Reviewed scope and allowed onboard processing for critical alert functions.",
+      "waiver": "",
+      "evidence_ids": [
+        "DEMO-F08-EDGE:E-0003",
+        "DEMO-F08-EDGE:E-0007"
+      ],
+      "decided_by": "Demo Reviewer",
+      "decided_at": "2026-10-25T15:11:01.579Z"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "DEMO-F08-EDGE:E-0001",
+      "speaker_name": "Facilitator",
+      "text": "What functions must work when our network drops?",
+      "start_ms": 1000,
+      "end_ms": 4500,
+      "revision": 1,
+      "clock_status": "synthetic_shared",
+      "verified": true,
+      "verification": null,
+      "source": "scripted_demo"
+    },
+    {
+      "evidence_id": "DEMO-F08-EDGE:E-0002",
+      "speaker_name": "Operator",
+      "text": "Core mission alerts must operate without connectivity.",
+      "start_ms": 7100,
+      "end_ms": 10600,
+      "revision": 1,
+      "clock_status": "synthetic_shared",
+      "verified": true,
+      "verification": null,
+      "source": "scripted_demo"
+    },
+    {
+      "evidence_id": "DEMO-F08-EDGE:E-0003",
+      "speaker_name": "Architect",
+      "text": "All mission decision processing must happen in the cloud only.",
+      "start_ms": 13200,
+      "end_ms": 16700,
+      "revision": 1,
+      "clock_status": "synthetic_shared",
+      "verified": true,
+      "verification": null,
+      "source": "scripted_demo"
+    },
+    {
+      "evidence_id": "DEMO-F08-EDGE:E-0004",
+      "speaker_name": "Engineer",
+      "text": "We could cache local data for two days on the edge device.",
+      "start_ms": 19300,
+      "end_ms": 22800,
+      "revision": 1,
+      "clock_status": "synthetic_shared",
+      "verified": true,
+      "verification": null,
+      "source": "scripted_demo"
+    },
+    {
+      "evidence_id": "DEMO-F08-EDGE:E-0005",
+      "speaker_name": "Operator",
+      "text": "Mission alerts must be computed onboard while disconnected, without a cloud round trip.",
+      "start_ms": 25400,
+      "end_ms": 28900,
+      "revision": 1,
+      "clock_status": "synthetic_shared",
+      "verified": true,
+      "verification": null,
+      "source": "scripted_demo"
+    },
+    {
+      "evidence_id": "DEMO-F08-EDGE:E-0006",
+      "speaker_name": "Facilitator",
+      "text": "Does the cloud-only policy include safety-critical mission alerts?",
+      "start_ms": 31500,
+      "end_ms": 35000,
+      "revision": 1,
+      "clock_status": "synthetic_shared",
+      "verified": true,
+      "verification": null,
+      "source": "scripted_demo"
+    },
+    {
+      "evidence_id": "DEMO-F08-EDGE:E-0007",
+      "speaker_name": "Architect",
+      "text": "Advanced analytics can wait for cloud connectivity, but mission alerts may operate at the edge.",
+      "start_ms": 37600,
+      "end_ms": 41100,
+      "revision": 1,
+      "clock_status": "synthetic_shared",
+      "verified": true,
+      "verification": null,
+      "source": "scripted_demo"
+    },
+    {
+      "evidence_id": "DEMO-F08-EDGE:E-0008",
+      "speaker_name": "Engineer",
+      "text": "When the connection returns we need to synchronize locally buffered records to the cloud.",
+      "start_ms": 43700,
+      "end_ms": 47200,
+      "revision": 1,
+      "clock_status": "synthetic_shared",
+      "verified": true,
+      "verification": null,
+      "source": "scripted_demo"
+    },
+    {
+      "evidence_id": "DEMO-F08-EDGE:E-0009",
+      "speaker_name": "Operator",
+      "text": "Offline authentication must continue to enforce operator roles.",
+      "start_ms": 49800,
+      "end_ms": 53300,
+      "revision": 1,
+      "clock_status": "synthetic_shared",
+      "verified": true,
+      "verification": null,
+      "source": "scripted_demo"
+    },
+    {
+      "evidence_id": "DEMO-F08-EDGE:E-0010",
+      "speaker_name": "Engineer",
+      "text": "All locally stored sensitive data must be encrypted at rest.",
+      "start_ms": 55900,
+      "end_ms": 59400,
+      "revision": 1,
+      "clock_status": "synthetic_shared",
+      "verified": true,
+      "verification": null,
+      "source": "scripted_demo"
+    },
+    {
+      "evidence_id": "DEMO-F08-EDGE:E-0011",
+      "speaker_name": "Facilitator",
+      "text": "What acceptance test will confirm that offline mission alerts work?",
+      "start_ms": 62000,
+      "end_ms": 65500,
+      "revision": 1,
+      "clock_status": "synthetic_shared",
+      "verified": true,
+      "verification": null,
+      "source": "scripted_demo"
+    },
+    {
+      "evidence_id": "DEMO-F08-EDGE:E-0012",
+      "speaker_name": "Operator",
+      "text": "The integration team should demonstrate failover and verify that alerts remain available offline.",
+      "start_ms": 68100,
+      "end_ms": 71600,
+      "revision": 1,
+      "clock_status": "synthetic_shared",
+      "verified": true,
+      "verification": null,
+      "source": "scripted_demo"
+    }
+  ],
+  "coaching_responses": [],
+  "source_schemas": {
+    "F04": "speclive.evidence.v0.1 (simulated)",
+    "F06": "speclive.requirements_intelligence.v0.1 (simulated)"
+  },
+  "audit": [
+    {
+      "seq": 1,
+      "at": "2026-10-25T15:11:00.283Z",
+      "type": "demo.loaded",
+      "id": "DEMO-F08-EDGE",
+      "detail": "Illustrative meeting initialized; no human approvals prefilled",
+      "reviewer": "UNIDENTIFIED (prototype)"
+    },
+    {
+      "seq": 2,
+      "at": "2026-10-25T15:11:00.679Z",
+      "type": "requirement.approved",
+      "id": "R-001",
+      "detail": "Confirmed operational need by accountable engineer. | Citations: DEMO-F08-EDGE:E-0002",
+      "reviewer": "Demo Reviewer"
+    },
+    {
+      "seq": 3,
+      "at": "2026-10-25T15:11:00.796Z",
+      "type": "requirement.approved",
+      "id": "R-002",
+      "detail": "Confirmed operational need by accountable engineer. | Citations: DEMO-F08-EDGE:E-0005",
+      "reviewer": "Demo Reviewer"
+    },
+    {
+      "seq": 4,
+      "at": "2026-10-25T15:11:00.913Z",
+      "type": "requirement.approved",
+      "id": "R-003",
+      "detail": "Confirmed operational need by accountable engineer. | Citations: DEMO-F08-EDGE:E-0008",
+      "reviewer": "Demo Reviewer"
+    },
+    {
+      "seq": 5,
+      "at": "2026-10-25T15:11:01.030Z",
+      "type": "requirement.approved",
+      "id": "R-004",
+      "detail": "Confirmed operational need by accountable engineer. | Citations: DEMO-F08-EDGE:E-0009",
+      "reviewer": "Demo Reviewer"
+    },
+    {
+      "seq": 6,
+      "at": "2026-10-25T15:11:01.146Z",
+      "type": "requirement.approved",
+      "id": "R-005",
+      "detail": "Confirmed operational need by accountable engineer. | Citations: DEMO-F08-EDGE:E-0010",
+      "reviewer": "Demo Reviewer"
+    },
+    {
+      "seq": 7,
+      "at": "2026-10-25T15:11:01.246Z",
+      "type": "requirement.reject",
+      "id": "R-006",
+      "detail": "Architectural interpretation unproven or optional. | Citations: DEMO-F08-EDGE:E-0002, DEMO-F08-EDGE:E-0005",
+      "reviewer": "Demo Reviewer"
+    },
+    {
+      "seq": 8,
+      "at": "2026-10-25T15:11:01.345Z",
+      "type": "requirement.reject",
+      "id": "R-007",
+      "detail": "Architectural interpretation unproven or optional. | Citations: DEMO-F08-EDGE:E-0004",
+      "reviewer": "Demo Reviewer"
+    },
+    {
+      "seq": 9,
+      "at": "2026-10-25T15:11:01.495Z",
+      "type": "issue.resolved",
+      "id": "ISS-01",
+      "detail": "Reviewed scope and allowed onboard processing for critical alert functions. | waiver=",
+      "reviewer": "Demo Reviewer"
+    },
+    {
+      "seq": 10,
+      "at": "2026-10-25T15:11:01.579Z",
+      "type": "issue.resolved",
+      "id": "ISS-02",
+      "detail": "Reviewed scope and allowed onboard processing for critical alert functions. | waiver=",
+      "reviewer": "Demo Reviewer"
+    },
+    {
+      "seq": 11,
+      "at": "2026-10-25T15:11:01.663Z",
+      "type": "baseline.sealed",
+      "id": "BL-SPECLIVE-001",
+      "detail": "Version 1.0.0; reviewer Demo Reviewer",
+      "reviewer": "Demo Reviewer"
+    }
+  ],
+  "limitations": [
+    "Prototype review records are not authenticated digital signatures",
+    "Human approval cannot establish correctness without technical verification",
+    "Imported transcript attribution and clock synchronization require independent assurance"
+  ],
+  "sha256": "0379d2802a6f13f5900eca690350330dd633f814e7284775d77778eb4528638e",
+  "hash_scope": "SHA-256 of JSON.stringify(payload excluding sha256 and hash_scope)"
+}
